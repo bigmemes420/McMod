@@ -1,4 +1,4 @@
-# Example Mod
+# Rooty Menu
 
 ## Setup
 
@@ -6,7 +6,9 @@ For setup instructions, please see the [Fabric Documentation page](https://docs.
 
 ## Features
 
-- **Example Menu**: Press **Insert** (rebindable in Options → Controls) to open a simple client menu with a Close button. Esc also closes the menu.
+- **Rooty Menu**: Press **Insert** (rebindable in Options → Controls) to open the client menu. Esc also closes the menu.
+- Custom-drawn UI (no stock Minecraft button textures): top-bar tabs (General / Visuals / Misc), capsule submenu buttons (circle on the left joined to a flat rectangle on the right), and a Close control in the top-right corner.
+- Capsule shape reference (docs asset): `assets/modid/textures/gui/capsule_button_reference.png`
 
 ## License
 

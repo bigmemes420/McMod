@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "modid",
 	"version": "${version}",
-	"name": "Example Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Rooty Menu",
+	"description": "Rooty Menu \u2014 custom Fabric client menu (Insert to open).",
 	"authors": [
 		"Me!"
 	],
