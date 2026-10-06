@@ -3,6 +3,11 @@ package com.example.client.config;
 import com.example.ExampleMod;
 import com.example.client.ExampleMenuScreen;
 import com.example.client.module.AutoClickerModule;
+import com.example.client.module.TriggerBotModule;
+import com.example.client.module.HitboxesModule;
+import com.example.client.module.CriticalsModule;
+import com.example.client.module.AutoTotemModule;
+import com.example.client.module.AimAssistModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FullbrightModule;
@@ -84,6 +89,16 @@ public final class ModConfig {
 		VelocityModule.loadPercent(floatVal(props, "velocityPercent", VelocityModule.DEFAULT_PERCENT));
 		ReachModule.loadEnabled(bool(props, "reach", false));
 		ReachModule.loadBonus(floatVal(props, "reachBonus", ReachModule.DEFAULT_BONUS));
+
+		CriticalsModule.loadEnabled(bool(props, "criticals", false));
+		TriggerBotModule.loadEnabled(bool(props, "triggerbot", false));
+		TriggerBotModule.loadDelay(floatVal(props, "triggerbotDelay", TriggerBotModule.DEFAULT_DELAY));
+		AimAssistModule.loadEnabled(bool(props, "aimassist", false));
+		AimAssistModule.loadStrength(floatVal(props, "aimassistStrength", AimAssistModule.DEFAULT_STRENGTH));
+		AimAssistModule.loadRange(floatVal(props, "aimassistRange", AimAssistModule.DEFAULT_RANGE));
+		HitboxesModule.loadEnabled(bool(props, "hitboxes", false));
+		HitboxesModule.loadSize(floatVal(props, "hitboxesSize", HitboxesModule.DEFAULT_SIZE));
+		AutoTotemModule.loadEnabled(bool(props, "autototem", false));
 		NotificationsModule.loadEnabled(bool(props, "notifications", true));
 		ExampleMenuScreen.loadLastTab(props.getProperty("lastTab", "GENERAL"));
 	}

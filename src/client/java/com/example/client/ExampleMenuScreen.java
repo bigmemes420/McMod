@@ -2,21 +2,27 @@ package com.example.client;
 
 import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
+import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoClickerModule;
+import com.example.client.module.AutoTotemModule;
+import com.example.client.module.CriticalsModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FullbrightModule;
+import com.example.client.module.HitboxesModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
 import com.example.client.module.PlayerOutlinesModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SpeedModule;
+import com.example.client.module.TriggerBotModule;
 import com.example.client.module.VelocityModule;
 import com.example.client.module.XRayModule;
 import com.example.client.widget.CapsuleButton;
+import com.example.client.widget.CogButton;
 import com.example.client.widget.FlatMenuButton;
-import com.example.client.widget.LevelCapsuleButton;
+import com.example.client.widget.LabeledSliderWidget;
 import com.example.client.widget.ModeDropdownButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
@@ -43,19 +49,27 @@ public class ExampleMenuScreen extends Screen {
 	private static final int CLOSE_WIDTH = 64;
 	private static final int MENU_WIDTH = 64;
 	private static final int CLOSE_HEIGHT = 20;
-	private static final int CAPSULE_WIDTH = 220;
-	private static final int CAPSULE_HEIGHT = 24;
-	private static final int EDIT_WIDTH = 56;
-	private static final int MODE_WIDTH = 128;
+	/** Shorter module capsules; slightly taller than the old 24px bar. */
+	private static final int CAPSULE_WIDTH = 152;
+	private static final int CAPSULE_HEIGHT = 26;
+	private static final int COG_SIZE = 26;
+	private static final int EDIT_WIDTH = 48;
+	private static final int MODE_WIDTH = 120;
+	private static final int SETTINGS_WIDTH = 300;
+	private static final int SLIDER_HEIGHT = 22;
 	private static final int CONTENT_TOP = TITLE_BAND + TOP_BAR_HEIGHT + 28;
 	private static final int CONTENT_LEFT = 24;
 	private static final int CAPSULE_GAP = 8;
+	private static final int SETTINGS_GAP = 4;
 	private static final float TITLE_SCALE = 1.6F;
 
 	/** Remembers the last top tab across menu open/close (also persisted). */
 	private static Tab lastSelectedTab = Tab.GENERAL;
 
 	private Tab selectedTab = lastSelectedTab;
+
+	/** Which module settings panel is open ({@code null} = none). */
+	private String openSettingsId;
 
 	public static String getLastTabName() {
 		return lastSelectedTab.name();
@@ -142,6 +156,7 @@ public class ExampleMenuScreen extends Screen {
 				selected,
 				button -> {
 					this.colorMenuOpen = false;
+					this.openSettingsId = null;
 					if (this.selectedTab != tab) {
 						this.selectedTab = tab;
 						lastSelectedTab = tab;
@@ -160,6 +175,59 @@ public class ExampleMenuScreen extends Screen {
 			case MISC -> addMiscContent();
 			case GENERAL -> addGeneralContent();
 		}
+	}
+
+	private void toggleSettings(String id) {
+		this.openSettingsId = id.equals(this.openSettingsId) ? null : id;
+		rebuildMenu();
+	}
+
+	private boolean settingsOpen(String id) {
+		return id.equals(this.openSettingsId);
+	}
+
+	/** Toggle capsule (+ optional cog). Returns Y after the row. */
+	private int addToggleModule(
+			int y,
+			String settingsId,
+			Component label,
+			boolean enabled,
+			ToggleCapsuleButton.OnToggle onToggle
+	) {
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				label,
+				enabled,
+				onToggle
+		));
+		if (settingsId != null) {
+			this.addRenderableWidget(new CogButton(
+					CONTENT_LEFT + CAPSULE_WIDTH + 6,
+					y,
+					COG_SIZE,
+					settingsOpen(settingsId),
+					button -> toggleSettings(settingsId)
+			));
+		}
+		return y + CAPSULE_HEIGHT + CAPSULE_GAP;
+	}
+
+	private void addLabeledSlider(
+			int x,
+			int y,
+			int width,
+			Component label,
+			float value,
+			float min,
+			float max,
+			LabeledSliderWidget.OnLevelChange onChange
+	) {
+		this.addRenderableWidget(new LabeledSliderWidget(
+				x, y, width, SLIDER_HEIGHT, label, value, min, max, onChange
+		));
 	}
 
 	private void addGeneralContent() {
@@ -185,58 +253,61 @@ public class ExampleMenuScreen extends Screen {
 
 	private void addVisualsContent() {
 		int y = CONTENT_TOP;
-		this.addRenderableWidget(new LevelCapsuleButton(
-				CONTENT_LEFT,
+
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				"nametags",
 				Component.translatable("screen.modid.menu.visuals.nametags"),
 				NametagsModule.isEnabled(),
-				NametagsModule.getScale(),
-				NametagsModule.MIN_SCALE,
-				NametagsModule.MAX_SCALE,
-				NametagsModule::setEnabled,
-				NametagsModule::setScale
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+				(button, enabled) -> NametagsModule.setEnabled(enabled)
+		);
+		if (settingsOpen("nametags")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.visuals.nametags.scale"),
+					NametagsModule.getScale(),
+					NametagsModule.MIN_SCALE,
+					NametagsModule.MAX_SCALE,
+					NametagsModule::setScale
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				null,
 				Component.translatable("screen.modid.menu.visuals.player_outlines"),
 				PlayerOutlinesModule.isEnabled(),
 				(button, enabled) -> PlayerOutlinesModule.setEnabled(enabled)
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		);
 
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				null,
 				Component.translatable("screen.modid.menu.visuals.fullbright"),
 				FullbrightModule.isEnabled(),
 				(button, enabled) -> FullbrightModule.setEnabled(enabled)
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		);
 
-		this.addRenderableWidget(new LevelCapsuleButton(
+		// X-Ray: capsule + cog + flat Edit
+		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.visuals.xray"),
 				XRayModule.isEnabled(),
-				XRayModule.getOpacity(),
-				XRayModule.MIN_OPACITY,
-				XRayModule.MAX_OPACITY,
-				XRayModule::setEnabled,
-				XRayModule::setOpacity
+				(button, enabled) -> XRayModule.setEnabled(enabled)
 		));
-		this.addRenderableWidget(new CapsuleButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 8,
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("xray"),
+				button -> toggleSettings("xray")
+		));
+		this.addRenderableWidget(new FlatMenuButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,
@@ -248,38 +319,38 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
-
-		boolean finderFilled = FinderModule.getMode() == FinderModule.RenderMode.FILLED
-				|| FinderModule.getMode() == FinderModule.RenderMode.COMBINED_FILL;
-		if (finderFilled) {
-			this.addRenderableWidget(new LevelCapsuleButton(
-					CONTENT_LEFT,
-					y,
-					CAPSULE_WIDTH,
-					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.visuals.finder"),
-					FinderModule.isEnabled(),
-					FinderModule.getOpacity(),
-					FinderModule.MIN_OPACITY,
-					FinderModule.MAX_OPACITY,
-					FinderModule::setEnabled,
-					FinderModule::setOpacity
-			));
-		} else {
-			this.addRenderableWidget(new ToggleCapsuleButton(
-					CONTENT_LEFT,
-					y,
-					CAPSULE_WIDTH,
-					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.visuals.finder"),
-					FinderModule.isEnabled(),
-					(button, enabled) -> FinderModule.setEnabled(enabled)
-			));
+		if (settingsOpen("xray")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.visuals.xray.opacity"),
+					XRayModule.getOpacity(),
+					XRayModule.MIN_OPACITY,
+					XRayModule.MAX_OPACITY,
+					XRayModule::setOpacity
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
-		int modeX = CONTENT_LEFT + CAPSULE_WIDTH + 8;
-		// Add Edit first, then dropdown last so the open list draws above neighbors.
-		this.addRenderableWidget(new CapsuleButton(
-				modeX + MODE_WIDTH + 8,
+
+		// Finder: capsule + cog + mode dropdown + flat Edit
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.finder"),
+				FinderModule.isEnabled(),
+				(button, enabled) -> FinderModule.setEnabled(enabled)
+		));
+		int afterCog = CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6;
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("finder"),
+				button -> toggleSettings("finder")
+		));
+		this.addRenderableWidget(new FlatMenuButton(
+				afterCog + MODE_WIDTH + 6,
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,
@@ -296,7 +367,7 @@ public class ExampleMenuScreen extends Screen {
 			default -> 0;
 		};
 		this.addRenderableWidget(new ModeDropdownButton(
-				modeX,
+				afterCog,
 				y,
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
@@ -317,111 +388,209 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
-
-		// Outline thickness applies to Outline, Filled Boxes, and Combined Fill strokes.
-		this.addRenderableWidget(new LevelCapsuleButton(
-				CONTENT_LEFT,
-				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.finder.thickness"),
-				FinderModule.isEnabled(),
-				FinderModule.getOutlineThickness(),
-				FinderModule.MIN_OUTLINE_THICKNESS,
-				FinderModule.MAX_OUTLINE_THICKNESS,
-				FinderModule::setEnabled,
-				FinderModule::setOutlineThickness
-		));
+		if (settingsOpen("finder")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.visuals.finder.opacity"),
+					FinderModule.getOpacity(),
+					FinderModule.MIN_OPACITY,
+					FinderModule.MAX_OPACITY,
+					FinderModule::setOpacity
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP;
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.visuals.finder.thickness"),
+					FinderModule.getOutlineThickness(),
+					FinderModule.MIN_OUTLINE_THICKNESS,
+					FinderModule.MAX_OUTLINE_THICKNESS,
+					FinderModule::setOutlineThickness
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 	}
 
 	private void addCombatContent() {
 		int y = CONTENT_TOP;
-		this.addRenderableWidget(new LevelCapsuleButton(
-				CONTENT_LEFT,
+
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				"autoclicker",
 				Component.translatable("screen.modid.menu.combat.autoclicker"),
 				AutoClickerModule.isEnabled(),
-				AutoClickerModule.getCps(),
-				AutoClickerModule.MIN_CPS,
-				AutoClickerModule.MAX_CPS,
-				AutoClickerModule::setEnabled,
-				AutoClickerModule::setCps
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+				(button, enabled) -> AutoClickerModule.setEnabled(enabled)
+		);
+		if (settingsOpen("autoclicker")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.autoclicker.cps"),
+					AutoClickerModule.getCps(),
+					AutoClickerModule.MIN_CPS,
+					AutoClickerModule.MAX_CPS,
+					AutoClickerModule::setCps
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
-		this.addRenderableWidget(new LevelCapsuleButton(
-				CONTENT_LEFT,
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				"velocity",
 				Component.translatable("screen.modid.menu.combat.velocity"),
 				VelocityModule.isEnabled(),
-				VelocityModule.getPercent(),
-				VelocityModule.MIN_PERCENT,
-				VelocityModule.MAX_PERCENT,
-				VelocityModule::setEnabled,
-				VelocityModule::setPercent
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+				(button, enabled) -> VelocityModule.setEnabled(enabled)
+		);
+		if (settingsOpen("velocity")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.velocity.percent"),
+					VelocityModule.getPercent(),
+					VelocityModule.MIN_PERCENT,
+					VelocityModule.MAX_PERCENT,
+					VelocityModule::setPercent
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
-		this.addRenderableWidget(new LevelCapsuleButton(
-				CONTENT_LEFT,
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				"reach",
 				Component.translatable("screen.modid.menu.combat.reach"),
 				ReachModule.isEnabled(),
-				ReachModule.getBonus(),
-				ReachModule.MIN_BONUS,
-				ReachModule.MAX_BONUS,
-				ReachModule::setEnabled,
-				ReachModule::setBonus
-		));
+				(button, enabled) -> ReachModule.setEnabled(enabled)
+		);
+		if (settingsOpen("reach")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.reach.bonus"),
+					ReachModule.getBonus(),
+					ReachModule.MIN_BONUS,
+					ReachModule.MAX_BONUS,
+					ReachModule::setBonus
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		y = addToggleModule(
+				y,
+				null,
+				Component.translatable("screen.modid.menu.combat.criticals"),
+				CriticalsModule.isEnabled(),
+				(button, enabled) -> CriticalsModule.setEnabled(enabled)
+		);
+
+		y = addToggleModule(
+				y,
+				"triggerbot",
+				Component.translatable("screen.modid.menu.combat.triggerbot"),
+				TriggerBotModule.isEnabled(),
+				(button, enabled) -> TriggerBotModule.setEnabled(enabled)
+		);
+		if (settingsOpen("triggerbot")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.triggerbot.delay"),
+					TriggerBotModule.getDelay(),
+					TriggerBotModule.MIN_DELAY,
+					TriggerBotModule.MAX_DELAY,
+					TriggerBotModule::setDelay
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		y = addToggleModule(
+				y,
+				"aimassist",
+				Component.translatable("screen.modid.menu.combat.aimassist"),
+				AimAssistModule.isEnabled(),
+				(button, enabled) -> AimAssistModule.setEnabled(enabled)
+		);
+		if (settingsOpen("aimassist")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.aimassist.strength"),
+					AimAssistModule.getStrength(),
+					AimAssistModule.MIN_STRENGTH,
+					AimAssistModule.MAX_STRENGTH,
+					AimAssistModule::setStrength
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP;
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.aimassist.range"),
+					AimAssistModule.getRange(),
+					AimAssistModule.MIN_RANGE,
+					AimAssistModule.MAX_RANGE,
+					AimAssistModule::setRange
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		y = addToggleModule(
+				y,
+				"hitboxes",
+				Component.translatable("screen.modid.menu.combat.hitboxes"),
+				HitboxesModule.isEnabled(),
+				(button, enabled) -> HitboxesModule.setEnabled(enabled)
+		);
+		if (settingsOpen("hitboxes")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.hitboxes.size"),
+					HitboxesModule.getSize(),
+					HitboxesModule.MIN_SIZE,
+					HitboxesModule.MAX_SIZE,
+					HitboxesModule::setSize
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		addToggleModule(
+				y,
+				null,
+				Component.translatable("screen.modid.menu.combat.autototem"),
+				AutoTotemModule.isEnabled(),
+				(button, enabled) -> AutoTotemModule.setEnabled(enabled)
+		);
 	}
 
 	private void addMiscContent() {
-		int y = CONTENT_TOP;
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
-				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+		addToggleModule(
+				CONTENT_TOP,
+				null,
 				Component.translatable("screen.modid.menu.misc.notifications"),
 				NotificationsModule.isEnabled(),
 				(button, enabled) -> NotificationsModule.setEnabled(enabled)
-		));
+		);
 	}
 
 	private void addMovementContent() {
 		int y = CONTENT_TOP;
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
+		y = addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				null,
 				Component.translatable("screen.modid.menu.movement.flight"),
 				FlightModule.isEnabled(),
 				(button, enabled) -> FlightModule.setEnabled(enabled)
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		);
 
-		this.addRenderableWidget(new LevelCapsuleButton(
+		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.movement.speed"),
 				SpeedModule.isEnabled(),
-				SpeedModule.getSpeedLevel(),
-				SpeedModule.MIN_LEVEL,
-				SpeedModule.MAX_LEVEL,
-				SpeedModule::setEnabled,
-				SpeedModule::setSpeedLevel
+				(button, enabled) -> SpeedModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("speed"),
+				button -> toggleSettings("speed")
 		));
 		this.addRenderableWidget(new ModeDropdownButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 8,
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
 				y,
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
@@ -433,16 +602,25 @@ public class ExampleMenuScreen extends Screen {
 				index -> SpeedModule.setMode(index == 1 ? SpeedModule.Mode.STRAFE : SpeedModule.Mode.NORMAL)
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("speed")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.movement.speed.level"),
+					SpeedModule.getSpeedLevel(),
+					SpeedModule.MIN_LEVEL,
+					SpeedModule.MAX_LEVEL,
+					SpeedModule::setSpeedLevel
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
+		addToggleModule(
 				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
+				null,
 				Component.translatable("screen.modid.menu.movement.nofall"),
 				NoFallModule.isEnabled(),
 				(button, enabled) -> NoFallModule.setEnabled(enabled)
-		));
+		);
 	}
 
 	private void addColorMenuContent() {

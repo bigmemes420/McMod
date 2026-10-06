@@ -148,8 +148,8 @@ public class ModeDropdownButton extends AbstractWidget {
 			tint = theme.dropdownOutline;
 		}
 
-		// Theme fill + custom dropdown button stroke asset (tinted).
-		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, fill);
+		// Theme fill + outline; custom dropdown stroke asset tinted with outline color.
+		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, tint);
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
 				DROPDOWN_BUTTON_TEXTURE,

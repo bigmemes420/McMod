@@ -10,7 +10,8 @@
 		"LightmapRenderStateExtractorMixin",
 		"BlockStateBaseMixin",
 		"ModelBlockRendererMixin",
-		"SectionCompilerMixin"
+		"SectionCompilerMixin",
+		"EntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
