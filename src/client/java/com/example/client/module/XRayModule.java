@@ -16,9 +16,12 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Visuals module: hides non-selected blocks so ores/chests stay visible.
- * Opacity 0–100%: how opaque non-selected blocks remain (0 = fully hidden / classic
- * X-Ray, 100 = fully opaque / no hide). Selected blocks always render full opacity.
+ * Visuals module: X-Ray for selected blocks.
+ * <p>
+ * Opacity 0–100% = how opaque non-selected blocks remain:
+ * 0 = fully hidden (classic X-Ray), 1–99 = translucent fade, 100 = fully opaque
+ * (no hide). Selected blocks always render at full opacity and, while X-Ray is
+ * active below 100%, their faces are not culled by neighboring solid blocks.
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
@@ -28,6 +31,9 @@ public final class XRayModule {
 	private static boolean enabled;
 	private static float opacity = DEFAULT_OPACITY;
 	private static final LinkedHashSet<Identifier> fullOpacityBlocks = new LinkedHashSet<>();
+
+	/** Worker-thread flag: current quad should go into the translucent layer. */
+	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
 	static {
 		seedDefaults(fullOpacityBlocks);
@@ -75,6 +81,11 @@ public final class XRayModule {
 
 	public static float getOpacity() {
 		return opacity;
+	}
+
+	/** Opacity as 0–1 fraction for vertex alpha. */
+	public static float getOpacityFraction() {
+		return opacity / MAX_OPACITY;
 	}
 
 	public static Set<Identifier> getFullOpacityBlocks() {
@@ -166,26 +177,71 @@ public final class XRayModule {
 		enabled = value;
 	}
 
+	/** X-Ray is on and opacity is below 100% (hiding or fading non-selected). */
+	public static boolean isActive() {
+		return enabled && opacity < MAX_OPACITY;
+	}
+
+	private static boolean isAir(Block block) {
+		return block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR;
+	}
+
 	/**
-	 * When X-Ray is on and opacity &lt; 100%, non-selected blocks become invisible.
-	 * Selected (full-opacity) blocks always keep their normal render shape.
+	 * Non-selected solid blocks at opacity 0 become {@link RenderShape#INVISIBLE}.
+	 * At 1–99% they keep their model so alpha can be applied during meshing.
 	 */
 	public static RenderShape modifyRenderShape(BlockState state, RenderShape original) {
-		if (!enabled || opacity >= MAX_OPACITY) {
-			return original;
-		}
-		if (original == RenderShape.INVISIBLE) {
+		if (!isActive() || original == RenderShape.INVISIBLE) {
 			return original;
 		}
 		Block block = state.getBlock();
-		if (block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR) {
+		if (isAir(block) || isFullOpacity(block)) {
 			return original;
 		}
-		if (isFullOpacity(block)) {
-			return original;
+		// Opacity 0: classic X-Ray — fully hide non-selected.
+		if (opacity <= MIN_OPACITY) {
+			return RenderShape.INVISIBLE;
 		}
-		// Opacity 0–99: hide non-selected so selected blocks show through.
-		return RenderShape.INVISIBLE;
+		return original;
+	}
+
+	/**
+	 * Non-selected blocks must not occlude faces while X-Ray is active, so
+	 * selected ores/chests still mesh every face even when buried in stone.
+	 */
+	public static boolean shouldDisableOcclusion(BlockState state) {
+		if (!isActive()) {
+			return false;
+		}
+		Block block = state.getBlock();
+		if (isAir(block) || isFullOpacity(block)) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Non-selected blocks at opacity 1–99% get vertex alpha = opacity/100 and
+	 * are forced onto the translucent chunk layer.
+	 */
+	public static boolean shouldFade(BlockState state) {
+		if (!isActive() || opacity <= MIN_OPACITY) {
+			return false;
+		}
+		Block block = state.getBlock();
+		return !isAir(block) && !isFullOpacity(block);
+	}
+
+	public static void beginTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.TRUE);
+	}
+
+	public static void endTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.FALSE);
+	}
+
+	public static boolean isTranslucentPass() {
+		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
 	}
 
 	public static void reloadChunks() {
