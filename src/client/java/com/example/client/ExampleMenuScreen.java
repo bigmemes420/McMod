@@ -6,7 +6,7 @@ import com.example.client.module.NoFallModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.FlatMenuButton;
-import com.example.client.widget.SpeedLevelSlider;
+import com.example.client.widget.SpeedCapsuleButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -163,23 +163,14 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
-		this.addRenderableWidget(new ToggleCapsuleButton(
+		this.addRenderableWidget(new SpeedCapsuleButton(
 				CONTENT_LEFT,
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.movement.speed"),
 				SpeedModule.isEnabled(),
-				(button, enabled) -> SpeedModule.setEnabled(enabled)
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
-
-		this.addRenderableWidget(new SpeedLevelSlider(
-				CONTENT_LEFT,
-				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
 				SpeedModule.getSpeedLevel(),
+				SpeedModule::setEnabled,
 				SpeedModule::setSpeedLevel
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
