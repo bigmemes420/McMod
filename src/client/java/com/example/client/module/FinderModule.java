@@ -1,6 +1,5 @@
 package com.example.client.module;
 
-import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
@@ -21,14 +20,14 @@ import java.util.Set;
 
 /**
  * Visuals module: through-world block ESP for a dedicated selection list.
- * Modes: Outline, Filled Boxes, Filled+Combined (no outline; merge fills for
- * same block type). Each selected block can have a custom color.
+ * Modes: Outline, Filled Boxes, Combined Fill (merged fills + outer-edge
+ * outlines only). Each selected block has a randomized default color.
  */
 public final class FinderModule {
 	public enum RenderMode {
 		OUTLINE,
 		FILLED,
-		FILLED_COMBINED;
+		COMBINED_FILL;
 
 		public static RenderMode fromString(String raw) {
 			if (raw == null || raw.isBlank()) {
@@ -38,8 +37,10 @@ public final class FinderModule {
 			if ("FILLED_BOXES".equals(key) || "FILLED_BOX".equals(key)) {
 				return FILLED;
 			}
-			if ("FILLEDCOMBINED".equals(key) || "COMBINED".equals(key)) {
-				return FILLED_COMBINED;
+			if ("FILLED_COMBINED".equals(key) || "FILLEDCOMBINED".equals(key)
+					|| "COMBINED".equals(key) || "COMBINED_FILL".equals(key)
+					|| "COMBINEDFILL".equals(key)) {
+				return COMBINED_FILL;
 			}
 			try {
 				return RenderMode.valueOf(key);
@@ -53,11 +54,16 @@ public final class FinderModule {
 	public static final float MAX_OPACITY = 100.0F;
 	public static final float DEFAULT_OPACITY = 55.0F;
 
+	public static final float MIN_OUTLINE_THICKNESS = 0.5F;
+	public static final float MAX_OUTLINE_THICKNESS = 8.0F;
+	public static final float DEFAULT_OUTLINE_THICKNESS = 2.0F;
+
 	private static boolean enabled;
 	private static RenderMode mode = RenderMode.OUTLINE;
 	private static float opacity = DEFAULT_OPACITY;
+	private static float outlineThickness = DEFAULT_OUTLINE_THICKNESS;
 	private static final LinkedHashSet<Identifier> selectedBlocks = new LinkedHashSet<>();
-	/** Per-block custom ARGB; missing entries fall back to theme finderOutline. */
+	/** Per-block custom ARGB; missing entries use {@link BlockEspDefaults#colorFor}. */
 	private static final LinkedHashMap<Identifier, Integer> blockColors = new LinkedHashMap<>();
 	private static final BlockEspScanner scanner = new BlockEspScanner(FinderModule::getSelectedBlocks, BlockEspScanner.DEFAULT_RANGE);
 
@@ -82,6 +88,10 @@ public final class FinderModule {
 
 	public static float getOpacityFraction() {
 		return opacity / MAX_OPACITY;
+	}
+
+	public static float getOutlineThickness() {
+		return outlineThickness;
 	}
 
 	public static Set<Identifier> getSelectedBlocks() {
@@ -113,10 +123,10 @@ public final class FinderModule {
 
 	public static int getBlockColor(Identifier id) {
 		if (id == null) {
-			return MenuTheme.get().finderOutline;
+			return BlockEspDefaults.colorFor(null);
 		}
 		Integer custom = blockColors.get(id);
-		return custom != null ? custom : MenuTheme.get().finderOutline;
+		return custom != null ? custom : BlockEspDefaults.colorFor(id);
 	}
 
 	public static void setBlockColor(Identifier id, int argb) {
@@ -167,7 +177,7 @@ public final class FinderModule {
 				continue;
 			}
 			Identifier id = Identifier.tryParse(trimmed.substring(0, eq).trim());
-			Integer color = MenuTheme.parseHex(trimmed.substring(eq + 1).trim());
+			Integer color = com.example.client.config.MenuTheme.parseHex(trimmed.substring(eq + 1).trim());
 			if (id != null && color != null && BuiltInRegistries.BLOCK.containsKey(id)) {
 				blockColors.put(id, color);
 			}
@@ -197,6 +207,19 @@ public final class FinderModule {
 
 	public static void loadOpacity(float value) {
 		opacity = Mth.clamp(value, MIN_OPACITY, MAX_OPACITY);
+	}
+
+	public static void setOutlineThickness(float value) {
+		float clamped = Mth.clamp(value, MIN_OUTLINE_THICKNESS, MAX_OUTLINE_THICKNESS);
+		if (outlineThickness == clamped) {
+			return;
+		}
+		outlineThickness = clamped;
+		ModConfig.save();
+	}
+
+	public static void loadOutlineThickness(float value) {
+		outlineThickness = Mth.clamp(value, MIN_OUTLINE_THICKNESS, MAX_OUTLINE_THICKNESS);
 	}
 
 	public static void setEnabled(boolean value) {
@@ -238,28 +261,30 @@ public final class FinderModule {
 
 		Minecraft client = Minecraft.getInstance();
 		Level level = client.level;
+		float thickness = getOutlineThickness();
 
 		if (mode == RenderMode.OUTLINE) {
-			// Per-block stroke colors — group by color for fewer style switches
 			Map<Integer, java.util.List<BlockPos>> byColor = new LinkedHashMap<>();
 			for (BlockPos pos : hits) {
 				Identifier id = idAt(level, pos);
 				byColor.computeIfAbsent(getBlockColor(id), k -> new java.util.ArrayList<>()).add(pos);
 			}
 			for (Map.Entry<Integer, java.util.List<BlockPos>> e : byColor.entrySet()) {
-				WorldBlockEspRenderer.drawOutlines(levelRenderer, e.getValue(), e.getKey());
+				WorldBlockEspRenderer.drawOutlines(levelRenderer, e.getValue(), e.getKey(), thickness);
 			}
 			return;
 		}
 
 		float fillAlpha = Mth.clamp(getOpacityFraction(), 0.0F, 1.0F);
 
-		if (mode == RenderMode.FILLED_COMBINED) {
-			WorldBlockEspRenderer.drawFilledCombined(
+		if (mode == RenderMode.COMBINED_FILL) {
+			WorldBlockEspRenderer.drawCombinedFill(
 					levelRenderer,
 					hits,
 					pos -> idAt(level, pos),
-					id -> WorldBlockEspRenderer.fillWithAlpha(getBlockColor(id) & 0xFFFFFF, fillAlpha)
+					id -> WorldBlockEspRenderer.fillWithAlpha(getBlockColor(id) & 0xFFFFFF, fillAlpha),
+					FinderModule::getBlockColor,
+					thickness
 			);
 			return;
 		}
@@ -273,7 +298,7 @@ public final class FinderModule {
 		for (Map.Entry<Integer, java.util.List<BlockPos>> e : byColor.entrySet()) {
 			int stroke = e.getKey();
 			int fill = WorldBlockEspRenderer.fillWithAlpha(stroke & 0xFFFFFF, fillAlpha);
-			WorldBlockEspRenderer.drawFilled(levelRenderer, e.getValue(), stroke, fill);
+			WorldBlockEspRenderer.drawFilled(levelRenderer, e.getValue(), stroke, fill, thickness);
 		}
 	}
 

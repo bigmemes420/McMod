@@ -18,16 +18,16 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * X-Ray opacity 1–99%:
+ * Mesh-split X-Ray (opacity 1–99%):
  * <ul>
  *   <li>Mark the whole {@code tesselateBlock} call as a translucent pass so
  *       {@link SectionCompilerMixin} routes every quad of a faded block onto
  *       {@code TRANSLUCENT} (SOLID ignores vertex alpha).</li>
- *   <li>Multiply vertex alpha on each quad to the current opacity fraction.</li>
+ *   <li>Multiply vertex alpha on each quad to the current opacity fraction
+ *       (selected blocks never enter this path).</li>
  * </ul>
- * Prior fix set the translucent flag only around {@code put}, which is correct
- * in theory but fragile; scoping it to the full block tessellation matches how
- * {@code getOrBeginLayer} is invoked from the section compiler's BlockQuadOutput.
+ * No overlay boxes — alpha is baked into the terrain mesh. Section rebuilds
+ * are owned by {@link com.example.client.module.XRayModule} (debounced).
  */
 @Mixin(ModelBlockRenderer.class)
 public class ModelBlockRendererMixin {

@@ -250,7 +250,7 @@ public class ExampleMenuScreen extends Screen {
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
 		boolean finderFilled = FinderModule.getMode() == FinderModule.RenderMode.FILLED
-				|| FinderModule.getMode() == FinderModule.RenderMode.FILLED_COMBINED;
+				|| FinderModule.getMode() == FinderModule.RenderMode.COMBINED_FILL;
 		if (finderFilled) {
 			this.addRenderableWidget(new LevelCapsuleButton(
 					CONTENT_LEFT,
@@ -292,7 +292,7 @@ public class ExampleMenuScreen extends Screen {
 		));
 		int finderModeIndex = switch (FinderModule.getMode()) {
 			case FILLED -> 1;
-			case FILLED_COMBINED -> 2;
+			case COMBINED_FILL -> 2;
 			default -> 0;
 		};
 		this.addRenderableWidget(new ModeDropdownButton(
@@ -303,18 +303,34 @@ public class ExampleMenuScreen extends Screen {
 				new Component[] {
 					Component.translatable("screen.modid.menu.visuals.finder.mode.outline"),
 					Component.translatable("screen.modid.menu.visuals.finder.mode.filled"),
-					Component.translatable("screen.modid.menu.visuals.finder.mode.filled_combined")
+					Component.translatable("screen.modid.menu.visuals.finder.mode.combined_fill")
 				},
 				finderModeIndex,
 				index -> {
 					FinderModule.RenderMode mode = switch (index) {
 						case 1 -> FinderModule.RenderMode.FILLED;
-						case 2 -> FinderModule.RenderMode.FILLED_COMBINED;
+						case 2 -> FinderModule.RenderMode.COMBINED_FILL;
 						default -> FinderModule.RenderMode.OUTLINE;
 					};
 					FinderModule.setMode(mode);
 					rebuildMenu();
 				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
+		// Outline thickness applies to Outline, Filled Boxes, and Combined Fill strokes.
+		this.addRenderableWidget(new LevelCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.finder.thickness"),
+				FinderModule.isEnabled(),
+				FinderModule.getOutlineThickness(),
+				FinderModule.MIN_OUTLINE_THICKNESS,
+				FinderModule.MAX_OUTLINE_THICKNESS,
+				FinderModule::setEnabled,
+				FinderModule::setOutlineThickness
 		));
 	}
 

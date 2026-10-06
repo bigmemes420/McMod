@@ -15,6 +15,7 @@ import net.minecraft.resources.Identifier;
 /**
  * Capsule mode control that opens a dropdown list of labeled options.
  * Closed header uses the custom {@code dropdown_button} texture asset.
+ * Colors come from dedicated MenuTheme dropdown_* keys (darker defaults).
  */
 public class ModeDropdownButton extends AbstractWidget {
 	@FunctionalInterface
@@ -134,17 +135,17 @@ public class ModeDropdownButton extends AbstractWidget {
 			textColor = theme.capsuleDisabledText;
 			tint = theme.capsuleDisabledOutline;
 		} else if (this.pressed) {
-			fill = theme.capsulePressedFill;
-			textColor = theme.capsuleText;
-			tint = theme.capsulePressedOutline;
+			fill = theme.dropdownHoverFill;
+			textColor = theme.dropdownText;
+			tint = theme.dropdownHoverOutline;
 		} else if (headerHovered || this.open) {
-			fill = theme.capsuleHoverFill;
-			textColor = theme.capsuleText;
-			tint = theme.capsuleHoverOutline;
+			fill = theme.dropdownHoverFill;
+			textColor = theme.dropdownText;
+			tint = theme.dropdownHoverOutline;
 		} else {
-			fill = theme.capsuleFill;
-			textColor = theme.capsuleText;
-			tint = theme.capsuleOutline;
+			fill = theme.dropdownFill;
+			textColor = theme.dropdownText;
+			tint = theme.dropdownOutline;
 		}
 
 		// Theme fill + custom dropdown button stroke asset (tinted).
@@ -187,18 +188,18 @@ public class ModeDropdownButton extends AbstractWidget {
 			int optFill;
 			int optOutline;
 			if (selected) {
-				optFill = theme.tabSelectedFill;
-				optOutline = theme.tabSelectedOutline;
+				optFill = theme.dropdownSelectedFill;
+				optOutline = theme.dropdownSelectedOutline;
 			} else if (optHovered) {
-				optFill = theme.capsuleHoverFill;
-				optOutline = theme.capsuleHoverOutline;
+				optFill = theme.dropdownHoverFill;
+				optOutline = theme.dropdownHoverOutline;
 			} else {
-				optFill = theme.capsuleFill;
-				optOutline = theme.capsuleOutline;
+				optFill = theme.dropdownFill;
+				optOutline = theme.dropdownOutline;
 			}
 			MenuShapes.drawFlatRect(graphics, this.getX(), oy, this.width, this.optionHeight, optFill, optOutline);
 			int optTextY = oy + (this.optionHeight - font.lineHeight) / 2;
-			graphics.text(font, this.labels[i], textX, optTextY, theme.capsuleText, false);
+			graphics.text(font, this.labels[i], textX, optTextY, theme.dropdownText, false);
 		}
 	}
 

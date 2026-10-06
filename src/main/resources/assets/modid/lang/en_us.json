@@ -30,7 +30,7 @@
   "screen.modid.menu.visuals.fullbright.enabled": "Fullbright enabled — full scene brightness",
   "screen.modid.menu.visuals.fullbright.disabled": "Fullbright disabled",
   "screen.modid.menu.visuals.xray": "X-Ray",
-  "screen.modid.menu.visuals.xray.enabled": "X-Ray enabled — selected blocks normal; true alpha on non-selected",
+  "screen.modid.menu.visuals.xray.enabled": "X-Ray enabled — selected normal; non-selected respect opacity",
   "screen.modid.menu.visuals.xray.disabled": "X-Ray disabled",
   "screen.modid.menu.visuals.xray.edit": "Edit",
   "screen.modid.menu.visuals.xray.edit.title": "X-Ray Blocks",
@@ -70,5 +70,6 @@
   "screen.modid.menu.misc.notifications": "Notifications",
   "screen.modid.menu.misc.notifications.enabled": "Notifications enabled",
   "screen.modid.menu.misc.notifications.disabled": "Notifications disabled",
-  "screen.modid.menu.visuals.finder.mode.filled_combined": "Filled+Combined"
+  "screen.modid.menu.visuals.finder.mode.combined_fill": "Combined Fill",
+  "screen.modid.menu.visuals.finder.thickness": "Outline Thickness"
 }

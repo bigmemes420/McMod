@@ -2,11 +2,13 @@ package com.example.client.module;
 
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gizmos.GizmoStyle;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -32,14 +34,17 @@ public final class WorldBlockEspRenderer {
 			new BlockPos(0, 0, -1)
 	};
 
+	private static final Direction[] FACES = Direction.values();
+
 	private WorldBlockEspRenderer() {
 	}
 
-	public static void drawOutlines(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb) {
+	public static void drawOutlines(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
 		if (positions.isEmpty()) {
 			return;
 		}
-		GizmoStyle style = GizmoStyle.stroke(ARGB.opaque(strokeArgb), 2.0F);
+		float width = Math.max(0.5F, strokeWidth);
+		GizmoStyle style = GizmoStyle.stroke(ARGB.opaque(strokeArgb), width);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
 			for (BlockPos pos : positions) {
 				Gizmos.cuboid(pos, style).setAlwaysOnTop();
@@ -47,11 +52,18 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	public static void drawFilled(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, int fillArgb) {
+	public static void drawFilled(
+			LevelRenderer levelRenderer,
+			List<BlockPos> positions,
+			int strokeArgb,
+			int fillArgb,
+			float strokeWidth
+	) {
 		if (positions.isEmpty()) {
 			return;
 		}
-		GizmoStyle style = GizmoStyle.strokeAndFill(ARGB.opaque(strokeArgb), 2.0F, fillArgb);
+		float width = Math.max(0.5F, strokeWidth);
+		GizmoStyle style = GizmoStyle.strokeAndFill(ARGB.opaque(strokeArgb), width, fillArgb);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
 			for (BlockPos pos : positions) {
 				Gizmos.cuboid(pos, style).setAlwaysOnTop();
@@ -73,14 +85,17 @@ public final class WorldBlockEspRenderer {
 	}
 
 	/**
-	 * Filled+Combined: no outline; merge face-connected same-type blocks into
-	 * solid AABBs (greedy expand that rejects boxes with holes).
+	 * Combined Fill: merge face-connected same-type blocks into solid AABBs for
+	 * the fill, then stroke only outer faces (no shared edges between touching
+	 * same-type neighbors).
 	 */
-	public static void drawFilledCombined(
+	public static void drawCombinedFill(
 			LevelRenderer levelRenderer,
 			List<BlockPos> positions,
 			Function<BlockPos, Identifier> idAt,
-			Function<Identifier, Integer> colorFor
+			Function<Identifier, Integer> fillColorFor,
+			Function<Identifier, Integer> strokeColorFor,
+			float strokeWidth
 	) {
 		if (positions.isEmpty()) {
 			return;
@@ -95,13 +110,38 @@ public final class WorldBlockEspRenderer {
 			byType.computeIfAbsent(id, k -> new ArrayList<>()).add(pos);
 		}
 
+		float width = Math.max(0.5F, strokeWidth);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
 			for (Map.Entry<Identifier, List<BlockPos>> entry : byType.entrySet()) {
-				int fill = colorFor.apply(entry.getKey());
-				GizmoStyle style = GizmoStyle.fill(fill);
-				for (AABB box : mergeConnectedSolid(entry.getValue())) {
-					Gizmos.cuboid(box, style).setAlwaysOnTop();
+				int fill = fillColorFor.apply(entry.getKey());
+				int stroke = ARGB.opaque(strokeColorFor.apply(entry.getKey()));
+				GizmoStyle fillStyle = GizmoStyle.fill(fill);
+				GizmoStyle strokeStyle = GizmoStyle.stroke(stroke, width);
+
+				List<BlockPos> group = entry.getValue();
+				for (AABB box : mergeConnectedSolid(group)) {
+					Gizmos.cuboid(box, fillStyle).setAlwaysOnTop();
 				}
+				drawOuterFaceOutlines(group, strokeStyle);
+			}
+		}
+	}
+
+	/** Stroke only faces that do not touch another block in {@code group}. */
+	private static void drawOuterFaceOutlines(List<BlockPos> group, GizmoStyle strokeStyle) {
+		Set<Long> set = new HashSet<>(group.size() * 2);
+		for (BlockPos p : group) {
+			set.add(p.asLong());
+		}
+		for (BlockPos pos : group) {
+			Vec3 min = new Vec3(pos.getX(), pos.getY(), pos.getZ());
+			Vec3 max = new Vec3(pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1);
+			for (Direction face : FACES) {
+				BlockPos neighbor = pos.relative(face);
+				if (set.contains(neighbor.asLong())) {
+					continue; // shared face between same-type blocks — skip
+				}
+				Gizmos.rect(min, max, face, strokeStyle).setAlwaysOnTop();
 			}
 		}
 	}
@@ -164,37 +204,31 @@ public final class WorldBlockEspRenderer {
 			boolean grew;
 			do {
 				grew = false;
-				// +X
 				if (slicePresent(remaining, maxX + 1, maxX + 1, minY, maxY, minZ, maxZ)) {
 					removeSlice(remaining, maxX + 1, maxX + 1, minY, maxY, minZ, maxZ);
 					maxX++;
 					grew = true;
 				}
-				// -X
 				if (slicePresent(remaining, minX - 1, minX - 1, minY, maxY, minZ, maxZ)) {
 					removeSlice(remaining, minX - 1, minX - 1, minY, maxY, minZ, maxZ);
 					minX--;
 					grew = true;
 				}
-				// +Y
 				if (slicePresent(remaining, minX, maxX, maxY + 1, maxY + 1, minZ, maxZ)) {
 					removeSlice(remaining, minX, maxX, maxY + 1, maxY + 1, minZ, maxZ);
 					maxY++;
 					grew = true;
 				}
-				// -Y
 				if (slicePresent(remaining, minX, maxX, minY - 1, minY - 1, minZ, maxZ)) {
 					removeSlice(remaining, minX, maxX, minY - 1, minY - 1, minZ, maxZ);
 					minY--;
 					grew = true;
 				}
-				// +Z
 				if (slicePresent(remaining, minX, maxX, minY, maxY, maxZ + 1, maxZ + 1)) {
 					removeSlice(remaining, minX, maxX, minY, maxY, maxZ + 1, maxZ + 1);
 					maxZ++;
 					grew = true;
 				}
-				// -Z
 				if (slicePresent(remaining, minX, maxX, minY, maxY, minZ - 1, minZ - 1)) {
 					removeSlice(remaining, minX, maxX, minY, maxY, minZ - 1, minZ - 1);
 					minZ--;

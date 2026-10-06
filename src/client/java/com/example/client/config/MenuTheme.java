@@ -50,6 +50,15 @@ public final class MenuTheme {
 	public int capsuleDisabledOutline = 0xFF555555;
 	public int capsuleDisabledText = 0xFF888888;
 
+	/** Dropdown header / option defaults — darker than capsule fill. */
+	public int dropdownFill = 0xFF101018;
+	public int dropdownOutline = 0xFF707080;
+	public int dropdownText = 0xFFE8E8E8;
+	public int dropdownHoverFill = 0xFF1A2A3A;
+	public int dropdownHoverOutline = 0xFF8EC8FF;
+	public int dropdownSelectedFill = 0xFF2E5A8A;
+	public int dropdownSelectedOutline = 0xFF8EC8FF;
+
 	/** Left-circle fill when a toggle capsule is ON. */
 	public int accentOn = 0xFF3DDC84;
 
@@ -59,7 +68,7 @@ public final class MenuTheme {
 	/** Nametag plate/background outline (Nametags module). */
 	public int nametagOutline = 0xFFFFFFFF;
 
-	/** Through-world Finder block outline / filled-box color. */
+	/** Through-world Finder block outline / filled-box color (legacy fallback). */
 	public int finderOutline = 0xFFFFD54A;
 
 	private MenuTheme() {
@@ -120,6 +129,13 @@ public final class MenuTheme {
 			case "capsuleText" -> capsuleText = argb;
 			case "capsuleHoverFill" -> capsuleHoverFill = argb;
 			case "capsuleHoverOutline" -> capsuleHoverOutline = argb;
+			case "dropdownFill" -> dropdownFill = argb;
+			case "dropdownOutline" -> dropdownOutline = argb;
+			case "dropdownText" -> dropdownText = argb;
+			case "dropdownHoverFill" -> dropdownHoverFill = argb;
+			case "dropdownHoverOutline" -> dropdownHoverOutline = argb;
+			case "dropdownSelectedFill" -> dropdownSelectedFill = argb;
+			case "dropdownSelectedOutline" -> dropdownSelectedOutline = argb;
 			case "accentOn" -> accentOn = argb;
 			case "outline" -> outline = argb;
 			case "nametagOutline" -> nametagOutline = argb;
@@ -148,6 +164,13 @@ public final class MenuTheme {
 		map.put("capsuleText", capsuleText);
 		map.put("capsuleHoverFill", capsuleHoverFill);
 		map.put("capsuleHoverOutline", capsuleHoverOutline);
+		map.put("dropdownFill", dropdownFill);
+		map.put("dropdownOutline", dropdownOutline);
+		map.put("dropdownText", dropdownText);
+		map.put("dropdownHoverFill", dropdownHoverFill);
+		map.put("dropdownHoverOutline", dropdownHoverOutline);
+		map.put("dropdownSelectedFill", dropdownSelectedFill);
+		map.put("dropdownSelectedOutline", dropdownSelectedOutline);
 		map.put("accentOn", accentOn);
 		map.put("outline", outline);
 		map.put("nametagOutline", nametagOutline);
@@ -174,6 +197,13 @@ public final class MenuTheme {
 			case "capsuleText" -> "Capsule Text";
 			case "capsuleHoverFill" -> "Capsule Hover Fill";
 			case "capsuleHoverOutline" -> "Capsule Hover Outline";
+			case "dropdownFill" -> "Dropdown Fill";
+			case "dropdownOutline" -> "Dropdown Outline";
+			case "dropdownText" -> "Dropdown Text";
+			case "dropdownHoverFill" -> "Dropdown Hover Fill";
+			case "dropdownHoverOutline" -> "Dropdown Hover Outline";
+			case "dropdownSelectedFill" -> "Dropdown Selected Fill";
+			case "dropdownSelectedOutline" -> "Dropdown Selected Outline";
 			case "accentOn" -> "Accent (ON)";
 			case "outline" -> "Outline";
 			case "nametagOutline" -> "Nametag Outline";

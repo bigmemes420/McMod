@@ -2,6 +2,8 @@ package com.example.client.module;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
@@ -43,6 +45,51 @@ public final class BlockEspDefaults {
 		if (id != null) {
 			into.add(id);
 		}
+	}
+
+	/**
+	 * Stable per-block default color derived from the id hash (looks random,
+	 * stays the same across launches until the user picks a custom color).
+	 */
+	public static int colorFor(Identifier id) {
+		if (id == null) {
+			return 0xFFFFD54A;
+		}
+		int h = id.hashCode();
+		// Spread bits so similar names still diverge in hue
+		int mixed = h ^ (h >>> 16) * 0x45D9F3B;
+		float hue = (mixed & 0xFFFF) / 65535.0F;
+		float sat = 0.55F + ((mixed >>> 16) & 0xFF) / 255.0F * 0.40F;
+		float val = 0.70F + ((mixed >>> 24) & 0xFF) / 255.0F * 0.30F;
+		return hsvToArgb(hue, sat, val);
+	}
+
+	private static int hsvToArgb(float hue, float sat, float val) {
+		float h = ((hue % 1.0F) + 1.0F) % 1.0F;
+		float s = Mth.clamp(sat, 0.0F, 1.0F);
+		float v = Mth.clamp(val, 0.0F, 1.0F);
+		int i = (int) (h * 6.0F);
+		float f = h * 6.0F - i;
+		float p = v * (1.0F - s);
+		float q = v * (1.0F - f * s);
+		float t = v * (1.0F - (1.0F - f) * s);
+		float r;
+		float g;
+		float b;
+		switch (i % 6) {
+			case 0 -> { r = v; g = t; b = p; }
+			case 1 -> { r = q; g = v; b = p; }
+			case 2 -> { r = p; g = v; b = t; }
+			case 3 -> { r = p; g = q; b = v; }
+			case 4 -> { r = t; g = p; b = v; }
+			default -> { r = v; g = p; b = q; }
+		}
+		return ARGB.color(
+				255,
+				Math.round(r * 255.0F),
+				Math.round(g * 255.0F),
+				Math.round(b * 255.0F)
+		);
 	}
 
 	public static void loadCsv(Set<Identifier> into, String csv, Runnable seedIfEmpty) {
