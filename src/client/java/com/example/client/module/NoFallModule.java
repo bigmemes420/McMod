@@ -1,6 +1,7 @@
 package com.example.client.module;
 
 import com.example.ExampleMod;
+import com.example.client.config.ModConfig;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 
@@ -75,6 +76,11 @@ public final class NoFallModule {
 			enabled ? "screen.modid.menu.movement.nofall.enabled" : "screen.modid.menu.movement.nofall.disabled"
 		);
 		syncIntegratedServer(client, enabled);
+		ModConfig.save();
+	}
+
+	public static void loadEnabled(boolean value) {
+		enabled = value;
 	}
 
 	public static void toggle() {

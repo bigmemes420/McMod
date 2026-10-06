@@ -1,5 +1,7 @@
 package com.example.client.module;
 
+import com.example.client.config.ModConfig;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
@@ -28,6 +30,11 @@ public final class NotificationsModule {
 				enabled ? "screen.modid.menu.misc.notifications.enabled"
 						: "screen.modid.menu.misc.notifications.disabled"
 		);
+		ModConfig.save();
+	}
+
+	public static void loadEnabled(boolean value) {
+		enabled = value;
 	}
 
 	public static void toggle() {

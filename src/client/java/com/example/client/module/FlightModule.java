@@ -1,5 +1,7 @@
 package com.example.client.module;
 
+import com.example.client.config.ModConfig;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,6 +37,11 @@ public final class FlightModule {
 			enabled ? "screen.modid.menu.movement.flight.enabled" : "screen.modid.menu.movement.flight.disabled"
 		);
 		syncIntegratedServer(client, enabled);
+		ModConfig.save();
+	}
+
+	public static void loadEnabled(boolean value) {
+		enabled = value;
 	}
 
 	public static void toggle() {

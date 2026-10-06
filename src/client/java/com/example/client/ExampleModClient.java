@@ -1,7 +1,7 @@
 package com.example.client;
 
 import com.example.ExampleMod;
-import com.example.client.config.MenuTheme;
+import com.example.client.config.ModConfig;
 import com.example.client.module.FlightModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.SpeedModule;
@@ -22,7 +22,7 @@ public class ExampleModClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		MenuTheme.get();
+		ModConfig.loadAll();
 		NoFallModule.registerHooks();
 
 		openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(

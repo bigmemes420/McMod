@@ -1,10 +1,13 @@
 package com.example.client.module;
 
+import com.example.client.config.ModConfig;
+
 import net.minecraft.util.Mth;
 
 /**
  * Visuals module: when enabled, entity nametags always render through walls
- * (including while sneaking) and use the configured scale multiplier.
+ * (including while sneaking), use the configured scale multiplier, and draw
+ * a text outline colored by {@link com.example.client.config.MenuTheme#outline}.
  */
 public final class NametagsModule {
 	public static final float MIN_SCALE = 0.5F;
@@ -26,6 +29,15 @@ public final class NametagsModule {
 	}
 
 	public static void setScale(float value) {
+		float clamped = Mth.clamp(value, MIN_SCALE, MAX_SCALE);
+		if (scale == clamped) {
+			return;
+		}
+		scale = clamped;
+		ModConfig.save();
+	}
+
+	public static void loadScale(float value) {
 		scale = Mth.clamp(value, MIN_SCALE, MAX_SCALE);
 	}
 
@@ -38,6 +50,11 @@ public final class NametagsModule {
 				enabled ? "screen.modid.menu.visuals.nametags.enabled"
 						: "screen.modid.menu.visuals.nametags.disabled"
 		);
+		ModConfig.save();
+	}
+
+	public static void loadEnabled(boolean value) {
+		enabled = value;
 	}
 
 	public static void toggle() {

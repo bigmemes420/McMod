@@ -1,5 +1,7 @@
 package com.example.client.module;
 
+import com.example.client.config.ModConfig;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
@@ -33,6 +35,15 @@ public final class SpeedModule {
 	}
 
 	public static void setSpeedLevel(float level) {
+		float clamped = Mth.clamp(level, MIN_LEVEL, MAX_LEVEL);
+		if (speedLevel == clamped) {
+			return;
+		}
+		speedLevel = clamped;
+		ModConfig.save();
+	}
+
+	public static void loadSpeedLevel(float level) {
 		speedLevel = Mth.clamp(level, MIN_LEVEL, MAX_LEVEL);
 	}
 
@@ -44,6 +55,11 @@ public final class SpeedModule {
 		NotificationsModule.notifyToggle(
 			enabled ? "screen.modid.menu.movement.speed.enabled" : "screen.modid.menu.movement.speed.disabled"
 		);
+		ModConfig.save();
+	}
+
+	public static void loadEnabled(boolean value) {
+		enabled = value;
 	}
 
 	public static void toggle() {

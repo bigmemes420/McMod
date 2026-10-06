@@ -1,7 +1,9 @@
 package com.example.client;
 
 import com.example.client.config.MenuTheme;
+import com.example.client.config.ModConfig;
 import com.example.client.module.FlightModule;
+import com.example.client.module.FullbrightModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
@@ -37,10 +39,25 @@ public class ExampleMenuScreen extends Screen {
 	private static final int CONTENT_LEFT = 24;
 	private static final int CAPSULE_GAP = 8;
 
-	/** Remembers the last top tab across menu open/close. */
+	/** Remembers the last top tab across menu open/close (also persisted). */
 	private static Tab lastSelectedTab = Tab.GENERAL;
 
 	private Tab selectedTab = lastSelectedTab;
+
+	public static String getLastTabName() {
+		return lastSelectedTab.name();
+	}
+
+	public static void loadLastTab(String name) {
+		if (name == null || name.isBlank()) {
+			return;
+		}
+		try {
+			lastSelectedTab = Tab.valueOf(name.trim());
+		} catch (IllegalArgumentException ignored) {
+			// keep default
+		}
+	}
 	private boolean colorMenuOpen;
 
 	public ExampleMenuScreen() {
@@ -112,6 +129,7 @@ public class ExampleMenuScreen extends Screen {
 					if (this.selectedTab != tab) {
 						this.selectedTab = tab;
 						lastSelectedTab = tab;
+						ModConfig.save();
 					}
 					rebuildMenu();
 				}
@@ -173,6 +191,17 @@ public class ExampleMenuScreen extends Screen {
 				Component.translatable("screen.modid.menu.visuals.player_outlines"),
 				PlayerOutlinesModule.isEnabled(),
 				(button, enabled) -> PlayerOutlinesModule.setEnabled(enabled)
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.fullbright"),
+				FullbrightModule.isEnabled(),
+				(button, enabled) -> FullbrightModule.setEnabled(enabled)
 		));
 	}
 
