@@ -71,7 +71,7 @@ public class SubmitNodeCollectionMixin {
 		float y1 = y + 9.0F;
 		float t = 1.0F;
 
-		int color = ARGB.opaque(MenuTheme.get().outline);
+		int color = ARGB.opaque(MenuTheme.get().nametagOutline);
 		SubmitNodeCollection self = (SubmitNodeCollection) (Object) this;
 		Font.DisplayMode mode = Font.DisplayMode.SEE_THROUGH;
 

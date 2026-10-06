@@ -7,7 +7,7 @@ import net.minecraft.util.Mth;
 /**
  * Visuals module: when enabled, entity nametags always render through walls
  * (including while sneaking), use the configured scale multiplier, and draw
- * a plate/background outline colored by {@link com.example.client.config.MenuTheme#outline}.
+ * a plate/background outline colored by {@link com.example.client.config.MenuTheme#nametagOutline}.
  */
 public final class NametagsModule {
 	public static final float MIN_SCALE = 0.5F;
