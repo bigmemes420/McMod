@@ -39,7 +39,6 @@ public class ExampleModClient implements ClientModInitializer {
 		));
 
 		LevelRenderEvents.BEFORE_GIZMOS.register(context -> {
-			XRayModule.renderOverlays(context.levelRenderer());
 			FinderModule.renderOverlays(context.levelRenderer());
 		});
 

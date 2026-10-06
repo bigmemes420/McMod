@@ -1,5 +1,6 @@
 package com.example.client.widget;
 
+import com.example.ExampleMod;
 import com.example.client.config.MenuTheme;
 
 import net.minecraft.client.Minecraft;
@@ -7,16 +8,23 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 /**
- * Capsule mode control that opens a dropdown list of labeled options (not a cycle button).
+ * Capsule mode control that opens a dropdown list of labeled options.
+ * Closed header uses the custom {@code dropdown_button} texture asset.
  */
 public class ModeDropdownButton extends AbstractWidget {
 	@FunctionalInterface
 	public interface OnSelect {
 		void onSelect(int index);
 	}
+
+	private static final Identifier DROPDOWN_BUTTON_TEXTURE = ExampleMod.id("textures/gui/dropdown_button.png");
+	private static final int TEXTURE_WIDTH = 510;
+	private static final int TEXTURE_HEIGHT = 111;
 
 	private static ModeDropdownButton openInstance;
 
@@ -118,35 +126,48 @@ public class ModeDropdownButton extends AbstractWidget {
 				&& mouseX < this.getX() + this.width
 				&& mouseY < this.getY() + this.closedHeight;
 		int fill;
-		int outline;
 		int textColor;
+		int tint;
 
 		if (!this.active) {
 			fill = theme.capsuleDisabledFill;
-			outline = theme.capsuleDisabledOutline;
 			textColor = theme.capsuleDisabledText;
+			tint = theme.capsuleDisabledOutline;
 		} else if (this.pressed) {
 			fill = theme.capsulePressedFill;
-			outline = theme.capsulePressedOutline;
 			textColor = theme.capsuleText;
+			tint = theme.capsulePressedOutline;
 		} else if (headerHovered || this.open) {
 			fill = theme.capsuleHoverFill;
-			outline = theme.capsuleHoverOutline;
 			textColor = theme.capsuleText;
+			tint = theme.capsuleHoverOutline;
 		} else {
 			fill = theme.capsuleFill;
-			outline = theme.capsuleOutline;
 			textColor = theme.capsuleText;
+			tint = theme.capsuleOutline;
 		}
 
-		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, outline);
+		// Theme fill + custom dropdown button stroke asset (tinted).
+		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, fill);
+		graphics.blit(
+				RenderPipelines.GUI_TEXTURED,
+				DROPDOWN_BUTTON_TEXTURE,
+				this.getX(),
+				this.getY(),
+				0.0F,
+				0.0F,
+				this.width,
+				this.closedHeight,
+				TEXTURE_WIDTH,
+				TEXTURE_HEIGHT,
+				tint | 0xFF000000
+		);
 
 		var font = Minecraft.getInstance().font;
 		int textX = this.getX() + 10;
 		int textY = this.getY() + (this.closedHeight - font.lineHeight) / 2;
 		graphics.text(font, this.getMessage(), textX, textY, textColor, false);
 
-		// Chevron
 		String chevron = this.open ? "▲" : "▼";
 		int chevronX = this.getX() + this.width - 14;
 		graphics.text(font, Component.literal(chevron), chevronX, textY, textColor, false);
@@ -184,7 +205,6 @@ public class ModeDropdownButton extends AbstractWidget {
 	@Override
 	public void onClick(MouseButtonEvent event, boolean doubleClick) {
 		this.pressed = true;
-		double mx = event.x();
 		double my = event.y();
 
 		if (my >= this.getY() && my < this.getY() + this.closedHeight) {

@@ -6,8 +6,11 @@ import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -23,8 +26,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Submenu to pick which blocks get through-world Finder outlines.
- * Mirrors {@link XRayBlocksScreen} with Finder's own selection set.
+ * Submenu to pick which blocks get through-world Finder ESP, with a per-block
+ * custom color swatch that opens the color picker.
  */
 public class FinderBlocksScreen extends Screen {
 	private static final int TOP_PAD = 28;
@@ -32,6 +35,7 @@ public class FinderBlocksScreen extends Screen {
 	private static final int ROW_HEIGHT = 24;
 	private static final int ROW_GAP = 4;
 	private static final int CAPSULE_WIDTH = 360;
+	private static final int COLOR_WIDTH = 28;
 	private static final int VISIBLE_ROWS = 12;
 
 	private final Screen parent;
@@ -93,7 +97,7 @@ public class FinderBlocksScreen extends Screen {
 			if (child instanceof FlatMenuButton) {
 				continue;
 			}
-			if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) {
+			if (child instanceof AbstractWidget widget) {
 				this.removeWidget(widget);
 			}
 		}
@@ -102,6 +106,7 @@ public class FinderBlocksScreen extends Screen {
 		int maxScroll = Math.max(0, this.filtered.size() - VISIBLE_ROWS);
 		this.scrollOffset = Math.min(this.scrollOffset, maxScroll);
 
+		int rowWidth = Math.min(CAPSULE_WIDTH, this.width - 48 - COLOR_WIDTH - 8);
 		int y = TOP_PAD + SEARCH_HEIGHT + 12;
 		int end = Math.min(this.filtered.size(), this.scrollOffset + VISIBLE_ROWS);
 		for (int i = this.scrollOffset; i < end; i++) {
@@ -112,12 +117,35 @@ public class FinderBlocksScreen extends Screen {
 			this.addRenderableWidget(new ToggleCapsuleButton(
 					24,
 					y,
-					Math.min(CAPSULE_WIDTH, this.width - 48),
+					rowWidth,
 					ROW_HEIGHT,
 					Component.literal(label),
 					selected,
 					iconFor(block),
 					(button, enabled) -> FinderModule.setSelected(id, enabled)
+			));
+			int colorX = 24 + rowWidth + 8;
+			int color = FinderModule.getBlockColor(id);
+			this.addRenderableWidget(new ColorSwatchButton(
+					colorX,
+					y,
+					COLOR_WIDTH,
+					ROW_HEIGHT,
+					color,
+					() -> {
+						if (this.minecraft != null) {
+							String title = block.getName().getString();
+							this.minecraft.gui.setScreen(new ColorPickerScreen(
+									this,
+									title,
+									FinderModule.getBlockColor(id),
+									argb -> {
+										FinderModule.setBlockColor(id, argb);
+										FinderModule.setSelected(id, true);
+									}
+							));
+						}
+					}
 			));
 			y += ROW_HEIGHT + ROW_GAP;
 		}
@@ -192,5 +220,34 @@ public class FinderBlocksScreen extends Screen {
 		).getString();
 		int hintX = 24 + this.font.width(this.title) + 16;
 		graphics.text(this.font, hint, hintX, 8, theme.panelHint, false);
+	}
+
+	/** Small color swatch button beside each Finder block row. */
+	private static final class ColorSwatchButton extends AbstractWidget {
+		private final int color;
+		private final Runnable onPress;
+
+		ColorSwatchButton(int x, int y, int width, int height, int color, Runnable onPress) {
+			super(x, y, width, height, Component.empty());
+			this.color = color | 0xFF000000;
+			this.onPress = onPress;
+		}
+
+		@Override
+		protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+			graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height, this.color);
+			int outline = this.isHoveredOrFocused() ? 0xFFFFFFFF : 0xFF808080;
+			graphics.outline(this.getX(), this.getY(), this.width, this.height, outline);
+		}
+
+		@Override
+		public void onClick(MouseButtonEvent event, boolean doubleClick) {
+			this.onPress.run();
+		}
+
+		@Override
+		protected void updateWidgetNarration(NarrationElementOutput output) {
+			this.defaultButtonNarrationText(output);
+		}
 	}
 }

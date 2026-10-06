@@ -46,7 +46,7 @@ public class ExampleMenuScreen extends Screen {
 	private static final int CAPSULE_WIDTH = 220;
 	private static final int CAPSULE_HEIGHT = 24;
 	private static final int EDIT_WIDTH = 56;
-	private static final int MODE_WIDTH = 108;
+	private static final int MODE_WIDTH = 128;
 	private static final int CONTENT_TOP = TITLE_BAND + TOP_BAR_HEIGHT + 28;
 	private static final int CONTENT_LEFT = 24;
 	private static final int CAPSULE_GAP = 8;
@@ -249,7 +249,9 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
-		if (FinderModule.getMode() == FinderModule.RenderMode.FILLED) {
+		boolean finderFilled = FinderModule.getMode() == FinderModule.RenderMode.FILLED
+				|| FinderModule.getMode() == FinderModule.RenderMode.FILLED_COMBINED;
+		if (finderFilled) {
 			this.addRenderableWidget(new LevelCapsuleButton(
 					CONTENT_LEFT,
 					y,
@@ -288,6 +290,11 @@ public class ExampleMenuScreen extends Screen {
 					}
 				}
 		));
+		int finderModeIndex = switch (FinderModule.getMode()) {
+			case FILLED -> 1;
+			case FILLED_COMBINED -> 2;
+			default -> 0;
+		};
 		this.addRenderableWidget(new ModeDropdownButton(
 				modeX,
 				y,
@@ -295,11 +302,17 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				new Component[] {
 					Component.translatable("screen.modid.menu.visuals.finder.mode.outline"),
-					Component.translatable("screen.modid.menu.visuals.finder.mode.filled")
+					Component.translatable("screen.modid.menu.visuals.finder.mode.filled"),
+					Component.translatable("screen.modid.menu.visuals.finder.mode.filled_combined")
 				},
-				FinderModule.getMode() == FinderModule.RenderMode.FILLED ? 1 : 0,
+				finderModeIndex,
 				index -> {
-					FinderModule.setMode(index == 1 ? FinderModule.RenderMode.FILLED : FinderModule.RenderMode.OUTLINE);
+					FinderModule.RenderMode mode = switch (index) {
+						case 1 -> FinderModule.RenderMode.FILLED;
+						case 2 -> FinderModule.RenderMode.FILLED_COMBINED;
+						default -> FinderModule.RenderMode.OUTLINE;
+					};
+					FinderModule.setMode(mode);
 					rebuildMenu();
 				}
 		));

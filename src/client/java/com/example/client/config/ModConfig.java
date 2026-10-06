@@ -76,6 +76,7 @@ public final class ModConfig {
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
 		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
 		FinderModule.loadSelectedBlocks(props.getProperty("finderBlocks", ""));
+		FinderModule.loadBlockColors(props.getProperty("finderBlockColors", ""));
 		AutoClickerModule.loadEnabled(bool(props, "autoclicker", false));
 		AutoClickerModule.loadCps(floatVal(props, "autoclickerCps", AutoClickerModule.DEFAULT_CPS));
 		VelocityModule.loadEnabled(bool(props, "velocity", false));
@@ -110,6 +111,7 @@ public final class ModConfig {
 			props.setProperty("finderMode", FinderModule.getMode().name());
 			props.setProperty("finderOpacity", Float.toString(FinderModule.getOpacity()));
 			props.setProperty("finderBlocks", FinderModule.selectedBlocksCsv());
+			props.setProperty("finderBlockColors", FinderModule.blockColorsCsv());
 			props.setProperty("autoclicker", String.valueOf(AutoClickerModule.isEnabled()));
 			props.setProperty("autoclickerCps", Float.toString(AutoClickerModule.getCps()));
 			props.setProperty("velocity", String.valueOf(VelocityModule.isEnabled()));

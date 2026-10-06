@@ -5,33 +5,44 @@ import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Visuals module: through-world block ESP for a dedicated selection list.
- * Modes: {@link RenderMode#OUTLINE} (stroke only) or {@link RenderMode#FILLED}
- * (filled boxes with a dedicated opacity slider). Uses theme
- * {@code finderOutline} — independent of X-Ray and Player Outlines.
+ * Modes: Outline, Filled Boxes, Filled+Combined (no outline; merge fills for
+ * same block type). Each selected block can have a custom color.
  */
 public final class FinderModule {
 	public enum RenderMode {
 		OUTLINE,
-		FILLED;
+		FILLED,
+		FILLED_COMBINED;
 
 		public static RenderMode fromString(String raw) {
 			if (raw == null || raw.isBlank()) {
 				return OUTLINE;
 			}
+			String key = raw.trim().toUpperCase(Locale.ROOT).replace('+', '_').replace('-', '_').replace(' ', '_');
+			if ("FILLED_BOXES".equals(key) || "FILLED_BOX".equals(key)) {
+				return FILLED;
+			}
+			if ("FILLEDCOMBINED".equals(key) || "COMBINED".equals(key)) {
+				return FILLED_COMBINED;
+			}
 			try {
-				return RenderMode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+				return RenderMode.valueOf(key);
 			} catch (IllegalArgumentException e) {
 				return OUTLINE;
 			}
@@ -46,6 +57,8 @@ public final class FinderModule {
 	private static RenderMode mode = RenderMode.OUTLINE;
 	private static float opacity = DEFAULT_OPACITY;
 	private static final LinkedHashSet<Identifier> selectedBlocks = new LinkedHashSet<>();
+	/** Per-block custom ARGB; missing entries fall back to theme finderOutline. */
+	private static final LinkedHashMap<Identifier, Integer> blockColors = new LinkedHashMap<>();
 	private static final BlockEspScanner scanner = new BlockEspScanner(FinderModule::getSelectedBlocks, BlockEspScanner.DEFAULT_RANGE);
 
 	static {
@@ -89,10 +102,33 @@ public final class FinderModule {
 			return;
 		}
 		boolean changed = selected ? selectedBlocks.add(id) : selectedBlocks.remove(id);
+		if (!selected) {
+			blockColors.remove(id);
+		}
 		if (changed) {
 			scanner.clear();
 			ModConfig.save();
 		}
+	}
+
+	public static int getBlockColor(Identifier id) {
+		if (id == null) {
+			return MenuTheme.get().finderOutline;
+		}
+		Integer custom = blockColors.get(id);
+		return custom != null ? custom : MenuTheme.get().finderOutline;
+	}
+
+	public static void setBlockColor(Identifier id, int argb) {
+		if (id == null) {
+			return;
+		}
+		blockColors.put(id, argb);
+		if (!selectedBlocks.contains(id)) {
+			selectedBlocks.add(id);
+			scanner.clear();
+		}
+		ModConfig.save();
 	}
 
 	public static void loadSelectedBlocks(String csv) {
@@ -102,6 +138,40 @@ public final class FinderModule {
 
 	public static String selectedBlocksCsv() {
 		return BlockEspDefaults.toCsv(selectedBlocks);
+	}
+
+	/** Persist as {@code id=#AARRGGBB,id2=#AARRGGBB}. */
+	public static String blockColorsCsv() {
+		StringBuilder sb = new StringBuilder();
+		for (Map.Entry<Identifier, Integer> e : blockColors.entrySet()) {
+			if (sb.length() > 0) {
+				sb.append(',');
+			}
+			sb.append(e.getKey()).append('=').append('#').append(String.format("%08X", e.getValue()));
+		}
+		return sb.toString();
+	}
+
+	public static void loadBlockColors(String csv) {
+		blockColors.clear();
+		if (csv == null || csv.isBlank()) {
+			return;
+		}
+		for (String part : csv.split(",")) {
+			String trimmed = part.trim();
+			if (trimmed.isEmpty()) {
+				continue;
+			}
+			int eq = trimmed.indexOf('=');
+			if (eq <= 0) {
+				continue;
+			}
+			Identifier id = Identifier.tryParse(trimmed.substring(0, eq).trim());
+			Integer color = MenuTheme.parseHex(trimmed.substring(eq + 1).trim());
+			if (id != null && color != null && BuiltInRegistries.BLOCK.containsKey(id)) {
+				blockColors.put(id, color);
+			}
+		}
 	}
 
 	public static void setMode(RenderMode value) {
@@ -161,13 +231,56 @@ public final class FinderModule {
 		if (!enabled) {
 			return;
 		}
-		int stroke = MenuTheme.get().finderOutline;
-		if (mode == RenderMode.OUTLINE) {
-			WorldBlockEspRenderer.drawOutlines(levelRenderer, scanner.hits(), stroke);
+		var hits = scanner.hits();
+		if (hits.isEmpty()) {
 			return;
 		}
+
+		Minecraft client = Minecraft.getInstance();
+		Level level = client.level;
+
+		if (mode == RenderMode.OUTLINE) {
+			// Per-block stroke colors — group by color for fewer style switches
+			Map<Integer, java.util.List<BlockPos>> byColor = new LinkedHashMap<>();
+			for (BlockPos pos : hits) {
+				Identifier id = idAt(level, pos);
+				byColor.computeIfAbsent(getBlockColor(id), k -> new java.util.ArrayList<>()).add(pos);
+			}
+			for (Map.Entry<Integer, java.util.List<BlockPos>> e : byColor.entrySet()) {
+				WorldBlockEspRenderer.drawOutlines(levelRenderer, e.getValue(), e.getKey());
+			}
+			return;
+		}
+
 		float fillAlpha = Mth.clamp(getOpacityFraction(), 0.0F, 1.0F);
-		int fill = WorldBlockEspRenderer.fillWithAlpha(stroke & 0xFFFFFF, fillAlpha);
-		WorldBlockEspRenderer.drawFilled(levelRenderer, scanner.hits(), stroke, fill);
+
+		if (mode == RenderMode.FILLED_COMBINED) {
+			WorldBlockEspRenderer.drawFilledCombined(
+					levelRenderer,
+					hits,
+					pos -> idAt(level, pos),
+					id -> WorldBlockEspRenderer.fillWithAlpha(getBlockColor(id) & 0xFFFFFF, fillAlpha)
+			);
+			return;
+		}
+
+		// FILLED — stroke + fill, per-block color
+		Map<Integer, java.util.List<BlockPos>> byColor = new LinkedHashMap<>();
+		for (BlockPos pos : hits) {
+			Identifier id = idAt(level, pos);
+			byColor.computeIfAbsent(getBlockColor(id), k -> new java.util.ArrayList<>()).add(pos);
+		}
+		for (Map.Entry<Integer, java.util.List<BlockPos>> e : byColor.entrySet()) {
+			int stroke = e.getKey();
+			int fill = WorldBlockEspRenderer.fillWithAlpha(stroke & 0xFFFFFF, fillAlpha);
+			WorldBlockEspRenderer.drawFilled(levelRenderer, e.getValue(), stroke, fill);
+		}
+	}
+
+	private static Identifier idAt(Level level, BlockPos pos) {
+		if (level == null) {
+			return null;
+		}
+		return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock());
 	}
 }

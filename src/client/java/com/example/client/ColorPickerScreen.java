@@ -10,6 +10,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
+
+import java.util.function.Consumer;
 /**
  * Interactive ARGB color picker (HSV square + hue bar + RGB sliders) with live
  * preview. Apply writes through {@link MenuTheme#set(String, int)} + save.
@@ -24,6 +26,7 @@ public class ColorPickerScreen extends Screen {
 
 	private final Screen parent;
 	private final String themeKey;
+	private final Consumer<Integer> onApply;
 	private final int originalArgb;
 	private final int alpha;
 
@@ -44,9 +47,17 @@ public class ColorPickerScreen extends Screen {
 	private boolean syncing;
 
 	public ColorPickerScreen(Screen parent, String themeKey, int argb) {
-		super(Component.translatable("screen.modid.menu.colors.picker", MenuTheme.displayName(themeKey)));
+		this(parent, themeKey, argb, null);
+	}
+
+	/** Custom apply callback (e.g. per-block Finder color); skips MenuTheme when non-null. */
+	public ColorPickerScreen(Screen parent, String titleKeyOrThemeKey, int argb, Consumer<Integer> onApply) {
+		super(onApply == null
+				? Component.translatable("screen.modid.menu.colors.picker", MenuTheme.displayName(titleKeyOrThemeKey))
+				: Component.translatable("screen.modid.menu.colors.picker", titleKeyOrThemeKey));
 		this.parent = parent;
-		this.themeKey = themeKey;
+		this.themeKey = titleKeyOrThemeKey;
+		this.onApply = onApply;
 		this.originalArgb = argb;
 		this.alpha = (argb >>> 24) & 0xFF;
 		int r = (argb >>> 16) & 0xFF;
@@ -206,11 +217,16 @@ public class ColorPickerScreen extends Screen {
 	}
 
 	private void applyAndClose() {
-		MenuTheme theme = MenuTheme.get();
-		theme.set(this.themeKey, currentArgb());
-		theme.save();
-		if (this.parent instanceof ExampleMenuScreen menu) {
-			menu.refreshColorMenu();
+		int argb = currentArgb();
+		if (this.onApply != null) {
+			this.onApply.accept(argb);
+		} else {
+			MenuTheme theme = MenuTheme.get();
+			theme.set(this.themeKey, argb);
+			theme.save();
+			if (this.parent instanceof ExampleMenuScreen menu) {
+				menu.refreshColorMenu();
+			}
 		}
 		this.onClose();
 	}

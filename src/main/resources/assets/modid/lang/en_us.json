@@ -30,7 +30,7 @@
   "screen.modid.menu.visuals.fullbright.enabled": "Fullbright enabled — full scene brightness",
   "screen.modid.menu.visuals.fullbright.disabled": "Fullbright disabled",
   "screen.modid.menu.visuals.xray": "X-Ray",
-  "screen.modid.menu.visuals.xray.enabled": "X-Ray enabled — live opacity, no remesh; selected blocks through walls",
+  "screen.modid.menu.visuals.xray.enabled": "X-Ray enabled — selected blocks normal; true alpha on non-selected",
   "screen.modid.menu.visuals.xray.disabled": "X-Ray disabled",
   "screen.modid.menu.visuals.xray.edit": "Edit",
   "screen.modid.menu.visuals.xray.edit.title": "X-Ray Blocks",
@@ -44,7 +44,7 @@
   "screen.modid.menu.visuals.finder.mode.outline": "Outline",
   "screen.modid.menu.visuals.finder.mode.filled": "Filled Boxes",
   "screen.modid.menu.visuals.finder.edit.title": "Finder Blocks",
-  "screen.modid.menu.visuals.finder.edit.hint": "%s shown · %s outlined",
+  "screen.modid.menu.visuals.finder.edit.hint": "%s shown · %s selected (color swatch per block)",
   "screen.modid.menu.visuals.finder.search": "Search blocks",
   "screen.modid.menu.visuals.finder.search.hint": "Search by name or id…",
   "screen.modid.menu.combat.autoclicker": "AutoClicker",
@@ -69,5 +69,6 @@
   "screen.modid.menu.movement.nofall.disabled": "No Fall disabled",
   "screen.modid.menu.misc.notifications": "Notifications",
   "screen.modid.menu.misc.notifications.enabled": "Notifications enabled",
-  "screen.modid.menu.misc.notifications.disabled": "Notifications disabled"
+  "screen.modid.menu.misc.notifications.disabled": "Notifications disabled",
+  "screen.modid.menu.visuals.finder.mode.filled_combined": "Filled+Combined"
 }
