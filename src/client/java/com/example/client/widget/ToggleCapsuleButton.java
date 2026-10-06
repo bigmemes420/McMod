@@ -8,10 +8,11 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Capsule-style module row. The left circle turns green when ON; no separate
- * ON/OFF knob widget.
+ * ON/OFF knob widget. Optional item/block icon is drawn after the circle.
  */
 public class ToggleCapsuleButton extends AbstractWidget {
 	@FunctionalInterface
@@ -19,13 +20,31 @@ public class ToggleCapsuleButton extends AbstractWidget {
 		void onToggle(ToggleCapsuleButton button, boolean enabled);
 	}
 
+	private static final int ICON_SIZE = 16;
+	private static final int ICON_GAP = 4;
+
 	private final OnToggle onToggle;
+	private final ItemStack icon;
 	private boolean enabled;
 	private boolean pressed;
 
 	public ToggleCapsuleButton(int x, int y, int width, int height, Component message, boolean enabled, OnToggle onToggle) {
+		this(x, y, width, height, message, enabled, ItemStack.EMPTY, onToggle);
+	}
+
+	public ToggleCapsuleButton(
+			int x,
+			int y,
+			int width,
+			int height,
+			Component message,
+			boolean enabled,
+			ItemStack icon,
+			OnToggle onToggle
+	) {
 		super(x, y, width, height, message);
 		this.enabled = enabled;
+		this.icon = icon == null || icon.isEmpty() ? ItemStack.EMPTY : icon.copy();
 		this.onToggle = onToggle;
 	}
 
@@ -72,9 +91,16 @@ public class ToggleCapsuleButton extends AbstractWidget {
 
 		var font = Minecraft.getInstance().font;
 		int radius = this.height / 2;
-		int textX = this.getX() + radius * 2 + 4;
+		int contentX = this.getX() + radius * 2 + 4;
 		int textY = this.getY() + (this.height - font.lineHeight) / 2;
-		graphics.text(font, this.getMessage(), textX, textY, textColor, false);
+
+		if (!this.icon.isEmpty()) {
+			int iconY = this.getY() + (this.height - ICON_SIZE) / 2;
+			graphics.fakeItem(this.icon, contentX, iconY);
+			contentX += ICON_SIZE + ICON_GAP;
+		}
+
+		graphics.text(font, this.getMessage(), contentX, textY, textColor, false);
 	}
 
 	@Override

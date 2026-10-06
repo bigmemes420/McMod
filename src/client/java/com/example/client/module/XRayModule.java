@@ -3,6 +3,8 @@ package com.example.client.module;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ViewArea;
+import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -22,6 +24,10 @@ import java.util.Set;
  * 0 = fully hidden (classic X-Ray), 1–99 = translucent fade, 100 = fully opaque
  * (no hide). Selected blocks always render at full opacity and, while X-Ray is
  * active below 100%, their faces are not culled by neighboring solid blocks.
+ * <p>
+ * Opacity slider updates are applied live: the value is stored immediately and
+ * sections are lightly reset (not full LevelRenderer reinits) on the next client
+ * tick so dragging stays responsive.
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
@@ -32,8 +38,14 @@ public final class XRayModule {
 	private static float opacity = DEFAULT_OPACITY;
 	private static final LinkedHashSet<Identifier> fullOpacityBlocks = new LinkedHashSet<>();
 
-	/** Worker-thread flag: current quad should go into the translucent layer. */
+	/** Worker-thread flag: current block's quads should go into the translucent layer. */
 	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+	/**
+	 * Set when opacity/enabled/selection changes and sections must remesh.
+	 * Flushed once per client tick so slider drags do not thrash the renderer.
+	 */
+	private static volatile boolean chunksDirty;
 
 	static {
 		seedDefaults(fullOpacityBlocks);
@@ -107,7 +119,7 @@ public final class XRayModule {
 		}
 		boolean changed = selected ? fullOpacityBlocks.add(id) : fullOpacityBlocks.remove(id);
 		if (changed) {
-			reloadChunks();
+			markChunksDirty(true);
 			ModConfig.save();
 		}
 	}
@@ -119,7 +131,9 @@ public final class XRayModule {
 		}
 		opacity = clamped;
 		if (enabled) {
-			reloadChunks();
+			// Defer remesh to client tick so slider drag stays live without
+			// recreating ViewArea on every mouse move (prior fix's failure mode).
+			markChunksDirty(false);
 		}
 		ModConfig.save();
 	}
@@ -165,7 +179,7 @@ public final class XRayModule {
 			return;
 		}
 		enabled = value;
-		reloadChunks();
+		markChunksDirty(true);
 		NotificationsModule.notifyToggle(
 				enabled ? "screen.modid.menu.visuals.xray.enabled"
 						: "screen.modid.menu.visuals.xray.disabled"
@@ -244,16 +258,44 @@ public final class XRayModule {
 		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
 	}
 
-	public static void reloadChunks() {
-		Minecraft client = Minecraft.getInstance();
-		if (client.level == null || client.levelRenderer == null || client.gameRenderer == null) {
+	/** Call from client tick so opacity-slider remeshes land once per frame/tick. */
+	public static void tick(Minecraft client) {
+		if (!chunksDirty) {
 			return;
 		}
-		client.levelRenderer.invalidateCompiledGeometry(
-				client.level,
-				client.options,
-				client.gameRenderer.mainCamera(),
-				client.getBlockColors()
-		);
+		if (client.level == null || client.levelRenderer == null) {
+			return;
+		}
+		chunksDirty = false;
+		reloadChunks();
+	}
+
+	private static void markChunksDirty(boolean immediate) {
+		chunksDirty = true;
+		if (immediate) {
+			chunksDirty = false;
+			reloadChunks();
+		}
+	}
+
+	/**
+	 * Light remesh: reset compiled section meshes and clear the compile queue.
+	 * Does <b>not</b> call {@code invalidateCompiledGeometry}, which recreates
+	 * ViewArea and stalls the client — that was why the prior opacity fix felt
+	 * non-live while dragging the slider.
+	 */
+	public static void reloadChunks() {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || client.levelRenderer == null) {
+			return;
+		}
+		ViewArea viewArea = client.levelRenderer.viewArea();
+		if (viewArea != null) {
+			viewArea.releaseAllBuffers();
+		}
+		SectionRenderDispatcher dispatcher = client.levelRenderer.sectionRenderDispatcher();
+		if (dispatcher != null) {
+			dispatcher.clearCompileQueue();
+		}
 	}
 }

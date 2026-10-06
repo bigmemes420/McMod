@@ -11,6 +11,9 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
@@ -21,14 +24,15 @@ import java.util.Locale;
 
 /**
  * Submenu to pick which blocks always render at full opacity while X-Ray is on.
- * Includes a search bar that filters by id or display name.
+ * Includes a search bar that filters by id or display name. Each row shows the
+ * block/item icon next to its toggle.
  */
 public class XRayBlocksScreen extends Screen {
 	private static final int TOP_PAD = 28;
 	private static final int SEARCH_HEIGHT = 20;
 	private static final int ROW_HEIGHT = 24;
 	private static final int ROW_GAP = 4;
-	private static final int CAPSULE_WIDTH = 320;
+	private static final int CAPSULE_WIDTH = 360;
 	private static final int VISIBLE_ROWS = 12;
 
 	private final Screen parent;
@@ -114,10 +118,19 @@ public class XRayBlocksScreen extends Screen {
 					ROW_HEIGHT,
 					Component.literal(label),
 					selected,
+					iconFor(block),
 					(button, enabled) -> XRayModule.setFullOpacity(id, enabled)
 			));
 			y += ROW_HEIGHT + ROW_GAP;
 		}
+	}
+
+	private static ItemStack iconFor(Block block) {
+		Item item = block.asItem();
+		if (item == null || item == Items.AIR) {
+			return ItemStack.EMPTY;
+		}
+		return new ItemStack(item);
 	}
 
 	private List<Identifier> buildFiltered() {

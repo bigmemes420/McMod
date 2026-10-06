@@ -8,6 +8,7 @@ import com.example.client.module.NoFallModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.module.VelocityModule;
+import com.example.client.module.XRayModule;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -45,6 +46,7 @@ public class ExampleModClient implements ClientModInitializer {
 			AutoClickerModule.tick(client);
 			VelocityModule.tick(client);
 			ReachModule.tick(client);
+			XRayModule.tick(client);
 		});
 	}
 
