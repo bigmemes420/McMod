@@ -1,5 +1,7 @@
 package com.example.client.widget;
 
+import com.example.client.config.MenuTheme;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -8,8 +10,8 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /**
- * Submenu button matching the design: circle on the left seamlessly joined to a
- * bar extending right with rounded free corners.
+ * Submenu button: circle on the left seamlessly joined to a bar extending right
+ * with rounded free corners (outer arcs only).
  */
 public class CapsuleButton extends AbstractWidget {
 	@FunctionalInterface
@@ -27,27 +29,28 @@ public class CapsuleButton extends AbstractWidget {
 
 	@Override
 	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		MenuTheme theme = MenuTheme.get();
 		boolean hovered = this.isHoveredOrFocused();
 		int fill;
 		int outline;
 		int textColor;
 
 		if (!this.active) {
-			fill = 0xFF2A2A2A;
-			outline = 0xFF555555;
-			textColor = 0xFF888888;
+			fill = theme.capsuleDisabledFill;
+			outline = theme.capsuleDisabledOutline;
+			textColor = theme.capsuleDisabledText;
 		} else if (this.pressed) {
-			fill = 0xFF1A3A5A;
-			outline = 0xFF7EC8FF;
-			textColor = 0xFFFFFFFF;
+			fill = theme.capsulePressedFill;
+			outline = theme.capsulePressedOutline;
+			textColor = theme.capsuleText;
 		} else if (hovered) {
-			fill = 0xFF2A4A6A;
-			outline = 0xFFAAD4FF;
-			textColor = 0xFFFFFFFF;
+			fill = theme.capsuleHoverFill;
+			outline = theme.capsuleHoverOutline;
+			textColor = theme.capsuleText;
 		} else {
-			fill = 0xFF1E1E28;
-			outline = 0xFFE0E0E0;
-			textColor = 0xFFE8E8E8;
+			fill = theme.capsuleFill;
+			outline = theme.capsuleOutline;
+			textColor = theme.capsuleText;
 		}
 
 		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.height, fill, outline);

@@ -1,5 +1,7 @@
 package com.example.client.widget;
 
+import com.example.client.config.MenuTheme;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -8,7 +10,8 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /**
- * Capsule-style module row with an on/off toggle knob on the right.
+ * Capsule-style module row. The left circle turns green when ON; no separate
+ * ON/OFF knob widget.
  */
 public class ToggleCapsuleButton extends AbstractWidget {
 	@FunctionalInterface
@@ -36,60 +39,42 @@ public class ToggleCapsuleButton extends AbstractWidget {
 
 	@Override
 	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		MenuTheme theme = MenuTheme.get();
 		boolean hovered = this.isHoveredOrFocused();
 		int fill;
 		int outline;
 		int textColor;
+		int leftCircle;
 
 		if (!this.active) {
-			fill = 0xFF2A2A2A;
-			outline = 0xFF555555;
-			textColor = 0xFF888888;
-		} else if (this.enabled) {
-			fill = this.pressed ? 0xFF1A4A7A : (hovered ? 0xFF2E6AAA : 0xFF2E5A8A);
-			outline = 0xFF8EC8FF;
-			textColor = 0xFFFFFFFF;
+			fill = theme.capsuleDisabledFill;
+			outline = theme.capsuleDisabledOutline;
+			textColor = theme.capsuleDisabledText;
+			leftCircle = fill;
 		} else if (this.pressed) {
-			fill = 0xFF1A3A5A;
-			outline = 0xFF7EC8FF;
-			textColor = 0xFFFFFFFF;
+			fill = theme.capsulePressedFill;
+			outline = theme.capsulePressedOutline;
+			textColor = theme.capsuleText;
+			leftCircle = this.enabled ? theme.accentOn : fill;
 		} else if (hovered) {
-			fill = 0xFF2A4A6A;
-			outline = 0xFFAAD4FF;
-			textColor = 0xFFFFFFFF;
+			fill = theme.capsuleHoverFill;
+			outline = theme.capsuleHoverOutline;
+			textColor = theme.capsuleText;
+			leftCircle = this.enabled ? theme.accentOn : fill;
 		} else {
-			fill = 0xFF1E1E28;
-			outline = 0xFFE0E0E0;
-			textColor = 0xFFE8E8E8;
+			fill = theme.capsuleFill;
+			outline = theme.capsuleOutline;
+			textColor = theme.capsuleText;
+			leftCircle = this.enabled ? theme.accentOn : fill;
 		}
 
-		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.height, fill, outline);
+		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.height, fill, outline, leftCircle);
 
 		var font = Minecraft.getInstance().font;
 		int radius = this.height / 2;
 		int textX = this.getX() + radius * 2 + 4;
 		int textY = this.getY() + (this.height - font.lineHeight) / 2;
 		graphics.text(font, this.getMessage(), textX, textY, textColor, false);
-
-		// Toggle track + knob on the right side of the capsule
-		int trackW = 28;
-		int trackH = Math.max(10, this.height - 8);
-		int trackX = this.getX() + this.width - trackW - 6;
-		int trackY = this.getY() + (this.height - trackH) / 2;
-		int trackFill = this.enabled ? 0xFF4A90D9 : 0xFF404050;
-		int trackOutline = this.enabled ? 0xFFAAD4FF : 0xFF808090;
-		MenuShapes.drawCapsule(graphics, trackX, trackY, trackW, trackH, trackFill, trackOutline);
-
-		int knobR = trackH / 2 - 2;
-		int knobCx = this.enabled ? (trackX + trackW - knobR - 3) : (trackX + knobR + 2);
-		int knobCy = trackY + trackH / 2;
-		MenuShapes.fillCircle(graphics, knobCx, knobCy, knobR, 0xFFF0F0F8);
-		MenuShapes.outlineCircle(graphics, knobCx, knobCy, knobR, trackOutline);
-
-		String state = this.enabled ? "ON" : "OFF";
-		int stateColor = this.enabled ? 0xFFB8E0FF : 0xFFAAAAAA;
-		int stateX = trackX - 4 - font.width(state);
-		graphics.text(font, state, stateX, textY, stateColor, false);
 	}
 
 	@Override

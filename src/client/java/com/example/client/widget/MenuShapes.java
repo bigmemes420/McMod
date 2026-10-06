@@ -4,8 +4,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Vector-style helpers for Rooty Menu custom buttons.
- * Capsule = circle on the left seamlessly joined to a rounded bar extending right,
- * with the full circle outline visible inside the body.
+ * Capsule = circle on the left seamlessly joined to a rounded bar extending right.
+ * Right-corner rounding uses outer quarter-arcs only (no internal circle outlines).
  */
 public final class MenuShapes {
 	private MenuShapes() {
@@ -23,7 +23,7 @@ public final class MenuShapes {
 		int x = 0;
 		int y = radius;
 		int d = 1 - radius;
-		plotCirclePoints(graphics, cx, cy, x, y, color);
+		plotCirclePoints(graphics, cx, cy, x, y, color, true, true, true, true);
 		while (x < y) {
 			if (d < 0) {
 				d += 2 * x + 3;
@@ -32,19 +32,75 @@ public final class MenuShapes {
 				y--;
 			}
 			x++;
-			plotCirclePoints(graphics, cx, cy, x, y, color);
+			plotCirclePoints(graphics, cx, cy, x, y, color, true, true, true, true);
 		}
 	}
 
-	private static void plotCirclePoints(GuiGraphicsExtractor graphics, int cx, int cy, int x, int y, int color) {
-		plotPixel(graphics, cx + x, cy + y, color);
-		plotPixel(graphics, cx - x, cy + y, color);
-		plotPixel(graphics, cx + x, cy - y, color);
-		plotPixel(graphics, cx - x, cy - y, color);
-		plotPixel(graphics, cx + y, cy + x, color);
-		plotPixel(graphics, cx - y, cy + x, color);
-		plotPixel(graphics, cx + y, cy - x, color);
-		plotPixel(graphics, cx - y, cy - x, color);
+	/** Outline only the top-right quarter of a circle (outer free corner). */
+	public static void outlineTopRightArc(GuiGraphicsExtractor graphics, int cx, int cy, int radius, int color) {
+		outlineQuarter(graphics, cx, cy, radius, color, true, false, false, true);
+	}
+
+	/** Outline only the bottom-right quarter of a circle (outer free corner). */
+	public static void outlineBottomRightArc(GuiGraphicsExtractor graphics, int cx, int cy, int radius, int color) {
+		outlineQuarter(graphics, cx, cy, radius, color, false, true, false, true);
+	}
+
+	private static void outlineQuarter(
+			GuiGraphicsExtractor graphics,
+			int cx,
+			int cy,
+			int radius,
+			int color,
+			boolean top,
+			boolean bottom,
+			boolean left,
+			boolean right
+	) {
+		int x = 0;
+		int y = radius;
+		int d = 1 - radius;
+		plotCirclePoints(graphics, cx, cy, x, y, color, top, bottom, left, right);
+		while (x < y) {
+			if (d < 0) {
+				d += 2 * x + 3;
+			} else {
+				d += 2 * (x - y) + 5;
+				y--;
+			}
+			x++;
+			plotCirclePoints(graphics, cx, cy, x, y, color, top, bottom, left, right);
+		}
+	}
+
+	private static void plotCirclePoints(
+			GuiGraphicsExtractor graphics,
+			int cx,
+			int cy,
+			int x,
+			int y,
+			int color,
+			boolean top,
+			boolean bottom,
+			boolean left,
+			boolean right
+	) {
+		if (right && bottom) {
+			plotPixel(graphics, cx + x, cy + y, color);
+			plotPixel(graphics, cx + y, cy + x, color);
+		}
+		if (left && bottom) {
+			plotPixel(graphics, cx - x, cy + y, color);
+			plotPixel(graphics, cx - y, cy + x, color);
+		}
+		if (right && top) {
+			plotPixel(graphics, cx + x, cy - y, color);
+			plotPixel(graphics, cx + y, cy - x, color);
+		}
+		if (left && top) {
+			plotPixel(graphics, cx - x, cy - y, color);
+			plotPixel(graphics, cx - y, cy - x, color);
+		}
 	}
 
 	private static void plotPixel(GuiGraphicsExtractor graphics, int x, int y, int color) {
@@ -52,10 +108,56 @@ public final class MenuShapes {
 	}
 
 	/**
-	 * Draws a capsule button: filled circle on the left joined to a bar extending right
-	 * with rounded free corners (top-right / bottom-right). The full circle outline
-	 * remains visible over the rectangular body.
+	 * Draws a capsule: filled left circle joined to a bar with rounded free corners.
+	 * Right corners use outer quarter-arcs only — no internal circle outlines.
+	 *
+	 * @param leftCircleColor fill for the left circle (use same as fillColor for plain capsules;
+	 *                        green when a toggle is ON)
 	 */
+	public static void drawCapsule(
+			GuiGraphicsExtractor graphics,
+			int x,
+			int y,
+			int width,
+			int height,
+			int fillColor,
+			int outlineColor,
+			int leftCircleColor
+	) {
+		int radius = height / 2;
+		int cx = x + radius;
+		int cy = y + radius;
+		int right = x + width;
+		int bottom = y + height;
+		int cornerR = Math.min(radius, Math.max(3, height / 4));
+		int rightCx = right - cornerR - 1;
+		int topCy = y + cornerR;
+		int botCy = bottom - cornerR - 1;
+
+		// Bar body from the circle center to the right, with rounded free corners (fill only).
+		graphics.fill(cx, y, right - cornerR, bottom, fillColor);
+		graphics.fill(right - cornerR, y + cornerR, right, bottom - cornerR, fillColor);
+		fillCircle(graphics, rightCx, topCy, cornerR, fillColor);
+		fillCircle(graphics, rightCx, botCy, cornerR, fillColor);
+
+		// Left circle (indicator / design feature)
+		fillCircle(graphics, cx, cy, radius, leftCircleColor);
+
+		// Left circle outline (full — this is the intentional indicator ring)
+		outlineCircle(graphics, cx, cy, radius, outlineColor);
+
+		// Bar top/bottom edges from circle center to before the right corner arcs
+		graphics.horizontalLine(cx, rightCx, y, outlineColor);
+		graphics.horizontalLine(cx, rightCx, bottom - 1, outlineColor);
+
+		// Right vertical edge between corner arcs
+		graphics.verticalLine(right - 1, topCy, botCy, outlineColor);
+
+		// Outer quarter-arcs only for rounded free corners (no internal circle lines)
+		outlineTopRightArc(graphics, rightCx, topCy, cornerR, outlineColor);
+		outlineBottomRightArc(graphics, rightCx, botCy, cornerR, outlineColor);
+	}
+
 	public static void drawCapsule(
 			GuiGraphicsExtractor graphics,
 			int x,
@@ -65,28 +167,7 @@ public final class MenuShapes {
 			int fillColor,
 			int outlineColor
 	) {
-		int radius = height / 2;
-		int cx = x + radius;
-		int cy = y + radius;
-		int right = x + width;
-		int bottom = y + height;
-		// Modest rounding on the bar's free corners; keep the left circle as the main round feature.
-		int cornerR = Math.min(radius, Math.max(3, height / 4));
-
-		// Bar body from the circle's vertical diameter to the right, with rounded free corners.
-		graphics.fill(cx, y, right - cornerR, bottom, fillColor);
-		graphics.fill(right - cornerR, y + cornerR, right, bottom - cornerR, fillColor);
-		fillCircle(graphics, right - cornerR - 1, y + cornerR, cornerR, fillColor);
-		fillCircle(graphics, right - cornerR - 1, bottom - cornerR - 1, cornerR, fillColor);
-		fillCircle(graphics, cx, cy, radius, fillColor);
-
-		// Full circle outline (including the arc inside the body), then bar outlines with rounded right.
-		outlineCircle(graphics, cx, cy, radius, outlineColor);
-		graphics.horizontalLine(cx, right - cornerR - 1, y, outlineColor);
-		graphics.horizontalLine(cx, right - cornerR - 1, bottom - 1, outlineColor);
-		graphics.verticalLine(right - 1, y + cornerR, bottom - cornerR - 1, outlineColor);
-		outlineCircle(graphics, right - cornerR - 1, y + cornerR, cornerR, outlineColor);
-		outlineCircle(graphics, right - cornerR - 1, bottom - cornerR - 1, cornerR, outlineColor);
+		drawCapsule(graphics, x, y, width, height, fillColor, outlineColor, fillColor);
 	}
 
 	/**
@@ -137,9 +218,9 @@ public final class MenuShapes {
 		graphics.horizontalLine(x + r, right - r - 1, bottom - 1, outlineColor);
 		graphics.verticalLine(x, y + r, bottom - r - 1, outlineColor);
 		graphics.verticalLine(right - 1, y + r, bottom - r - 1, outlineColor);
-		outlineCircle(graphics, x + r, y + r, r, outlineColor);
-		outlineCircle(graphics, right - r - 1, y + r, r, outlineColor);
-		outlineCircle(graphics, x + r, bottom - r - 1, r, outlineColor);
-		outlineCircle(graphics, right - r - 1, bottom - r - 1, r, outlineColor);
+		outlineTopRightArc(graphics, right - r - 1, y + r, r, outlineColor);
+		outlineBottomRightArc(graphics, right - r - 1, bottom - r - 1, r, outlineColor);
+		outlineQuarter(graphics, x + r, y + r, r, outlineColor, true, false, true, false);
+		outlineQuarter(graphics, x + r, bottom - r - 1, r, outlineColor, false, true, true, false);
 	}
 }

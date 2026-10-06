@@ -1,7 +1,10 @@
 package com.example.client;
 
 import com.example.ExampleMod;
+import com.example.client.config.MenuTheme;
 import com.example.client.module.FlightModule;
+import com.example.client.module.NoFallModule;
+import com.example.client.module.SpeedModule;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -18,6 +21,9 @@ public class ExampleModClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		MenuTheme.get();
+		NoFallModule.registerHooks();
+
 		openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.modid.open_menu",
 				InputConstants.Type.KEYBOARD,
@@ -30,6 +36,8 @@ public class ExampleModClient implements ClientModInitializer {
 				toggleMenu(client);
 			}
 			FlightModule.tick(client);
+			SpeedModule.tick(client);
+			NoFallModule.tick(client);
 		});
 	}
 
