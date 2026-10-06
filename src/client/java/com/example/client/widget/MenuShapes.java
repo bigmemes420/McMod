@@ -4,8 +4,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Vector-style helpers for Rooty Menu custom buttons.
- * Capsule = circle on the left seamlessly joined to a flat rectangle extending right
- * (rounded left / flat right), with the full circle outline visible inside the body.
+ * Capsule = circle on the left seamlessly joined to a rounded bar extending right,
+ * with the full circle outline visible inside the body.
  */
 public final class MenuShapes {
 	private MenuShapes() {
@@ -52,8 +52,9 @@ public final class MenuShapes {
 	}
 
 	/**
-	 * Draws a capsule button: filled circle on the left joined to a rectangle extending right.
-	 * The full circle outline remains visible over the rectangular body.
+	 * Draws a capsule button: filled circle on the left joined to a bar extending right
+	 * with rounded free corners (top-right / bottom-right). The full circle outline
+	 * remains visible over the rectangular body.
 	 */
 	public static void drawCapsule(
 			GuiGraphicsExtractor graphics,
@@ -69,16 +70,23 @@ public final class MenuShapes {
 		int cy = y + radius;
 		int right = x + width;
 		int bottom = y + height;
+		// Modest rounding on the bar's free corners; keep the left circle as the main round feature.
+		int cornerR = Math.min(radius, Math.max(3, height / 4));
 
-		// Rectangle starts at the circle's vertical diameter and extends right (flat right edge).
-		graphics.fill(cx, y, right, bottom, fillColor);
+		// Bar body from the circle's vertical diameter to the right, with rounded free corners.
+		graphics.fill(cx, y, right - cornerR, bottom, fillColor);
+		graphics.fill(right - cornerR, y + cornerR, right, bottom - cornerR, fillColor);
+		fillCircle(graphics, right - cornerR - 1, y + cornerR, cornerR, fillColor);
+		fillCircle(graphics, right - cornerR - 1, bottom - cornerR - 1, cornerR, fillColor);
 		fillCircle(graphics, cx, cy, radius, fillColor);
 
-		// Full circle outline (including the arc inside the body), then flat-side outlines.
+		// Full circle outline (including the arc inside the body), then bar outlines with rounded right.
 		outlineCircle(graphics, cx, cy, radius, outlineColor);
-		graphics.horizontalLine(cx, right - 1, y, outlineColor);
-		graphics.horizontalLine(cx, right - 1, bottom - 1, outlineColor);
-		graphics.verticalLine(right - 1, y, bottom - 1, outlineColor);
+		graphics.horizontalLine(cx, right - cornerR - 1, y, outlineColor);
+		graphics.horizontalLine(cx, right - cornerR - 1, bottom - 1, outlineColor);
+		graphics.verticalLine(right - 1, y + cornerR, bottom - cornerR - 1, outlineColor);
+		outlineCircle(graphics, right - cornerR - 1, y + cornerR, cornerR, outlineColor);
+		outlineCircle(graphics, right - cornerR - 1, bottom - cornerR - 1, cornerR, outlineColor);
 	}
 
 	public static void drawRoundedRect(

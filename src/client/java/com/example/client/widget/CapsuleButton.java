@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 
 /**
  * Submenu button matching the design: circle on the left seamlessly joined to a
- * flat rectangle extending right (rounded left / flat right).
+ * bar extending right with rounded free corners.
  */
 public class CapsuleButton extends AbstractWidget {
 	@FunctionalInterface

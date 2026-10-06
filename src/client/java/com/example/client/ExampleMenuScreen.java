@@ -113,13 +113,20 @@ public class ExampleMenuScreen extends Screen {
 		}
 	}
 
+	/**
+	 * Draw the top bar in the background stratum so tab/close widgets (next stratum)
+	 * render above the bar fill and any menu dimming/blur.
+	 */
+	@Override
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		super.extractBackground(graphics, mouseX, mouseY, delta);
+		graphics.fill(0, 0, this.width, TOP_BAR_HEIGHT, 0xCC101018);
+		graphics.horizontalLine(0, this.width - 1, TOP_BAR_HEIGHT, 0xFF404050);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
-
-		// Top bar background strip
-		graphics.fill(0, 0, this.width, TOP_BAR_HEIGHT, 0xCC101018);
-		graphics.horizontalLine(0, this.width - 1, TOP_BAR_HEIGHT, 0xFF404050);
 
 		// Title below the top bar, left-aligned near content
 		graphics.text(this.font, this.title, CONTENT_LEFT, TOP_BAR_HEIGHT + 8, 0xFFFFFFFF, true);
