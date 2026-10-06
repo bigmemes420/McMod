@@ -2,6 +2,8 @@ package com.example.client;
 
 import com.example.client.module.RadarModule;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -13,9 +15,12 @@ import net.minecraft.util.Mth;
  * Transparent overlay opened by the HUD Edit key (default Delete).
  * Toggle on key press while in-game; Delete or Escape exits.
  * Lets the player drag/resize Radar (and future HUD widgets).
+ *
+ * Mouse buttons use InputConstants values (LEFT=1), not GLFW 0-based indices.
  */
 public class HudEditScreen extends Screen {
-	private static final int HANDLE = 10;
+	private static final int HANDLE = 14;
+	private static final int HIT_PAD = 2;
 	private static final int BORDER = 0xFFE0C060;
 	private static final int HANDLE_FILL = 0xFFFFD54A;
 	private static final int DIM = 0x44000000;
@@ -30,6 +35,8 @@ public class HudEditScreen extends Screen {
 	private double grabDx;
 	private double grabDy;
 	private int startSize;
+	private int startX;
+	private int startY;
 
 	public HudEditScreen() {
 		super(Component.translatable("screen.modid.hud_edit.title"));
@@ -60,8 +67,8 @@ public class HudEditScreen extends Screen {
 		int y = RadarModule.getHudY();
 		int s = RadarModule.getHudSize();
 		graphics.outline(x - 1, y - 1, s + 2, s + 2, BORDER);
-		int hx = x + s - HANDLE / 2;
-		int hy = y + s - HANDLE / 2;
+		int hx = handleX(x, s);
+		int hy = handleY(y, s);
 		graphics.fill(hx, hy, hx + HANDLE, hy + HANDLE, HANDLE_FILL);
 		graphics.outline(hx, hy, HANDLE, HANDLE, 0xFFFFFFFF);
 
@@ -72,67 +79,98 @@ public class HudEditScreen extends Screen {
 		graphics.text(this.font, hint, 8, this.height - 14, 0xFFE8E8E8, true);
 	}
 
+	private static int handleX(int panelX, int size) {
+		return panelX + size - HANDLE / 2;
+	}
+
+	private static int handleY(int panelY, int size) {
+		return panelY + size - HANDLE / 2;
+	}
+
+	private boolean hitHandle(double mx, double my, int x, int y, int s) {
+		int hx = handleX(x, s) - HIT_PAD;
+		int hy = handleY(y, s) - HIT_PAD;
+		int hs = HANDLE + HIT_PAD * 2;
+		return mx >= hx && my >= hy && mx < hx + hs && my < hy + hs;
+	}
+
+	private boolean hitPanel(double mx, double my, int x, int y, int s) {
+		return mx >= x - HIT_PAD && my >= y - HIT_PAD
+				&& mx < x + s + HIT_PAD && my < y + s + HIT_PAD;
+	}
+
+	private boolean isLeftClick(MouseButtonEvent event) {
+		return event.button() == InputConstants.MOUSE_BUTTON_LEFT;
+	}
+
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (event.button() != 0) {
-			return super.mouseClicked(event, doubleClick);
+		if (!isLeftClick(event)) {
+			return false;
 		}
 		double mx = event.x();
 		double my = event.y();
 		int x = RadarModule.getHudX();
 		int y = RadarModule.getHudY();
 		int s = RadarModule.getHudSize();
-		int hx = x + s - HANDLE / 2;
-		int hy = y + s - HANDLE / 2;
-		if (mx >= hx && my >= hy && mx < hx + HANDLE && my < hy + HANDLE) {
+
+		if (hitHandle(mx, my, x, y, s)) {
 			drag = DragMode.RESIZE;
 			grabDx = mx;
 			grabDy = my;
 			startSize = s;
+			startX = x;
+			startY = y;
+			this.setDragging(true);
 			return true;
 		}
-		if (RadarModule.containsPoint(mx, my)) {
+		if (hitPanel(mx, my, x, y, s)) {
 			drag = DragMode.MOVE;
 			grabDx = mx - x;
 			grabDy = my - y;
+			startX = x;
+			startY = y;
+			this.setDragging(true);
 			return true;
 		}
-		return super.mouseClicked(event, doubleClick);
+		return false;
 	}
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-		if (drag == DragMode.NONE || event.button() != 0) {
-			return super.mouseDragged(event, dragX, dragY);
+		if (drag == DragMode.NONE || !isLeftClick(event)) {
+			return false;
 		}
+		// event.x/y are already GUI-scaled (MouseHandler.getScaledXPos/YPos).
 		double mx = event.x();
 		double my = event.y();
 		if (drag == DragMode.MOVE) {
 			int nx = (int) Math.round(mx - grabDx);
 			int ny = (int) Math.round(my - grabDy);
-			nx = Mth.clamp(nx, 0, Math.max(0, this.width - RadarModule.getHudSize()));
-			ny = Mth.clamp(ny, 0, Math.max(0, this.height - RadarModule.getHudSize()));
-			RadarModule.setHudLayoutLive(nx, ny, RadarModule.getHudSize());
+			int size = RadarModule.getHudSize();
+			nx = Mth.clamp(nx, 0, Math.max(0, this.width - size));
+			ny = Mth.clamp(ny, 0, Math.max(0, this.height - size));
+			RadarModule.setHudLayoutLive(nx, ny, size);
 			return true;
 		}
 		if (drag == DragMode.RESIZE) {
+			// Grow from bottom-right; use the larger axis delta so diagonal drags feel natural.
 			int delta = (int) Math.round(Math.max(mx - grabDx, my - grabDy));
 			int ns = startSize + delta;
-			int nx = RadarModule.getHudX();
-			int ny = RadarModule.getHudY();
 			ns = Mth.clamp(ns, RadarModule.MIN_HUD_SIZE, RadarModule.MAX_HUD_SIZE);
-			ns = Math.min(ns, Math.max(RadarModule.MIN_HUD_SIZE, this.width - nx));
-			ns = Math.min(ns, Math.max(RadarModule.MIN_HUD_SIZE, this.height - ny));
-			RadarModule.setHudLayoutLive(nx, ny, ns);
+			ns = Math.min(ns, Math.max(RadarModule.MIN_HUD_SIZE, this.width - startX));
+			ns = Math.min(ns, Math.max(RadarModule.MIN_HUD_SIZE, this.height - startY));
+			RadarModule.setHudLayoutLive(startX, startY, ns);
 			return true;
 		}
-		return super.mouseDragged(event, dragX, dragY);
+		return false;
 	}
 
 	@Override
 	public boolean mouseReleased(MouseButtonEvent event) {
 		if (drag != DragMode.NONE) {
 			drag = DragMode.NONE;
+			this.setDragging(false);
 			RadarModule.setHudLayout(
 					RadarModule.getHudX(),
 					RadarModule.getHudY(),
@@ -140,7 +178,7 @@ public class HudEditScreen extends Screen {
 			);
 			return true;
 		}
-		return super.mouseReleased(event);
+		return false;
 	}
 
 	@Override
@@ -151,5 +189,19 @@ public class HudEditScreen extends Screen {
 			return true;
 		}
 		return super.keyPressed(event);
+	}
+
+	@Override
+	public void onClose() {
+		if (drag != DragMode.NONE) {
+			drag = DragMode.NONE;
+			this.setDragging(false);
+			RadarModule.setHudLayout(
+					RadarModule.getHudX(),
+					RadarModule.getHudY(),
+					RadarModule.getHudSize()
+			);
+		}
+		super.onClose();
 	}
 }
