@@ -89,6 +89,28 @@ public final class MenuShapes {
 		outlineCircle(graphics, right - cornerR - 1, bottom - cornerR - 1, cornerR, outlineColor);
 	}
 
+	/**
+	 * Flat rectangle with sharp corners — used by top-bar tabs/close so there are
+	 * no circle accents inside the button.
+	 */
+	public static void drawFlatRect(
+			GuiGraphicsExtractor graphics,
+			int x,
+			int y,
+			int width,
+			int height,
+			int fillColor,
+			int outlineColor
+	) {
+		int right = x + width;
+		int bottom = y + height;
+		graphics.fill(x, y, right, bottom, fillColor);
+		graphics.horizontalLine(x, right - 1, y, outlineColor);
+		graphics.horizontalLine(x, right - 1, bottom - 1, outlineColor);
+		graphics.verticalLine(x, y, bottom - 1, outlineColor);
+		graphics.verticalLine(right - 1, y, bottom - 1, outlineColor);
+	}
+
 	public static void drawRoundedRect(
 			GuiGraphicsExtractor graphics,
 			int x,

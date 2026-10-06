@@ -1,6 +1,7 @@
 package com.example.client;
 
 import com.example.ExampleMod;
+import com.example.client.module.FlightModule;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -28,6 +29,7 @@ public class ExampleModClient implements ClientModInitializer {
 			while (openMenuKey.consumeClick()) {
 				toggleMenu(client);
 			}
+			FlightModule.tick(client);
 		});
 	}
 

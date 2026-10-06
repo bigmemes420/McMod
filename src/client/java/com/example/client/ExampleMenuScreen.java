@@ -1,7 +1,9 @@
 package com.example.client;
 
+import com.example.client.module.FlightModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.FlatMenuButton;
+import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -11,15 +13,16 @@ public class ExampleMenuScreen extends Screen {
 	private enum Tab {
 		GENERAL,
 		VISUALS,
+		MOVEMENT,
 		MISC
 	}
 
 	private static final int TOP_BAR_HEIGHT = 28;
-	private static final int TAB_WIDTH = 72;
+	private static final int TAB_WIDTH = 78;
 	private static final int TAB_HEIGHT = 20;
 	private static final int CLOSE_WIDTH = 64;
 	private static final int CLOSE_HEIGHT = 20;
-	private static final int CAPSULE_WIDTH = 160;
+	private static final int CAPSULE_WIDTH = 200;
 	private static final int CAPSULE_HEIGHT = 24;
 	private static final int CONTENT_TOP = 56;
 	private static final int CONTENT_LEFT = 24;
@@ -44,6 +47,8 @@ public class ExampleMenuScreen extends Screen {
 		addTab(tabX, tabY, Tab.GENERAL, "screen.modid.menu.tab.general");
 		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.VISUALS, "screen.modid.menu.tab.visuals");
+		tabX += TAB_WIDTH + 6;
+		addTab(tabX, tabY, Tab.MOVEMENT, "screen.modid.menu.tab.movement");
 		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.MISC, "screen.modid.menu.tab.misc");
 
@@ -79,6 +84,11 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addContentButtons() {
+		if (this.selectedTab == Tab.MOVEMENT) {
+			addMovementContent();
+			return;
+		}
+
 		String[] keys = switch (this.selectedTab) {
 			case GENERAL -> new String[] {
 					"screen.modid.menu.general.option1",
@@ -95,6 +105,7 @@ public class ExampleMenuScreen extends Screen {
 					"screen.modid.menu.misc.option2",
 					"screen.modid.menu.misc.option3"
 			};
+			case MOVEMENT -> new String[] {};
 		};
 
 		int y = CONTENT_TOP;
@@ -111,6 +122,41 @@ public class ExampleMenuScreen extends Screen {
 			));
 			y += CAPSULE_HEIGHT + CAPSULE_GAP;
 		}
+	}
+
+	private void addMovementContent() {
+		int y = CONTENT_TOP;
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.movement.flight"),
+				FlightModule.isEnabled(),
+				(button, enabled) -> FlightModule.setEnabled(enabled)
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
+		// Minimal placeholders
+		this.addRenderableWidget(new CapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.movement.speed"),
+				button -> {
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		this.addRenderableWidget(new CapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.movement.nofall"),
+				button -> {
+				}
+		));
 	}
 
 	/**
@@ -134,6 +180,7 @@ public class ExampleMenuScreen extends Screen {
 		String panelKey = switch (this.selectedTab) {
 			case GENERAL -> "screen.modid.menu.tab.general";
 			case VISUALS -> "screen.modid.menu.tab.visuals";
+			case MOVEMENT -> "screen.modid.menu.tab.movement";
 			case MISC -> "screen.modid.menu.tab.misc";
 		};
 		graphics.text(

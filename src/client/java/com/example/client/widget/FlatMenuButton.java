@@ -8,8 +8,8 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /**
- * Custom-drawn rectangular menu button (top bar tabs / close). Does not use the
- * stock Minecraft button texture.
+ * Custom-drawn flat rectangular menu button (top bar tabs / close). No circle
+ * accents — sharp corners only, not the stock Minecraft button texture.
  */
 public class FlatMenuButton extends AbstractWidget {
 	@FunctionalInterface
@@ -60,7 +60,7 @@ public class FlatMenuButton extends AbstractWidget {
 			textColor = 0xFFDDDDDD;
 		}
 
-		MenuShapes.drawRoundedRect(graphics, this.getX(), this.getY(), this.width, this.height, 3, fill, outline);
+		MenuShapes.drawFlatRect(graphics, this.getX(), this.getY(), this.width, this.height, fill, outline);
 
 		var font = Minecraft.getInstance().font;
 		int textX = this.getX() + this.width / 2;
