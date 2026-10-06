@@ -17,6 +17,7 @@ import com.example.client.module.XRayModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.LevelCapsuleButton;
+import com.example.client.widget.ModeCycleButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -44,6 +45,7 @@ public class ExampleMenuScreen extends Screen {
 	private static final int CAPSULE_WIDTH = 220;
 	private static final int CAPSULE_HEIGHT = 24;
 	private static final int EDIT_WIDTH = 56;
+	private static final int MODE_WIDTH = 108;
 	private static final int CONTENT_TOP = TITLE_BAND + TOP_BAR_HEIGHT + 28;
 	private static final int CONTENT_LEFT = 24;
 	private static final int CAPSULE_GAP = 8;
@@ -246,17 +248,49 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
+		if (FinderModule.getMode() == FinderModule.RenderMode.FILLED) {
+			this.addRenderableWidget(new LevelCapsuleButton(
+					CONTENT_LEFT,
+					y,
+					CAPSULE_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.visuals.finder"),
+					FinderModule.isEnabled(),
+					FinderModule.getOpacity(),
+					FinderModule.MIN_OPACITY,
+					FinderModule.MAX_OPACITY,
+					FinderModule::setEnabled,
+					FinderModule::setOpacity
+			));
+		} else {
+			this.addRenderableWidget(new ToggleCapsuleButton(
+					CONTENT_LEFT,
+					y,
+					CAPSULE_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.visuals.finder"),
+					FinderModule.isEnabled(),
+					(button, enabled) -> FinderModule.setEnabled(enabled)
+			));
+		}
+		int modeX = CONTENT_LEFT + CAPSULE_WIDTH + 8;
+		this.addRenderableWidget(new ModeCycleButton(
+				modeX,
 				y,
-				CAPSULE_WIDTH,
+				MODE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.finder"),
-				FinderModule.isEnabled(),
-				(button, enabled) -> FinderModule.setEnabled(enabled)
+				new Component[] {
+					Component.translatable("screen.modid.menu.visuals.finder.mode.outline"),
+					Component.translatable("screen.modid.menu.visuals.finder.mode.filled")
+				},
+				FinderModule.getMode() == FinderModule.RenderMode.FILLED ? 1 : 0,
+				index -> {
+					FinderModule.setMode(index == 1 ? FinderModule.RenderMode.FILLED : FinderModule.RenderMode.OUTLINE);
+					rebuildMenu();
+				}
 		));
 		this.addRenderableWidget(new CapsuleButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 8,
+				modeX + MODE_WIDTH + 8,
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,

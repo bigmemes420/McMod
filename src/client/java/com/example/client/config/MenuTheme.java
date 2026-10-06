@@ -53,8 +53,11 @@ public final class MenuTheme {
 	/** Left-circle fill when a toggle capsule is ON. */
 	public int accentOn = 0xFF3DDC84;
 
-	/** Through-walls player outline (Player Outlines module). */
+	/** Through-walls player outline (Player Outlines / nametag plate). */
 	public int outline = 0xFFFFFFFF;
+
+	/** Through-world Finder block outline / filled-box color. */
+	public int finderOutline = 0xFFFFD54A;
 
 	private MenuTheme() {
 	}
@@ -116,6 +119,7 @@ public final class MenuTheme {
 			case "capsuleHoverOutline" -> capsuleHoverOutline = argb;
 			case "accentOn" -> accentOn = argb;
 			case "outline" -> outline = argb;
+			case "finderOutline" -> finderOutline = argb;
 			default -> {
 			}
 		}
@@ -142,6 +146,7 @@ public final class MenuTheme {
 		map.put("capsuleHoverOutline", capsuleHoverOutline);
 		map.put("accentOn", accentOn);
 		map.put("outline", outline);
+		map.put("finderOutline", finderOutline);
 		return map;
 	}
 
@@ -166,6 +171,7 @@ public final class MenuTheme {
 			case "capsuleHoverOutline" -> "Capsule Hover Outline";
 			case "accentOn" -> "Accent (ON)";
 			case "outline" -> "Outline";
+			case "finderOutline" -> "Finder Outline";
 			default -> key;
 		};
 	}

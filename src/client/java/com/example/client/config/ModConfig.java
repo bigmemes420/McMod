@@ -72,6 +72,8 @@ public final class ModConfig {
 		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
 		XRayModule.loadFullOpacityBlocks(props.getProperty("xrayBlocks", ""));
 		FinderModule.loadEnabled(bool(props, "finder", false));
+		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
+		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
 		FinderModule.loadSelectedBlocks(props.getProperty("finderBlocks", ""));
 		AutoClickerModule.loadEnabled(bool(props, "autoclicker", false));
 		AutoClickerModule.loadCps(floatVal(props, "autoclickerCps", AutoClickerModule.DEFAULT_CPS));
@@ -103,6 +105,8 @@ public final class ModConfig {
 			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
 			props.setProperty("xrayBlocks", XRayModule.fullOpacityBlocksCsv());
 			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
+			props.setProperty("finderMode", FinderModule.getMode().name());
+			props.setProperty("finderOpacity", Float.toString(FinderModule.getOpacity()));
 			props.setProperty("finderBlocks", FinderModule.selectedBlocksCsv());
 			props.setProperty("autoclicker", String.valueOf(AutoClickerModule.isEnabled()));
 			props.setProperty("autoclickerCps", Float.toString(AutoClickerModule.getCps()));

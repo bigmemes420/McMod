@@ -1,32 +1,34 @@
 package com.example.client.module;
 
-import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.ViewArea;
+import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Visuals module: real-time X-Ray for selected blocks (MC 26.3 Fabric).
+ * Visuals module: X-Ray for selected blocks (mesh opacity — no Finder outlines).
  * <p>
- * <b>No chunk remesh</b> — opacity and selection updates apply the same frame.
+ * Opacity 0–100% = how opaque <b>non-selected</b> blocks remain:
  * <ul>
- *   <li>Opacity 0–99: skip opaque/cutout terrain each frame (classic X-Ray) and
- *       draw selected blocks as always-on-top filled boxes. Overlay fill alpha
- *       tracks the slider live — no remesh.</li>
- *   <li>Opacity 100: no X-Ray effect (terrain draws normally).</li>
+ *   <li>0 = fully hidden (classic X-Ray)</li>
+ *   <li>1–99 = translucent fade via vertex alpha on the translucent layer</li>
+ *   <li>100 = no effect (terrain draws normally)</li>
  * </ul>
- * Selected blocks are found by a lightweight periodic scan and rendered with
- * {@link WorldBlockEspRenderer} gizmos — buried ores stay visible without
- * face-occlusion remeshing.
+ * Selected blocks always render at full opacity. While active below 100%,
+ * non-selected blocks do not occlude faces so selected ores stay visible
+ * through walls. Does <b>not</b> draw Finder-style outline gizmos.
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
@@ -36,7 +38,15 @@ public final class XRayModule {
 	private static boolean enabled;
 	private static float opacity = DEFAULT_OPACITY;
 	private static final LinkedHashSet<Identifier> fullOpacityBlocks = new LinkedHashSet<>();
-	private static final BlockEspScanner scanner = new BlockEspScanner(XRayModule::getFullOpacityBlocks, BlockEspScanner.DEFAULT_RANGE);
+
+	/** Worker-thread flag: current block's quads should go into the translucent layer. */
+	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+	/**
+	 * Set when opacity/enabled/selection changes and sections must remesh.
+	 * Flushed once per client tick so slider drags do not thrash the renderer.
+	 */
+	private static volatile boolean chunksDirty;
 
 	static {
 		BlockEspDefaults.seedOresAndChests(fullOpacityBlocks);
@@ -53,7 +63,7 @@ public final class XRayModule {
 		return opacity;
 	}
 
-	/** Opacity as 0–1 fraction. */
+	/** Opacity as 0–1 fraction for vertex alpha. */
 	public static float getOpacityFraction() {
 		return opacity / MAX_OPACITY;
 	}
@@ -77,7 +87,7 @@ public final class XRayModule {
 		}
 		boolean changed = selected ? fullOpacityBlocks.add(id) : fullOpacityBlocks.remove(id);
 		if (changed) {
-			scanner.clear();
+			markChunksDirty(true);
 			ModConfig.save();
 		}
 	}
@@ -88,7 +98,11 @@ public final class XRayModule {
 			return;
 		}
 		opacity = clamped;
-		// Live — no remesh. Terrain skip + overlay alpha read this each frame.
+		if (enabled) {
+			// Defer remesh to client tick so slider drag stays live without
+			// recreating ViewArea on every mouse move.
+			markChunksDirty(false);
+		}
 		ModConfig.save();
 	}
 
@@ -98,7 +112,9 @@ public final class XRayModule {
 
 	public static void loadFullOpacityBlocks(String csv) {
 		BlockEspDefaults.loadCsv(fullOpacityBlocks, csv, () -> BlockEspDefaults.seedOresAndChests(fullOpacityBlocks));
-		scanner.clear();
+		if (enabled) {
+			markChunksDirty(true);
+		}
 	}
 
 	public static String fullOpacityBlocksCsv() {
@@ -110,9 +126,7 @@ public final class XRayModule {
 			return;
 		}
 		enabled = value;
-		if (!enabled) {
-			scanner.clear();
-		}
+		markChunksDirty(true);
 		NotificationsModule.notifyToggle(
 				enabled ? "screen.modid.menu.visuals.xray.enabled"
 						: "screen.modid.menu.visuals.xray.disabled"
@@ -124,37 +138,110 @@ public final class XRayModule {
 		enabled = value;
 	}
 
-	/** X-Ray is on and opacity is below 100% (effect active). */
+	/** X-Ray is on and opacity is below 100% (hiding or fading non-selected). */
 	public static boolean isActive() {
 		return enabled && opacity < MAX_OPACITY;
 	}
 
+	private static boolean isAir(Block block) {
+		return block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR;
+	}
+
 	/**
-	 * Classic terrain hide: skip OPAQUE chunk layers (SOLID+CUTOUT) for this frame
-	 * whenever X-Ray is active. Reads live opacity — dragging to 100 restores
-	 * terrain immediately without remesh.
+	 * Non-selected solid blocks at opacity 0 become {@link RenderShape#INVISIBLE}.
+	 * At 1–99% they keep their model so alpha can be applied during meshing.
 	 */
-	public static boolean shouldHideOpaqueTerrain() {
-		return isActive();
+	public static RenderShape modifyRenderShape(BlockState state, RenderShape original) {
+		if (!isActive() || original == RenderShape.INVISIBLE) {
+			return original;
+		}
+		Block block = state.getBlock();
+		if (isAir(block) || isFullOpacity(block)) {
+			return original;
+		}
+		// Opacity 0: classic X-Ray — fully hide non-selected.
+		if (opacity <= MIN_OPACITY) {
+			return RenderShape.INVISIBLE;
+		}
+		return original;
 	}
 
+	/**
+	 * Non-selected blocks must not occlude faces while X-Ray is active, so
+	 * selected ores/chests still mesh every face even when buried in stone.
+	 */
+	public static boolean shouldDisableOcclusion(BlockState state) {
+		if (!isActive()) {
+			return false;
+		}
+		Block block = state.getBlock();
+		if (isAir(block) || isFullOpacity(block)) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Non-selected blocks at opacity 1–99% get vertex alpha = opacity/100 and
+	 * are forced onto the translucent chunk layer.
+	 */
+	public static boolean shouldFade(BlockState state) {
+		if (!isActive() || opacity <= MIN_OPACITY) {
+			return false;
+		}
+		Block block = state.getBlock();
+		return !isAir(block) && !isFullOpacity(block);
+	}
+
+	public static void beginTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.TRUE);
+	}
+
+	public static void endTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.FALSE);
+	}
+
+	public static boolean isTranslucentPass() {
+		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
+	}
+
+	/** Call from client tick so opacity-slider remeshes land once per frame/tick. */
 	public static void tick(Minecraft client) {
-		if (!isActive()) {
-			scanner.clear();
+		if (!chunksDirty) {
 			return;
 		}
-		scanner.tick(client);
+		if (client.level == null || client.levelRenderer == null) {
+			return;
+		}
+		chunksDirty = false;
+		reloadChunks();
 	}
 
-	/** Invoked from {@code LevelRenderEvents.BEFORE_GIZMOS}. */
-	public static void renderOverlays(LevelRenderer levelRenderer) {
-		if (!isActive()) {
+	private static void markChunksDirty(boolean immediate) {
+		chunksDirty = true;
+		if (immediate) {
+			chunksDirty = false;
+			reloadChunks();
+		}
+	}
+
+	/**
+	 * Light remesh: reset compiled section meshes and clear the compile queue.
+	 * Does <b>not</b> call {@code invalidateCompiledGeometry}, which recreates
+	 * ViewArea and stalls the client.
+	 */
+	public static void reloadChunks() {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || client.levelRenderer == null) {
 			return;
 		}
-		int stroke = MenuTheme.get().outline;
-		// Live opacity → overlay fill alpha (terrain skip is binary below 100).
-		float fillAlpha = Mth.clamp(0.90F - getOpacityFraction() * 0.55F, 0.30F, 0.90F);
-		int fill = WorldBlockEspRenderer.fillWithAlpha(stroke & 0xFFFFFF, fillAlpha);
-		WorldBlockEspRenderer.drawFilled(levelRenderer, scanner.hits(), stroke, fill);
+		ViewArea viewArea = client.levelRenderer.viewArea();
+		if (viewArea != null) {
+			viewArea.releaseAllBuffers();
+		}
+		SectionRenderDispatcher dispatcher = client.levelRenderer.sectionRenderDispatcher();
+		if (dispatcher != null) {
+			dispatcher.clearCompileQueue();
+		}
 	}
 }
