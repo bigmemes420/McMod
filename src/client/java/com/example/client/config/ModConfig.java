@@ -2,13 +2,17 @@ package com.example.client.config;
 
 import com.example.ExampleMod;
 import com.example.client.ExampleMenuScreen;
+import com.example.client.module.AutoClickerModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
 import com.example.client.module.PlayerOutlinesModule;
+import com.example.client.module.ReachModule;
 import com.example.client.module.SpeedModule;
+import com.example.client.module.VelocityModule;
+import com.example.client.module.XRayModule;
 
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -63,6 +67,15 @@ public final class ModConfig {
 		NametagsModule.loadScale(floatVal(props, "nametagsScale", NametagsModule.DEFAULT_SCALE));
 		PlayerOutlinesModule.loadEnabled(bool(props, "playerOutlines", false));
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
+		XRayModule.loadEnabled(bool(props, "xray", false));
+		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
+		XRayModule.loadFullOpacityBlocks(props.getProperty("xrayBlocks", ""));
+		AutoClickerModule.loadEnabled(bool(props, "autoclicker", false));
+		AutoClickerModule.loadCps(floatVal(props, "autoclickerCps", AutoClickerModule.DEFAULT_CPS));
+		VelocityModule.loadEnabled(bool(props, "velocity", false));
+		VelocityModule.loadPercent(floatVal(props, "velocityPercent", VelocityModule.DEFAULT_PERCENT));
+		ReachModule.loadEnabled(bool(props, "reach", false));
+		ReachModule.loadBonus(floatVal(props, "reachBonus", ReachModule.DEFAULT_BONUS));
 		NotificationsModule.loadEnabled(bool(props, "notifications", true));
 		ExampleMenuScreen.loadLastTab(props.getProperty("lastTab", "GENERAL"));
 	}
@@ -83,6 +96,15 @@ public final class ModConfig {
 			props.setProperty("nametagsScale", Float.toString(NametagsModule.getScale()));
 			props.setProperty("playerOutlines", String.valueOf(PlayerOutlinesModule.isEnabled()));
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
+			props.setProperty("xray", String.valueOf(XRayModule.isEnabled()));
+			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
+			props.setProperty("xrayBlocks", XRayModule.fullOpacityBlocksCsv());
+			props.setProperty("autoclicker", String.valueOf(AutoClickerModule.isEnabled()));
+			props.setProperty("autoclickerCps", Float.toString(AutoClickerModule.getCps()));
+			props.setProperty("velocity", String.valueOf(VelocityModule.isEnabled()));
+			props.setProperty("velocityPercent", Float.toString(VelocityModule.getPercent()));
+			props.setProperty("reach", String.valueOf(ReachModule.isEnabled()));
+			props.setProperty("reachBonus", Float.toString(ReachModule.getBonus()));
 			props.setProperty("notifications", String.valueOf(NotificationsModule.isEnabled()));
 			props.setProperty("lastTab", ExampleMenuScreen.getLastTabName());
 

@@ -2,9 +2,12 @@ package com.example.client;
 
 import com.example.ExampleMod;
 import com.example.client.config.ModConfig;
+import com.example.client.module.AutoClickerModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.NoFallModule;
+import com.example.client.module.ReachModule;
 import com.example.client.module.SpeedModule;
+import com.example.client.module.VelocityModule;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -39,6 +42,9 @@ public class ExampleModClient implements ClientModInitializer {
 			FlightModule.tick(client);
 			SpeedModule.tick(client);
 			NoFallModule.tick(client);
+			AutoClickerModule.tick(client);
+			VelocityModule.tick(client);
+			ReachModule.tick(client);
 		});
 	}
 
