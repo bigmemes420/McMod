@@ -4,18 +4,23 @@ import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoClickerModule;
+import com.example.client.module.AutoSprintModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.CriticalsModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.HitboxesModule;
+import com.example.client.module.JesusModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
 import com.example.client.module.PlayerOutlinesModule;
 import com.example.client.module.ReachModule;
+import com.example.client.module.SafeWalkModule;
 import com.example.client.module.SpeedModule;
+import com.example.client.module.SpiderModule;
+import com.example.client.module.StepModule;
 import com.example.client.module.TriggerBotModule;
 import com.example.client.module.VelocityModule;
 import com.example.client.module.XRayModule;
@@ -406,6 +411,15 @@ public class ExampleMenuScreen extends Screen {
 					FinderModule.MAX_OUTLINE_THICKNESS,
 					FinderModule::setOutlineThickness
 			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP;
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.visuals.finder.distance"),
+					FinderModule.getDistance(),
+					FinderModule.MIN_DISTANCE,
+					FinderModule.MAX_DISTANCE,
+					FinderModule::setDistance
+			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 	}
@@ -428,6 +442,15 @@ public class ExampleMenuScreen extends Screen {
 					AutoClickerModule.MIN_CPS,
 					AutoClickerModule.MAX_CPS,
 					AutoClickerModule::setCps
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP;
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.combat.autoclicker.randomize"),
+					AutoClickerModule.getRandomizeMs(),
+					AutoClickerModule.MIN_RANDOMIZE,
+					AutoClickerModule.MAX_RANDOMIZE,
+					AutoClickerModule::setRandomizeMs
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
@@ -565,13 +588,65 @@ public class ExampleMenuScreen extends Screen {
 
 	private void addMovementContent() {
 		int y = CONTENT_TOP;
-		y = addToggleModule(
+
+		// Flight + mode dropdown + cog (speed)
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
 				y,
-				null,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.movement.flight"),
 				FlightModule.isEnabled(),
 				(button, enabled) -> FlightModule.setEnabled(enabled)
-		);
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("flight"),
+				button -> toggleSettings("flight")
+		));
+		int flightModeIndex = switch (FlightModule.getMode()) {
+			case VELOCITY -> 1;
+			case HOVER -> 2;
+			case JETPACK -> 3;
+			default -> 0;
+		};
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.movement.flight.mode.vanilla"),
+					Component.translatable("screen.modid.menu.movement.flight.mode.velocity"),
+					Component.translatable("screen.modid.menu.movement.flight.mode.hover"),
+					Component.translatable("screen.modid.menu.movement.flight.mode.jetpack")
+				},
+				flightModeIndex,
+				index -> {
+					FlightModule.Mode mode = switch (index) {
+						case 1 -> FlightModule.Mode.VELOCITY;
+						case 2 -> FlightModule.Mode.HOVER;
+						case 3 -> FlightModule.Mode.JETPACK;
+						default -> FlightModule.Mode.VANILLA;
+					};
+					FlightModule.setMode(mode);
+					rebuildMenu();
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("flight")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.movement.flight.speed"),
+					FlightModule.getSpeed(),
+					FlightModule.MIN_SPEED,
+					FlightModule.MAX_SPEED,
+					FlightModule::setSpeed
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
@@ -614,13 +689,103 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		addToggleModule(
+		y = addToggleModule(
 				y,
 				null,
 				Component.translatable("screen.modid.menu.movement.nofall"),
 				NoFallModule.isEnabled(),
 				(button, enabled) -> NoFallModule.setEnabled(enabled)
 		);
+
+		y = addToggleModule(
+				y,
+				null,
+				Component.translatable("screen.modid.menu.movement.autosprint"),
+				AutoSprintModule.isEnabled(),
+				(button, enabled) -> AutoSprintModule.setEnabled(enabled)
+		);
+
+		y = addToggleModule(
+				y,
+				"step",
+				Component.translatable("screen.modid.menu.movement.step"),
+				StepModule.isEnabled(),
+				(button, enabled) -> StepModule.setEnabled(enabled)
+		);
+		if (settingsOpen("step")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.movement.step.height"),
+					StepModule.getHeight(),
+					StepModule.MIN_HEIGHT,
+					StepModule.MAX_HEIGHT,
+					StepModule::setHeight
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		y = addToggleModule(
+				y,
+				"spider",
+				Component.translatable("screen.modid.menu.movement.spider"),
+				SpiderModule.isEnabled(),
+				(button, enabled) -> SpiderModule.setEnabled(enabled)
+		);
+		if (settingsOpen("spider")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.movement.spider.speed"),
+					SpiderModule.getClimbSpeed(),
+					SpiderModule.MIN_SPEED,
+					SpiderModule.MAX_SPEED,
+					SpiderModule::setClimbSpeed
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		y = addToggleModule(
+				y,
+				null,
+				Component.translatable("screen.modid.menu.movement.safewalk"),
+				SafeWalkModule.isEnabled(),
+				(button, enabled) -> SafeWalkModule.setEnabled(enabled)
+		);
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.movement.jesus"),
+				JesusModule.isEnabled(),
+				(button, enabled) -> JesusModule.setEnabled(enabled)
+		));
+		int jesusModeIndex = switch (JesusModule.getMode()) {
+			case LAVA -> 1;
+			case BOTH -> 2;
+			default -> 0;
+		};
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.movement.jesus.mode.water"),
+					Component.translatable("screen.modid.menu.movement.jesus.mode.lava"),
+					Component.translatable("screen.modid.menu.movement.jesus.mode.both")
+				},
+				jesusModeIndex,
+				index -> {
+					JesusModule.Mode mode = switch (index) {
+						case 1 -> JesusModule.Mode.LAVA;
+						case 2 -> JesusModule.Mode.BOTH;
+						default -> JesusModule.Mode.WATER;
+					};
+					JesusModule.setMode(mode);
+					rebuildMenu();
+				}
+		));
 	}
 
 	private void addColorMenuContent() {

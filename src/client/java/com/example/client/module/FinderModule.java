@@ -58,10 +58,15 @@ public final class FinderModule {
 	public static final float MAX_OUTLINE_THICKNESS = 8.0F;
 	public static final float DEFAULT_OUTLINE_THICKNESS = 2.0F;
 
+	public static final float MIN_DISTANCE = 0.0F;
+	public static final float MAX_DISTANCE = 1000.0F;
+	public static final float DEFAULT_DISTANCE = (float) BlockEspScanner.DEFAULT_RANGE;
+
 	private static boolean enabled;
 	private static RenderMode mode = RenderMode.OUTLINE;
 	private static float opacity = DEFAULT_OPACITY;
 	private static float outlineThickness = DEFAULT_OUTLINE_THICKNESS;
+	private static float distance = DEFAULT_DISTANCE;
 	private static final LinkedHashSet<Identifier> selectedBlocks = new LinkedHashSet<>();
 	/** Per-block custom ARGB; missing entries use {@link BlockEspDefaults#colorFor}. */
 	private static final LinkedHashMap<Identifier, Integer> blockColors = new LinkedHashMap<>();
@@ -220,6 +225,25 @@ public final class FinderModule {
 
 	public static void loadOutlineThickness(float value) {
 		outlineThickness = Mth.clamp(value, MIN_OUTLINE_THICKNESS, MAX_OUTLINE_THICKNESS);
+	}
+
+	public static float getDistance() {
+		return distance;
+	}
+
+	public static void setDistance(float value) {
+		float clamped = Mth.clamp(value, MIN_DISTANCE, MAX_DISTANCE);
+		if (distance == clamped) {
+			return;
+		}
+		distance = clamped;
+		scanner.setRange(Math.round(distance));
+		ModConfig.save();
+	}
+
+	public static void loadDistance(float value) {
+		distance = Mth.clamp(value, MIN_DISTANCE, MAX_DISTANCE);
+		scanner.setRange(Math.round(distance));
 	}
 
 	public static void setEnabled(boolean value) {

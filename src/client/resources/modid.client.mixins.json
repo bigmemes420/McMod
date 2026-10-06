@@ -9,6 +9,7 @@
 		"SubmitNodeCollectionMixin",
 		"LightmapRenderStateExtractorMixin",
 		"BlockStateBaseMixin",
+		"BlockMixin",
 		"ModelBlockRendererMixin",
 		"SectionCompilerMixin",
 		"EntityMixin"

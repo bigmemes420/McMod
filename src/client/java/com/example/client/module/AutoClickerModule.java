@@ -10,18 +10,28 @@ import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * Combat module: client-side auto-attack while looking at an entity.
- * CPS slider controls click rate; respects attack cooldown when CPS is low.
+ * CPS slider controls click rate; optional randomization adds 0–N ms of jitter
+ * on top of the base interval.
  */
 public final class AutoClickerModule {
 	public static final float MIN_CPS = 1.0F;
 	public static final float MAX_CPS = 20.0F;
 	public static final float DEFAULT_CPS = 8.0F;
 
+	public static final float MIN_RANDOMIZE = 0.0F;
+	public static final float MAX_RANDOMIZE = 100.0F;
+	public static final float DEFAULT_RANDOMIZE = 0.0F;
+
 	private static boolean enabled;
 	private static float cps = DEFAULT_CPS;
+	/** Max extra delay in milliseconds randomly added to each click interval. */
+	private static float randomizeMs = DEFAULT_RANDOMIZE;
 	private static long lastClickMs;
+	private static long nextIntervalMs = 125L;
 
 	private AutoClickerModule() {
 	}
@@ -32,6 +42,10 @@ public final class AutoClickerModule {
 
 	public static float getCps() {
 		return cps;
+	}
+
+	public static float getRandomizeMs() {
+		return randomizeMs;
 	}
 
 	public static void setCps(float value) {
@@ -45,6 +59,19 @@ public final class AutoClickerModule {
 
 	public static void loadCps(float value) {
 		cps = Mth.clamp(value, MIN_CPS, MAX_CPS);
+	}
+
+	public static void setRandomizeMs(float value) {
+		float clamped = Mth.clamp(value, MIN_RANDOMIZE, MAX_RANDOMIZE);
+		if (randomizeMs == clamped) {
+			return;
+		}
+		randomizeMs = clamped;
+		ModConfig.save();
+	}
+
+	public static void loadRandomizeMs(float value) {
+		randomizeMs = Mth.clamp(value, MIN_RANDOMIZE, MAX_RANDOMIZE);
 	}
 
 	public static void setEnabled(boolean value) {
@@ -80,16 +107,21 @@ public final class AutoClickerModule {
 		}
 
 		long now = System.currentTimeMillis();
-		long interval = Math.max(1L, Math.round(1000.0 / cps));
-		if (now - lastClickMs < interval) {
+		if (now - lastClickMs < nextIntervalMs) {
 			return;
 		}
-		// Prefer full cooldown when CPS is at or below vanilla-ish rates
 		if (cps <= 10.0F && player.getAttackStrengthScale(0.5F) < 1.0F) {
 			return;
 		}
 
 		lastClickMs = now;
+		long base = Math.max(1L, Math.round(1000.0 / cps));
+		long jitter = 0L;
+		if (randomizeMs > 0.0F) {
+			jitter = ThreadLocalRandom.current().nextLong(0L, (long) randomizeMs + 1L);
+		}
+		nextIntervalMs = base + jitter;
+
 		client.gameMode.attack(player, entityHit.getEntity());
 		player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, false);
 	}

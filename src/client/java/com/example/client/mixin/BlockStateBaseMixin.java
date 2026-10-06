@@ -13,11 +13,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * X-Ray:
+ * X-Ray (classic Fabric / Meteor-style for 26.3):
  * <ul>
- *   <li>Hide non-selected blocks at opacity 0 via {@link RenderShape#INVISIBLE}.</li>
- *   <li>Clear face occlusion on non-selected blocks so selected ores/chests
- *       still mesh every face through solid walls (not only next to air).</li>
+ *   <li>Hide non-selected at opacity 0 via {@link RenderShape#INVISIBLE}.</li>
+ *   <li>{@code canOcclude=false} + empty face occlusion on non-selected so
+ *       selected ores mesh every face through solid walls.</li>
  * </ul>
  */
 @Mixin(BlockBehaviour.BlockStateBase.class)
@@ -31,8 +31,24 @@ public class BlockStateBaseMixin {
 		}
 	}
 
+	@Inject(method = "canOcclude", at = @At("HEAD"), cancellable = true)
+	private void rooty$xrayCanOcclude(CallbackInfoReturnable<Boolean> cir) {
+		BlockState state = (BlockState) (Object) this;
+		if (XRayModule.shouldDisableOcclusion(state)) {
+			cir.setReturnValue(false);
+		}
+	}
+
 	@Inject(method = "getFaceOcclusionShape", at = @At("HEAD"), cancellable = true)
 	private void rooty$xrayFaceOcclusion(Direction direction, CallbackInfoReturnable<VoxelShape> cir) {
+		BlockState state = (BlockState) (Object) this;
+		if (XRayModule.shouldDisableOcclusion(state)) {
+			cir.setReturnValue(Shapes.empty());
+		}
+	}
+
+	@Inject(method = "getOcclusionShape", at = @At("HEAD"), cancellable = true)
+	private void rooty$xrayOcclusionShape(CallbackInfoReturnable<VoxelShape> cir) {
 		BlockState state = (BlockState) (Object) this;
 		if (XRayModule.shouldDisableOcclusion(state)) {
 			cir.setReturnValue(Shapes.empty());

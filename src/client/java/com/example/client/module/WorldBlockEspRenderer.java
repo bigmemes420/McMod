@@ -86,8 +86,8 @@ public final class WorldBlockEspRenderer {
 
 	/**
 	 * Combined Fill: merge face-connected same-type blocks into solid AABBs for
-	 * the fill, then stroke only outer faces (no shared edges between touching
-	 * same-type neighbors).
+	 * the fill, then stroke only external silhouette edges (no shared face
+	 * outlines, no coplanar shared edges between identical neighbors).
 	 */
 	public static void drawCombinedFill(
 			LevelRenderer levelRenderer,
@@ -116,34 +116,113 @@ public final class WorldBlockEspRenderer {
 				int fill = fillColorFor.apply(entry.getKey());
 				int stroke = ARGB.opaque(strokeColorFor.apply(entry.getKey()));
 				GizmoStyle fillStyle = GizmoStyle.fill(fill);
-				GizmoStyle strokeStyle = GizmoStyle.stroke(stroke, width);
 
 				List<BlockPos> group = entry.getValue();
 				for (AABB box : mergeConnectedSolid(group)) {
 					Gizmos.cuboid(box, fillStyle).setAlwaysOnTop();
 				}
-				drawOuterFaceOutlines(group, strokeStyle);
+				drawSilhouetteEdges(group, stroke, width);
 			}
 		}
 	}
 
-	/** Stroke only faces that do not touch another block in {@code group}. */
-	private static void drawOuterFaceOutlines(List<BlockPos> group, GizmoStyle strokeStyle) {
+	/**
+	 * Stroke only external silhouette edges of a connected same-type group.
+	 * <p>
+	 * For each exposed face (no same-type neighbor in that direction), emit the
+	 * face's four edges — but skip an edge when the in-plane neighbor is also in
+	 * the group and also has that face exposed (shared coplanar edge). That
+	 * removes the internal grid lines that {@code Gizmos.rect} left on combined
+	 * clusters.
+	 */
+	private static void drawSilhouetteEdges(List<BlockPos> group, int strokeArgb, float strokeWidth) {
 		Set<Long> set = new HashSet<>(group.size() * 2);
 		for (BlockPos p : group) {
 			set.add(p.asLong());
 		}
 		for (BlockPos pos : group) {
-			Vec3 min = new Vec3(pos.getX(), pos.getY(), pos.getZ());
-			Vec3 max = new Vec3(pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1);
 			for (Direction face : FACES) {
-				BlockPos neighbor = pos.relative(face);
-				if (set.contains(neighbor.asLong())) {
-					continue; // shared face between same-type blocks — skip
+				if (set.contains(pos.relative(face).asLong())) {
+					continue; // shared face — not part of the silhouette
 				}
-				Gizmos.rect(min, max, face, strokeStyle).setAlwaysOnTop();
+				emitExposedFaceEdges(pos, face, set, strokeArgb, strokeWidth);
 			}
 		}
+	}
+
+	private static void emitExposedFaceEdges(
+			BlockPos pos,
+			Direction face,
+			Set<Long> set,
+			int strokeArgb,
+			float strokeWidth
+	) {
+		int x = pos.getX();
+		int y = pos.getY();
+		int z = pos.getZ();
+		switch (face) {
+			case UP -> {
+				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x, y + 1, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x, y + 1, z + 1, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y + 1, z, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y + 1, z, x + 1, y + 1, z + 1);
+			}
+			case DOWN -> {
+				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x, y, z, x + 1, y, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x, y, z + 1, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y, z, x, y, z + 1);
+				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y, z + 1);
+			}
+			case NORTH -> {
+				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x, y, z, x + 1, y, z);
+				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x, y + 1, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y, z, x, y + 1, z);
+				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y + 1, z);
+			}
+			case SOUTH -> {
+				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x, y, z + 1, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x, y + 1, z + 1, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y, z + 1, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y, z + 1, x + 1, y + 1, z + 1);
+			}
+			case WEST -> {
+				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x, y, z, x, y, z + 1);
+				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x, y + 1, z, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x, y, z, x, y + 1, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x, y, z + 1, x, y + 1, z + 1);
+			}
+			case EAST -> {
+				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x + 1, y + 1, z, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x + 1, y, z + 1, x + 1, y + 1, z + 1);
+			}
+		}
+	}
+
+	/**
+	 * Skip coplanar shared edges: if the in-plane neighbor is also in the group
+	 * and also has this face exposed, the edge is internal to the silhouette.
+	 */
+	private static void maybeEdge(
+			Set<Long> set,
+			BlockPos pos,
+			Direction edgeDir,
+			Direction face,
+			int strokeArgb,
+			float strokeWidth,
+			double x0,
+			double y0,
+			double z0,
+			double x1,
+			double y1,
+			double z1
+	) {
+		BlockPos neighbor = pos.relative(edgeDir);
+		if (set.contains(neighbor.asLong()) && !set.contains(neighbor.relative(face).asLong())) {
+			return;
+		}
+		Gizmos.line(new Vec3(x0, y0, z0), new Vec3(x1, y1, z1), strokeArgb, strokeWidth).setAlwaysOnTop();
 	}
 
 	/**

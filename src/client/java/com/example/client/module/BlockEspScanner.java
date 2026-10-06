@@ -23,14 +23,27 @@ public final class BlockEspScanner {
 	public static final int DEFAULT_RANGE = 48;
 
 	private final Supplier<Set<Identifier>> selection;
-	private final int range;
+	private int range;
 	private final List<BlockPos> hits = new ArrayList<>();
 	private int tickCounter;
 	private int scanPeriodTicks = 8;
 
 	public BlockEspScanner(Supplier<Set<Identifier>> selection, int range) {
 		this.selection = selection;
-		this.range = range;
+		this.range = Math.max(0, range);
+	}
+
+	public int getRange() {
+		return this.range;
+	}
+
+	public void setRange(int range) {
+		int clamped = Math.max(0, range);
+		if (this.range == clamped) {
+			return;
+		}
+		this.range = clamped;
+		clear();
 	}
 
 	public void setScanPeriodTicks(int ticks) {
@@ -63,7 +76,7 @@ public final class BlockEspScanner {
 	private void rescan(Level level, BlockPos origin) {
 		Set<Identifier> wanted = this.selection.get();
 		this.hits.clear();
-		if (wanted.isEmpty()) {
+		if (wanted.isEmpty() || this.range <= 0) {
 			return;
 		}
 
