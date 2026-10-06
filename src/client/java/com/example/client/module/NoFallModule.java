@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -71,10 +70,10 @@ public final class NoFallModule {
 			if (enabled) {
 				player.resetFallDistance();
 			}
-			player.sendSystemMessage(Component.translatable(
-					enabled ? "screen.modid.menu.movement.nofall.enabled" : "screen.modid.menu.movement.nofall.disabled"
-			));
 		}
+		NotificationsModule.notifyToggle(
+			enabled ? "screen.modid.menu.movement.nofall.enabled" : "screen.modid.menu.movement.nofall.disabled"
+		);
 		syncIntegratedServer(client, enabled);
 	}
 

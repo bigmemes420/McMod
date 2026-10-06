@@ -2,7 +2,6 @@ package com.example.client.module;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -42,13 +41,9 @@ public final class SpeedModule {
 			return;
 		}
 		enabled = value;
-		Minecraft client = Minecraft.getInstance();
-		LocalPlayer player = client.player;
-		if (player != null) {
-			player.sendSystemMessage(Component.translatable(
-					enabled ? "screen.modid.menu.movement.speed.enabled" : "screen.modid.menu.movement.speed.disabled"
-			));
-		}
+		NotificationsModule.notifyToggle(
+			enabled ? "screen.modid.menu.movement.speed.enabled" : "screen.modid.menu.movement.speed.disabled"
+		);
 	}
 
 	public static void toggle() {

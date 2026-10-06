@@ -19,9 +19,9 @@
   "screen.modid.menu.general.option1": "Profile",
   "screen.modid.menu.general.option2": "Keybinds",
   "screen.modid.menu.general.option3": "Reset Defaults",
-  "screen.modid.menu.visuals.option1": "HUD Scale",
-  "screen.modid.menu.visuals.option2": "Theme",
-  "screen.modid.menu.visuals.option3": "Animations",
+  "screen.modid.menu.visuals.nametags": "Nametags",
+  "screen.modid.menu.visuals.nametags.enabled": "Nametags enabled \u2014 through walls (incl. sneaking)",
+  "screen.modid.menu.visuals.nametags.disabled": "Nametags disabled",
   "screen.modid.menu.movement.flight": "Flight",
   "screen.modid.menu.movement.flight.enabled": "Flight enabled \u2014 double-jump / jump in air to fly",
   "screen.modid.menu.movement.flight.disabled": "Flight disabled",
@@ -31,7 +31,7 @@
   "screen.modid.menu.movement.nofall": "No Fall",
   "screen.modid.menu.movement.nofall.enabled": "No Fall enabled \u2014 fall damage cancelled",
   "screen.modid.menu.movement.nofall.disabled": "No Fall disabled",
-  "screen.modid.menu.misc.option1": "Debug Overlay",
-  "screen.modid.menu.misc.option2": "Notifications",
-  "screen.modid.menu.misc.option3": "About"
+  "screen.modid.menu.misc.notifications": "Notifications",
+  "screen.modid.menu.misc.notifications.enabled": "Notifications enabled",
+  "screen.modid.menu.misc.notifications.disabled": "Notifications disabled"
 }

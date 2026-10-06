@@ -1,7 +1,6 @@
 package com.example.client.widget;
 
 import com.example.client.config.MenuTheme;
-import com.example.client.module.SpeedModule;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -12,11 +11,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 /**
- * Speed capsule: left circle toggles the module (green when ON); the bar holds
- * a custom in-button slider for speed level. Clicking outside the circle does
- * not toggle.
+ * Capsule with left-circle toggle (green when ON) and an in-bar level slider.
+ * Clicking outside the circle adjusts the level and does not toggle.
  */
-public class SpeedCapsuleButton extends AbstractWidget {
+public class LevelCapsuleButton extends AbstractWidget {
 	@FunctionalInterface
 	public interface OnToggle {
 		void onToggle(boolean enabled);
@@ -37,26 +35,36 @@ public class SpeedCapsuleButton extends AbstractWidget {
 
 	private final OnToggle onToggle;
 	private final OnLevelChange onLevelChange;
+	private final float minLevel;
+	private final float maxLevel;
+	private final String valueWidthSample;
 	private boolean enabled;
 	private float level;
 	private boolean draggingSlider;
 	private boolean pressedCircle;
 
-	public SpeedCapsuleButton(
+	public LevelCapsuleButton(
 			int x,
 			int y,
 			int width,
 			int height,
+			Component message,
 			boolean enabled,
 			float level,
+			float minLevel,
+			float maxLevel,
 			OnToggle onToggle,
 			OnLevelChange onLevelChange
 	) {
-		super(x, y, width, height, Component.translatable("screen.modid.menu.movement.speed"));
+		super(x, y, width, height, message);
 		this.enabled = enabled;
-		this.level = Mth.clamp(level, SpeedModule.MIN_LEVEL, SpeedModule.MAX_LEVEL);
+		this.minLevel = minLevel;
+		this.maxLevel = maxLevel;
+		this.level = Mth.clamp(level, minLevel, maxLevel);
 		this.onToggle = onToggle;
 		this.onLevelChange = onLevelChange;
+		// Wide enough for values like "10.0" or "0.5"
+		this.valueWidthSample = String.format("%.1f", Math.max(Math.abs(minLevel), Math.abs(maxLevel)) >= 10.0F ? 10.0F : maxLevel);
 	}
 
 	public boolean isEnabled() {
@@ -72,7 +80,7 @@ public class SpeedCapsuleButton extends AbstractWidget {
 	}
 
 	public void setLevel(float level) {
-		this.level = Mth.clamp(level, SpeedModule.MIN_LEVEL, SpeedModule.MAX_LEVEL);
+		this.level = Mth.clamp(level, this.minLevel, this.maxLevel);
 	}
 
 	private int circleRadius() {
@@ -103,7 +111,7 @@ public class SpeedCapsuleButton extends AbstractWidget {
 	/** Track ends before the numeric level value. */
 	private int trackRight() {
 		var font = Minecraft.getInstance().font;
-		int valueWidth = font.width("10.0");
+		int valueWidth = font.width(this.valueWidthSample);
 		return this.getX() + this.width - 8 - valueWidth - VALUE_GAP;
 	}
 
@@ -112,9 +120,11 @@ public class SpeedCapsuleButton extends AbstractWidget {
 		int right = trackRight();
 		float t = (float) ((mouseX - left) / (double) Math.max(1, right - left));
 		t = Mth.clamp(t, 0.0F, 1.0F);
-		float min = SpeedModule.MIN_LEVEL;
-		float max = SpeedModule.MAX_LEVEL;
-		this.level = Mth.clamp(Math.round((min + t * (max - min)) * 10.0F) / 10.0F, min, max);
+		this.level = Mth.clamp(
+				Math.round((this.minLevel + t * (this.maxLevel - this.minLevel)) * 10.0F) / 10.0F,
+				this.minLevel,
+				this.maxLevel
+		);
 		this.onLevelChange.onLevel(this.level);
 	}
 
@@ -164,9 +174,7 @@ public class SpeedCapsuleButton extends AbstractWidget {
 			int trackBottom = trackY + TRACK_HEIGHT;
 			graphics.fill(trackL, trackY, trackR, trackBottom, TRACK_BG);
 
-			float min = SpeedModule.MIN_LEVEL;
-			float max = SpeedModule.MAX_LEVEL;
-			float t = (this.level - min) / (max - min);
+			float t = (this.level - this.minLevel) / (this.maxLevel - this.minLevel);
 			int fillRight = trackL + Math.round(t * (trackR - trackL));
 			if (fillRight > trackL) {
 				graphics.fill(trackL, trackY, fillRight, trackBottom, SLIDER_FILL);

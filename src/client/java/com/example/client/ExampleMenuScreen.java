@@ -2,11 +2,13 @@ package com.example.client;
 
 import com.example.client.config.MenuTheme;
 import com.example.client.module.FlightModule;
+import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
+import com.example.client.module.NotificationsModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.FlatMenuButton;
-import com.example.client.widget.SpeedCapsuleButton;
+import com.example.client.widget.LevelCapsuleButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -33,7 +35,10 @@ public class ExampleMenuScreen extends Screen {
 	private static final int CONTENT_LEFT = 24;
 	private static final int CAPSULE_GAP = 8;
 
-	private Tab selectedTab = Tab.GENERAL;
+	/** Remembers the last top tab across menu open/close. */
+	private static Tab lastSelectedTab = Tab.GENERAL;
+
+	private Tab selectedTab = lastSelectedTab;
 	private boolean colorMenuOpen;
 
 	public ExampleMenuScreen() {
@@ -104,6 +109,7 @@ public class ExampleMenuScreen extends Screen {
 					this.colorMenuOpen = false;
 					if (this.selectedTab != tab) {
 						this.selectedTab = tab;
+						lastSelectedTab = tab;
 					}
 					rebuildMenu();
 				}
@@ -111,30 +117,20 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addContentButtons() {
-		if (this.selectedTab == Tab.MOVEMENT) {
-			addMovementContent();
-			return;
+		switch (this.selectedTab) {
+			case MOVEMENT -> addMovementContent();
+			case VISUALS -> addVisualsContent();
+			case MISC -> addMiscContent();
+			case GENERAL -> addGeneralContent();
 		}
+	}
 
-		String[] keys = switch (this.selectedTab) {
-			case GENERAL -> new String[] {
-					"screen.modid.menu.general.option1",
-					"screen.modid.menu.general.option2",
-					"screen.modid.menu.general.option3"
-			};
-			case VISUALS -> new String[] {
-					"screen.modid.menu.visuals.option1",
-					"screen.modid.menu.visuals.option2",
-					"screen.modid.menu.visuals.option3"
-			};
-			case MISC -> new String[] {
-					"screen.modid.menu.misc.option1",
-					"screen.modid.menu.misc.option2",
-					"screen.modid.menu.misc.option3"
-			};
-			case MOVEMENT -> new String[] {};
+	private void addGeneralContent() {
+		String[] keys = {
+				"screen.modid.menu.general.option1",
+				"screen.modid.menu.general.option2",
+				"screen.modid.menu.general.option3"
 		};
-
 		int y = CONTENT_TOP;
 		for (String key : keys) {
 			this.addRenderableWidget(new CapsuleButton(
@@ -150,6 +146,36 @@ public class ExampleMenuScreen extends Screen {
 		}
 	}
 
+	private void addVisualsContent() {
+		int y = CONTENT_TOP;
+		this.addRenderableWidget(new LevelCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.nametags"),
+				NametagsModule.isEnabled(),
+				NametagsModule.getScale(),
+				NametagsModule.MIN_SCALE,
+				NametagsModule.MAX_SCALE,
+				NametagsModule::setEnabled,
+				NametagsModule::setScale
+		));
+	}
+
+	private void addMiscContent() {
+		int y = CONTENT_TOP;
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.misc.notifications"),
+				NotificationsModule.isEnabled(),
+				(button, enabled) -> NotificationsModule.setEnabled(enabled)
+		));
+	}
+
 	private void addMovementContent() {
 		int y = CONTENT_TOP;
 		this.addRenderableWidget(new ToggleCapsuleButton(
@@ -163,13 +189,16 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
-		this.addRenderableWidget(new SpeedCapsuleButton(
+		this.addRenderableWidget(new LevelCapsuleButton(
 				CONTENT_LEFT,
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.movement.speed"),
 				SpeedModule.isEnabled(),
 				SpeedModule.getSpeedLevel(),
+				SpeedModule.MIN_LEVEL,
+				SpeedModule.MAX_LEVEL,
 				SpeedModule::setEnabled,
 				SpeedModule::setSpeedLevel
 		));

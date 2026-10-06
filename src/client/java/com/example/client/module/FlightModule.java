@@ -2,7 +2,6 @@ package com.example.client.module;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Abilities;
 
@@ -31,10 +30,10 @@ public final class FlightModule {
 		LocalPlayer player = client.player;
 		if (player != null) {
 			applyToLocal(player, enabled);
-			player.sendSystemMessage(Component.translatable(
-					enabled ? "screen.modid.menu.movement.flight.enabled" : "screen.modid.menu.movement.flight.disabled"
-			));
 		}
+		NotificationsModule.notifyToggle(
+			enabled ? "screen.modid.menu.movement.flight.enabled" : "screen.modid.menu.movement.flight.disabled"
+		);
 		syncIntegratedServer(client, enabled);
 	}
 
