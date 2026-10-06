@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "mcmod",
+	"version": "${version}",
+	"name": "McMod",
+	"description": "A Fabric mod for Minecraft 26.3.",
+	"authors": [
+		"bigmemes420"
+	],
+	"contact": {
+		"sources": "https://github.com/bigmemes420/McMod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/mcmod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.bigmemes420.mcmod.McMod"
+		],
+		"client": [
+			"com.bigmemes420.mcmod.client.McModClient"
+		]
+	},
+	"mixins": [
+		"mcmod.mixins.json",
+		{
+			"config": "mcmod.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
