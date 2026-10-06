@@ -1,9 +1,9 @@
 {
 	"required": true,
-	"package": "com.bigmemes420.mcmod.client.mixin",
+	"package": "com.example.mixin",
 	"compatibilityLevel": "JAVA_25",
-	"client": [
-		"ExampleClientMixin"
+	"mixins": [
+		"ExampleMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

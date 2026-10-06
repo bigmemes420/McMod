@@ -1,4 +1,4 @@
-package com.bigmemes420.mcmod.client.mixin;
+package com.example.client.mixin;
 
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
