@@ -18,6 +18,10 @@ import com.example.client.module.NotificationsModule;
 import com.example.client.module.PlayerOutlinesModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
+import com.example.client.module.TowerModule;
+import com.example.client.module.ScaffoldModule;
+import com.example.client.module.ModuleKeybinds;
+import com.example.client.module.FastPlaceModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
@@ -42,6 +46,7 @@ public class ExampleMenuScreen extends Screen {
 		GENERAL,
 		VISUALS,
 		COMBAT,
+		WORLD,
 		MOVEMENT,
 		MISC
 	}
@@ -49,7 +54,7 @@ public class ExampleMenuScreen extends Screen {
 	/** Vertical space above the top bar for the scaled title. */
 	private static final int TITLE_BAND = 26;
 	private static final int TOP_BAR_HEIGHT = 28;
-	private static final int TAB_WIDTH = 70;
+	private static final int TAB_WIDTH = 64;
 	private static final int TAB_HEIGHT = 20;
 	private static final int CLOSE_WIDTH = 64;
 	private static final int MENU_WIDTH = 64;
@@ -112,6 +117,8 @@ public class ExampleMenuScreen extends Screen {
 		addTab(tabX, tabY, Tab.VISUALS, "screen.modid.menu.tab.visuals");
 		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.COMBAT, "screen.modid.menu.tab.combat");
+		tabX += TAB_WIDTH + 6;
+		addTab(tabX, tabY, Tab.WORLD, "screen.modid.menu.tab.world");
 		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.MOVEMENT, "screen.modid.menu.tab.movement");
 		tabX += TAB_WIDTH + 6;
@@ -177,6 +184,7 @@ public class ExampleMenuScreen extends Screen {
 			case MOVEMENT -> addMovementContent();
 			case VISUALS -> addVisualsContent();
 			case COMBAT -> addCombatContent();
+			case WORLD -> addWorldContent();
 			case MISC -> addMiscContent();
 			case GENERAL -> addGeneralContent();
 		}
@@ -195,6 +203,7 @@ public class ExampleMenuScreen extends Screen {
 	private int addToggleModule(
 			int y,
 			String settingsId,
+			String moduleId,
 			Component label,
 			boolean enabled,
 			ToggleCapsuleButton.OnToggle onToggle
@@ -206,6 +215,7 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				label,
 				enabled,
+				moduleId,
 				onToggle
 		));
 		if (settingsId != null) {
@@ -262,6 +272,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				"nametags",
+				"nametags",
 				Component.translatable("screen.modid.menu.visuals.nametags"),
 				NametagsModule.isEnabled(),
 				(button, enabled) -> NametagsModule.setEnabled(enabled)
@@ -281,6 +292,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				null,
+				"player_outlines",
 				Component.translatable("screen.modid.menu.visuals.player_outlines"),
 				PlayerOutlinesModule.isEnabled(),
 				(button, enabled) -> PlayerOutlinesModule.setEnabled(enabled)
@@ -289,6 +301,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				null,
+				"fullbright",
 				Component.translatable("screen.modid.menu.visuals.fullbright"),
 				FullbrightModule.isEnabled(),
 				(button, enabled) -> FullbrightModule.setEnabled(enabled)
@@ -302,6 +315,7 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.visuals.xray"),
 				XRayModule.isEnabled(),
+				"xray",
 				(button, enabled) -> XRayModule.setEnabled(enabled)
 		));
 		this.addRenderableWidget(new CogButton(
@@ -344,6 +358,7 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.visuals.finder"),
 				FinderModule.isEnabled(),
+				"finder",
 				(button, enabled) -> FinderModule.setEnabled(enabled)
 		));
 		int afterCog = CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6;
@@ -430,6 +445,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				"autoclicker",
+				"autoclicker",
 				Component.translatable("screen.modid.menu.combat.autoclicker"),
 				AutoClickerModule.isEnabled(),
 				(button, enabled) -> AutoClickerModule.setEnabled(enabled)
@@ -458,6 +474,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				"velocity",
+				"velocity",
 				Component.translatable("screen.modid.menu.combat.velocity"),
 				VelocityModule.isEnabled(),
 				(button, enabled) -> VelocityModule.setEnabled(enabled)
@@ -476,6 +493,7 @@ public class ExampleMenuScreen extends Screen {
 
 		y = addToggleModule(
 				y,
+				"reach",
 				"reach",
 				Component.translatable("screen.modid.menu.combat.reach"),
 				ReachModule.isEnabled(),
@@ -496,6 +514,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				null,
+				"criticals",
 				Component.translatable("screen.modid.menu.combat.criticals"),
 				CriticalsModule.isEnabled(),
 				(button, enabled) -> CriticalsModule.setEnabled(enabled)
@@ -503,6 +522,7 @@ public class ExampleMenuScreen extends Screen {
 
 		y = addToggleModule(
 				y,
+				"triggerbot",
 				"triggerbot",
 				Component.translatable("screen.modid.menu.combat.triggerbot"),
 				TriggerBotModule.isEnabled(),
@@ -522,6 +542,7 @@ public class ExampleMenuScreen extends Screen {
 
 		y = addToggleModule(
 				y,
+				"aimassist",
 				"aimassist",
 				Component.translatable("screen.modid.menu.combat.aimassist"),
 				AimAssistModule.isEnabled(),
@@ -551,6 +572,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				"hitboxes",
+				"hitboxes",
 				Component.translatable("screen.modid.menu.combat.hitboxes"),
 				HitboxesModule.isEnabled(),
 				(button, enabled) -> HitboxesModule.setEnabled(enabled)
@@ -570,9 +592,39 @@ public class ExampleMenuScreen extends Screen {
 		addToggleModule(
 				y,
 				null,
+				"autototem",
 				Component.translatable("screen.modid.menu.combat.autototem"),
 				AutoTotemModule.isEnabled(),
 				(button, enabled) -> AutoTotemModule.setEnabled(enabled)
+		);
+	}
+
+
+	private void addWorldContent() {
+		int y = CONTENT_TOP;
+		y = addToggleModule(
+				y,
+				null,
+				"scaffold",
+				Component.translatable("screen.modid.menu.world.scaffold"),
+				ScaffoldModule.isEnabled(),
+				(button, enabled) -> ScaffoldModule.setEnabled(enabled)
+		);
+		y = addToggleModule(
+				y,
+				null,
+				"fastplace",
+				Component.translatable("screen.modid.menu.world.fastplace"),
+				FastPlaceModule.isEnabled(),
+				(button, enabled) -> FastPlaceModule.setEnabled(enabled)
+		);
+		addToggleModule(
+				y,
+				null,
+				"tower",
+				Component.translatable("screen.modid.menu.world.tower"),
+				TowerModule.isEnabled(),
+				(button, enabled) -> TowerModule.setEnabled(enabled)
 		);
 	}
 
@@ -580,6 +632,7 @@ public class ExampleMenuScreen extends Screen {
 		addToggleModule(
 				CONTENT_TOP,
 				null,
+				"notifications",
 				Component.translatable("screen.modid.menu.misc.notifications"),
 				NotificationsModule.isEnabled(),
 				(button, enabled) -> NotificationsModule.setEnabled(enabled)
@@ -597,6 +650,7 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.movement.flight"),
 				FlightModule.isEnabled(),
+				"flight",
 				(button, enabled) -> FlightModule.setEnabled(enabled)
 		));
 		this.addRenderableWidget(new CogButton(
@@ -655,6 +709,7 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.movement.speed"),
 				SpeedModule.isEnabled(),
+				"speed",
 				(button, enabled) -> SpeedModule.setEnabled(enabled)
 		));
 		this.addRenderableWidget(new CogButton(
@@ -692,6 +747,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				null,
+				"nofall",
 				Component.translatable("screen.modid.menu.movement.nofall"),
 				NoFallModule.isEnabled(),
 				(button, enabled) -> NoFallModule.setEnabled(enabled)
@@ -700,6 +756,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				null,
+				"autosprint",
 				Component.translatable("screen.modid.menu.movement.autosprint"),
 				AutoSprintModule.isEnabled(),
 				(button, enabled) -> AutoSprintModule.setEnabled(enabled)
@@ -707,6 +764,7 @@ public class ExampleMenuScreen extends Screen {
 
 		y = addToggleModule(
 				y,
+				"step",
 				"step",
 				Component.translatable("screen.modid.menu.movement.step"),
 				StepModule.isEnabled(),
@@ -727,6 +785,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				"spider",
+				"spider",
 				Component.translatable("screen.modid.menu.movement.spider"),
 				SpiderModule.isEnabled(),
 				(button, enabled) -> SpiderModule.setEnabled(enabled)
@@ -746,6 +805,7 @@ public class ExampleMenuScreen extends Screen {
 		y = addToggleModule(
 				y,
 				null,
+				"safewalk",
 				Component.translatable("screen.modid.menu.movement.safewalk"),
 				SafeWalkModule.isEnabled(),
 				(button, enabled) -> SafeWalkModule.setEnabled(enabled)
@@ -758,6 +818,7 @@ public class ExampleMenuScreen extends Screen {
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.movement.jesus"),
 				JesusModule.isEnabled(),
+				"jesus",
 				(button, enabled) -> JesusModule.setEnabled(enabled)
 		));
 		int jesusModeIndex = switch (JesusModule.getMode()) {
@@ -840,19 +901,26 @@ public class ExampleMenuScreen extends Screen {
 		}
 	}
 
-	/** Close any open mode dropdown when clicking outside it. */
+	/** Open dropdown steals clicks (overlays later rows); outside click closes it. */
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		ModeDropdownButton open = ModeDropdownButton.getOpen();
-		if (open != null && !open.isMouseOver(event.x(), event.y())) {
+		if (open != null) {
+			if (open.isMouseOver(event.x(), event.y())) {
+				return open.mouseClicked(event, doubleClick);
+			}
 			open.close();
 		}
 		return super.mouseClicked(event, doubleClick);
 	}
 
-	/** Insert (or rebound open key) also closes the menu while it is open. */
+	/** Keybind capture, then Insert closes the menu while it is open. */
 	@Override
 	public boolean keyPressed(KeyEvent event) {
+		if (ModuleKeybinds.handleKeyPressed(event)) {
+			rebuildMenu();
+			return true;
+		}
 		if (ExampleModClient.matchesOpenMenuKey(event)) {
 			this.onClose();
 			return true;
@@ -896,11 +964,24 @@ public class ExampleMenuScreen extends Screen {
 				case GENERAL -> "screen.modid.menu.tab.general";
 				case VISUALS -> "screen.modid.menu.tab.visuals";
 				case COMBAT -> "screen.modid.menu.tab.combat";
+				case WORLD -> "screen.modid.menu.tab.world";
 				case MOVEMENT -> "screen.modid.menu.tab.movement";
 				case MISC -> "screen.modid.menu.tab.misc";
 			};
 			panel = Component.translatable("screen.modid.menu.panel", Component.translatable(panelKey));
 		}
 		graphics.text(this.font, panel, CONTENT_LEFT, CONTENT_TOP - 14, theme.panelHint, false);
+
+		ModeDropdownButton open = ModeDropdownButton.getOpen();
+		if (open != null) {
+			open.extractOverlay(graphics, mouseX, mouseY);
+		}
+	}
+
+	@Override
+	public void onClose() {
+		ModuleKeybinds.cancelListening();
+		ModeDropdownButton.closeOpen();
+		super.onClose();
 	}
 }

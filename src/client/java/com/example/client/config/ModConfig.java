@@ -9,19 +9,23 @@ import com.example.client.module.CriticalsModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoSprintModule;
+import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.JesusModule;
+import com.example.client.module.ModuleKeybinds;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
 import com.example.client.module.PlayerOutlinesModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
+import com.example.client.module.ScaffoldModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
+import com.example.client.module.TowerModule;
 import com.example.client.module.VelocityModule;
 import com.example.client.module.XRayModule;
 
@@ -35,7 +39,7 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * Persists module toggles, sliders, last menu tab, and notifications to
+ * Persists module toggles, sliders, keybinds, last menu tab, and notifications to
  * {@code <gameDir>/config/modid-modules.properties}. Theme colors live in
  * {@link MenuTheme}'s own file.
  */
@@ -53,6 +57,7 @@ public final class ModConfig {
 	/** Load theme + modules on client start. Safe to call once. */
 	public static void loadAll() {
 		MenuTheme.get();
+		ModuleKeybinds.registerAll();
 		loadModules();
 		loaded = true;
 	}
@@ -116,7 +121,11 @@ public final class ModConfig {
 		HitboxesModule.loadEnabled(bool(props, "hitboxes", false));
 		HitboxesModule.loadSize(floatVal(props, "hitboxesSize", HitboxesModule.DEFAULT_SIZE));
 		AutoTotemModule.loadEnabled(bool(props, "autototem", false));
+		ScaffoldModule.loadEnabled(bool(props, "scaffold", false));
+		FastPlaceModule.loadEnabled(bool(props, "fastplace", false));
+		TowerModule.loadEnabled(bool(props, "tower", false));
 		NotificationsModule.loadEnabled(bool(props, "notifications", true));
+		ModuleKeybinds.loadFrom(props);
 		ExampleMenuScreen.loadLastTab(props.getProperty("lastTab", "GENERAL"));
 	}
 
@@ -173,14 +182,18 @@ public final class ModConfig {
 			props.setProperty("hitboxes", String.valueOf(HitboxesModule.isEnabled()));
 			props.setProperty("hitboxesSize", Float.toString(HitboxesModule.getSize()));
 			props.setProperty("autototem", String.valueOf(AutoTotemModule.isEnabled()));
+			props.setProperty("scaffold", String.valueOf(ScaffoldModule.isEnabled()));
+			props.setProperty("fastplace", String.valueOf(FastPlaceModule.isEnabled()));
+			props.setProperty("tower", String.valueOf(TowerModule.isEnabled()));
 			props.setProperty("notifications", String.valueOf(NotificationsModule.isEnabled()));
 			props.setProperty("lastTab", ExampleMenuScreen.getLastTabName());
+			ModuleKeybinds.writeTo(props);
 
 			Path path = configPath();
 			try {
 				Files.createDirectories(path.getParent());
 				try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-					props.store(writer, "Rooty Menu module state (toggles, sliders, last tab)");
+					props.store(writer, "Rooty Menu module state (toggles, sliders, keybinds, last tab)");
 				}
 			} catch (IOException e) {
 				ExampleMod.LOGGER.warn("Failed to save module config: {}", e.toString());

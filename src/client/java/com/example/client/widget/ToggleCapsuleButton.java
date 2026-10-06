@@ -1,18 +1,21 @@
 package com.example.client.widget;
 
 import com.example.client.config.MenuTheme;
+import com.example.client.module.ModuleKeybinds;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Capsule-style module row. The left circle turns green when ON; no separate
- * ON/OFF knob widget. Optional item/block icon is drawn after the circle.
+ * Capsule-style module row. Left-click toggles; right-click binds a key
+ * ({@link ModuleKeybinds}). The left circle turns green when ON.
  */
 public class ToggleCapsuleButton extends AbstractWidget {
 	@FunctionalInterface
@@ -25,11 +28,25 @@ public class ToggleCapsuleButton extends AbstractWidget {
 
 	private final OnToggle onToggle;
 	private final ItemStack icon;
+	private final String moduleId;
 	private boolean enabled;
 	private boolean pressed;
 
 	public ToggleCapsuleButton(int x, int y, int width, int height, Component message, boolean enabled, OnToggle onToggle) {
-		this(x, y, width, height, message, enabled, ItemStack.EMPTY, onToggle);
+		this(x, y, width, height, message, enabled, ItemStack.EMPTY, null, onToggle);
+	}
+
+	public ToggleCapsuleButton(
+			int x,
+			int y,
+			int width,
+			int height,
+			Component message,
+			boolean enabled,
+			String moduleId,
+			OnToggle onToggle
+	) {
+		this(x, y, width, height, message, enabled, ItemStack.EMPTY, moduleId, onToggle);
 	}
 
 	public ToggleCapsuleButton(
@@ -42,9 +59,24 @@ public class ToggleCapsuleButton extends AbstractWidget {
 			ItemStack icon,
 			OnToggle onToggle
 	) {
+		this(x, y, width, height, message, enabled, icon, null, onToggle);
+	}
+
+	public ToggleCapsuleButton(
+			int x,
+			int y,
+			int width,
+			int height,
+			Component message,
+			boolean enabled,
+			ItemStack icon,
+			String moduleId,
+			OnToggle onToggle
+	) {
 		super(x, y, width, height, message);
 		this.enabled = enabled;
 		this.icon = icon == null || icon.isEmpty() ? ItemStack.EMPTY : icon.copy();
+		this.moduleId = moduleId;
 		this.onToggle = onToggle;
 	}
 
@@ -56,10 +88,21 @@ public class ToggleCapsuleButton extends AbstractWidget {
 		this.enabled = enabled;
 	}
 
+	public String getModuleId() {
+		return this.moduleId;
+	}
+
+	@Override
+	protected boolean isValidClickButton(MouseButtonInfo info) {
+		int b = info.button();
+		return b == InputConstants.MOUSE_BUTTON_LEFT || b == InputConstants.MOUSE_BUTTON_RIGHT;
+	}
+
 	@Override
 	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 		MenuTheme theme = MenuTheme.get();
 		boolean hovered = this.isHoveredOrFocused();
+		boolean listening = this.moduleId != null && ModuleKeybinds.isListening(this.moduleId);
 		int fill;
 		int outline;
 		int textColor;
@@ -70,6 +113,11 @@ public class ToggleCapsuleButton extends AbstractWidget {
 			outline = theme.capsuleDisabledOutline;
 			textColor = theme.capsuleDisabledText;
 			leftCircle = fill;
+		} else if (listening) {
+			fill = theme.capsuleHoverFill;
+			outline = theme.accentOn;
+			textColor = theme.capsuleText;
+			leftCircle = theme.accentOn;
 		} else if (this.pressed) {
 			fill = theme.capsulePressedFill;
 			outline = theme.capsulePressedOutline;
@@ -100,12 +148,33 @@ public class ToggleCapsuleButton extends AbstractWidget {
 			contentX += ICON_SIZE + ICON_GAP;
 		}
 
-		graphics.text(font, this.getMessage(), contentX, textY, textColor, false);
+		Component label = this.getMessage();
+		if (listening) {
+			label = Component.translatable("screen.modid.menu.keybind.listening");
+		} else if (this.moduleId != null) {
+			String bind = ModuleKeybinds.getBindName(this.moduleId);
+			if (bind != null && !bind.isBlank()) {
+				label = Component.empty()
+						.append(this.getMessage())
+						.append(Component.literal(" ["))
+						.append(ModuleKeybinds.getBindDisplay(this.moduleId))
+						.append(Component.literal("]"));
+			}
+		}
+		graphics.text(font, label, contentX, textY, textColor, false);
 	}
 
 	@Override
 	public void onClick(MouseButtonEvent event, boolean doubleClick) {
 		this.pressed = true;
+		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT && this.moduleId != null) {
+			if (ModuleKeybinds.isListening(this.moduleId)) {
+				ModuleKeybinds.cancelListening();
+			} else {
+				ModuleKeybinds.startListening(this.moduleId);
+			}
+			return;
+		}
 		this.enabled = !this.enabled;
 		this.onToggle.onToggle(this, this.enabled);
 	}

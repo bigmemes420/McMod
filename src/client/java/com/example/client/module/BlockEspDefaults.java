@@ -11,6 +11,9 @@ import java.util.Set;
 
 /** Shared default ore/chest block ids for X-Ray and Finder. */
 public final class BlockEspDefaults {
+	/** Written when the user clears every block so load does not re-seed defaults. */
+	public static final String EMPTY_SENTINEL = "-";
+
 	private BlockEspDefaults() {
 	}
 
@@ -56,7 +59,6 @@ public final class BlockEspDefaults {
 			return 0xFFFFD54A;
 		}
 		int h = id.hashCode();
-		// Spread bits so similar names still diverge in hue
 		int mixed = h ^ (h >>> 16) * 0x45D9F3B;
 		float hue = (mixed & 0xFFFF) / 65535.0F;
 		float sat = 0.55F + ((mixed >>> 16) & 0xFF) / 255.0F * 0.40F;
@@ -92,15 +94,22 @@ public final class BlockEspDefaults {
 		);
 	}
 
+	/**
+	 * @param csv null/blank → seed defaults; {@link #EMPTY_SENTINEL} → leave empty;
+	 *            otherwise parse ids (invalid ids skipped; all-invalid → seed).
+	 */
 	public static void loadCsv(Set<Identifier> into, String csv, Runnable seedIfEmpty) {
 		into.clear();
 		if (csv == null || csv.isBlank()) {
 			seedIfEmpty.run();
 			return;
 		}
+		if (EMPTY_SENTINEL.equals(csv.trim())) {
+			return;
+		}
 		for (String part : csv.split(",")) {
 			String trimmed = part.trim();
-			if (trimmed.isEmpty()) {
+			if (trimmed.isEmpty() || EMPTY_SENTINEL.equals(trimmed)) {
 				continue;
 			}
 			Identifier id = Identifier.tryParse(trimmed);
@@ -114,6 +123,9 @@ public final class BlockEspDefaults {
 	}
 
 	public static String toCsv(Set<Identifier> ids) {
+		if (ids == null || ids.isEmpty()) {
+			return EMPTY_SENTINEL;
+		}
 		StringBuilder sb = new StringBuilder();
 		for (Identifier id : ids) {
 			if (sb.length() > 0) {

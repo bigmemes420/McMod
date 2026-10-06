@@ -107,10 +107,14 @@ public final class XRayModule {
 			boolean nowHidden = clamped <= MIN_OPACITY;
 			boolean prevOff = previous >= MAX_OPACITY;
 			boolean nowOff = clamped >= MAX_OPACITY;
+			// Threshold changes need an immediate remesh; in-band fade changes
+			// debounce so the slider stays responsive without thrashing.
 			if (prevHidden != nowHidden || prevOff != nowOff) {
 				markSectionsDirty(true);
 			} else if (!nowHidden && !nowOff) {
 				markSectionsDirty(false);
+			} else if (nowHidden || nowOff) {
+				markSectionsDirty(true);
 			}
 		}
 		ModConfig.save();

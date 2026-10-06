@@ -9,15 +9,19 @@ import com.example.client.module.CriticalsModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoSprintModule;
+import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.JesusModule;
+import com.example.client.module.ModuleKeybinds;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
+import com.example.client.module.ScaffoldModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
+import com.example.client.module.TowerModule;
 import com.example.client.module.VelocityModule;
 import com.example.client.module.XRayModule;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -56,6 +60,7 @@ public class ExampleModClient implements ClientModInitializer {
 			while (openMenuKey.consumeClick()) {
 				toggleMenu(client);
 			}
+			ModuleKeybinds.tick(client);
 			FlightModule.tick(client);
 			SpeedModule.tick(client);
 			NoFallModule.tick(client);
@@ -71,6 +76,9 @@ public class ExampleModClient implements ClientModInitializer {
 			TriggerBotModule.tick(client);
 			AimAssistModule.tick(client);
 			AutoTotemModule.tick(client);
+			ScaffoldModule.tick(client);
+			FastPlaceModule.tick(client);
+			TowerModule.tick(client);
 			XRayModule.tick(client);
 			FinderModule.tick(client);
 		});

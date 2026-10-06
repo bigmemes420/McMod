@@ -124,5 +124,19 @@
   "screen.modid.menu.movement.jesus.disabled": "Jesus disabled",
   "screen.modid.menu.movement.jesus.mode.water": "Water",
   "screen.modid.menu.movement.jesus.mode.lava": "Lava",
-  "screen.modid.menu.movement.jesus.mode.both": "Both"
+  "screen.modid.menu.movement.jesus.mode.both": "Both",
+  "screen.modid.menu.tab.world": "World",
+  "screen.modid.menu.world.scaffold": "Scaffold",
+  "screen.modid.menu.world.scaffold.enabled": "Scaffold enabled — place blocks under feet",
+  "screen.modid.menu.world.scaffold.disabled": "Scaffold disabled",
+  "screen.modid.menu.world.fastplace": "FastPlace",
+  "screen.modid.menu.world.fastplace.enabled": "FastPlace enabled — no right-click delay on blocks",
+  "screen.modid.menu.world.fastplace.disabled": "FastPlace disabled",
+  "screen.modid.menu.world.tower": "Tower",
+  "screen.modid.menu.world.tower.enabled": "Tower enabled — jump-place upward",
+  "screen.modid.menu.world.tower.disabled": "Tower disabled",
+  "screen.modid.menu.keybind.listening": "Press a key…",
+  "screen.modid.menu.keybind.none": "None",
+  "screen.modid.menu.keybind.cleared": "Keybind cleared",
+  "screen.modid.menu.keybind.set": "Bound %s to %s"
 }

@@ -12,7 +12,8 @@
 		"BlockMixin",
 		"ModelBlockRendererMixin",
 		"SectionCompilerMixin",
-		"EntityMixin"
+		"EntityMixin",
+		"MinecraftAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -45,13 +45,17 @@ public final class NotificationsModule {
 	 * Send a module chat notification if Notifications is ON and a local player exists.
 	 */
 	public static void notifyToggle(String translationKey) {
-		if (!enabled) {
+		notifyMessage(Component.translatable(translationKey));
+	}
+
+	public static void notifyMessage(Component message) {
+		if (!enabled || message == null) {
 			return;
 		}
 		Minecraft client = Minecraft.getInstance();
 		LocalPlayer player = client.player;
 		if (player != null) {
-			player.sendSystemMessage(Component.translatable(translationKey));
+			player.sendSystemMessage(message);
 		}
 	}
 }

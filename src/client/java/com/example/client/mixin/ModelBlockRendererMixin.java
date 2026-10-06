@@ -91,6 +91,8 @@ public class ModelBlockRendererMixin {
 			return;
 		}
 		float alpha = XRayModule.getOpacityFraction();
+		// Fade non-selected blocks: alpha is honored because SectionCompilerMixin
+		// routes this tessellation onto TRANSLUCENT.
 		this.quadInstance.multiplyColor(ARGB.color(alpha, 0xFFFFFF));
 	}
 }

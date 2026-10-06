@@ -13,9 +13,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 /**
- * Capsule mode control that opens a dropdown list of labeled options.
- * Closed header uses the custom {@code dropdown_button} texture asset.
- * Colors come from dedicated MenuTheme dropdown_* keys (darker defaults).
+ * Mode control that opens a dropdown list of labeled options.
+ * Closed header uses a flat fill + optional {@code dropdown_button} texture tint
+ * (no left-circle capsule — that caused stray corner pixels outside the rect).
+ * The open panel is drawn via {@link #extractOverlay} so it stacks above later rows.
  */
 public class ModeDropdownButton extends AbstractWidget {
 	@FunctionalInterface
@@ -119,8 +120,21 @@ public class ModeDropdownButton extends AbstractWidget {
 				&& mouseY < bottom;
 	}
 
+	/** Header only — panel is drawn later via {@link #extractOverlay}. */
 	@Override
 	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		drawHeader(graphics, mouseX, mouseY);
+	}
+
+	/** Draw the open option list above overlapping widgets (call after other UI). */
+	public void extractOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+		if (!this.open) {
+			return;
+		}
+		drawPanel(graphics, mouseX, mouseY);
+	}
+
+	private void drawHeader(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		MenuTheme theme = MenuTheme.get();
 		boolean headerHovered = mouseX >= this.getX()
 				&& mouseY >= this.getY()
@@ -148,20 +162,21 @@ public class ModeDropdownButton extends AbstractWidget {
 			tint = theme.dropdownOutline;
 		}
 
-		// Theme fill + outline; custom dropdown stroke asset tinted with outline color.
-		MenuShapes.drawCapsule(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, tint);
+		// Flat rect only — capsule left-circle overflow was the stray TL/BL pixels.
+		MenuShapes.drawFlatRect(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, tint);
+		// Texture is an opaque white mask; tint with fill so it does not overwrite the outline.
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
 				DROPDOWN_BUTTON_TEXTURE,
-				this.getX(),
-				this.getY(),
+				this.getX() + 1,
+				this.getY() + 1,
 				0.0F,
 				0.0F,
-				this.width,
-				this.closedHeight,
+				Math.max(1, this.width - 2),
+				Math.max(1, this.closedHeight - 2),
 				TEXTURE_WIDTH,
 				TEXTURE_HEIGHT,
-				tint | 0xFF000000
+				fill | 0xFF000000
 		);
 
 		var font = Minecraft.getInstance().font;
@@ -172,11 +187,12 @@ public class ModeDropdownButton extends AbstractWidget {
 		String chevron = this.open ? "▲" : "▼";
 		int chevronX = this.getX() + this.width - 14;
 		graphics.text(font, Component.literal(chevron), chevronX, textY, textColor, false);
+	}
 
-		if (!this.open) {
-			return;
-		}
-
+	private void drawPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+		MenuTheme theme = MenuTheme.get();
+		var font = Minecraft.getInstance().font;
+		int textX = this.getX() + 10;
 		int panelTop = this.getY() + this.closedHeight;
 		for (int i = 0; i < this.labels.length; i++) {
 			int oy = panelTop + i * this.optionHeight;
