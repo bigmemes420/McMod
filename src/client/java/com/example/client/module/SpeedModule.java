@@ -1,35 +1,40 @@
 package com.example.client.module;
 
-import com.example.ExampleMod;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
 /**
- * Client Movement module: multiplies the local player's {@link Attributes#MOVEMENT_SPEED}
- * (and flying speed) only. Does not touch tick rate, Timer, or global game speed.
+ * Client Movement module: each tick, sets the local player's horizontal velocity from
+ * WASD input and look yaw. Does not touch movement attributes, Timer, or global game speed.
  */
 public final class SpeedModule {
-	private static final Identifier SPEED_MODIFIER_ID = ExampleMod.id("rooty_speed");
-	private static final Identifier FLY_SPEED_MODIFIER_ID = ExampleMod.id("rooty_fly_speed");
+	/** Horizontal blocks/tick at speed level 1. Level N => N * BASE_SPEED. */
+	private static final double BASE_SPEED = 0.1D;
 
-	/** ADD_MULTIPLIED_TOTAL amount: 1.0 => roughly double walk speed. */
-	private static final double SPEED_MULTIPLIER = 1.0;
+	public static final float MIN_LEVEL = 1.0F;
+	public static final float MAX_LEVEL = 10.0F;
+	public static final float DEFAULT_LEVEL = 2.0F;
 
 	private static boolean enabled;
+	private static float speedLevel = DEFAULT_LEVEL;
 
 	private SpeedModule() {
 	}
 
 	public static boolean isEnabled() {
 		return enabled;
+	}
+
+	public static float getSpeedLevel() {
+		return speedLevel;
+	}
+
+	public static void setSpeedLevel(float level) {
+		speedLevel = Mth.clamp(level, MIN_LEVEL, MAX_LEVEL);
 	}
 
 	public static void setEnabled(boolean value) {
@@ -40,12 +45,10 @@ public final class SpeedModule {
 		Minecraft client = Minecraft.getInstance();
 		LocalPlayer player = client.player;
 		if (player != null) {
-			applyTo(player, enabled);
 			player.sendSystemMessage(Component.translatable(
 					enabled ? "screen.modid.menu.movement.speed.enabled" : "screen.modid.menu.movement.speed.disabled"
 			));
 		}
-		syncIntegratedServer(client, enabled);
 	}
 
 	public static void toggle() {
@@ -53,57 +56,38 @@ public final class SpeedModule {
 	}
 
 	/**
-	 * Re-assert the movement-speed modifier each tick so sync packets do not clear it.
+	 * Apply input-based horizontal velocity while enabled. Vertical motion is left alone.
 	 */
 	public static void tick(Minecraft client) {
+		if (!enabled) {
+			return;
+		}
 		LocalPlayer player = client.player;
-		if (player == null) {
+		if (player == null || player.input == null) {
 			return;
 		}
-		applyTo(player, enabled);
-		if (enabled) {
-			syncIntegratedServer(client, true);
-		}
-	}
 
-	private static void applyTo(LivingEntity entity, boolean on) {
-		applyModifier(entity, Attributes.MOVEMENT_SPEED, SPEED_MODIFIER_ID, on);
-		applyModifier(entity, Attributes.FLYING_SPEED, FLY_SPEED_MODIFIER_ID, on);
-	}
+		Vec2 move = player.input.getMoveVector();
+		if (move.lengthSquared() < 1.0E-5F) {
+			return;
+		}
 
-	private static void applyModifier(
-			LivingEntity entity,
-			net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute,
-			Identifier id,
-			boolean on
-	) {
-		AttributeInstance instance = entity.getAttribute(attribute);
-		if (instance == null) {
-			return;
-		}
-		if (on) {
-			AttributeModifier modifier = new AttributeModifier(id, SPEED_MULTIPLIER, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
-			instance.addOrUpdateTransientModifier(modifier);
-		} else {
-			instance.removeModifier(id);
-		}
-	}
+		float yawRad = player.getYRot() * Mth.DEG_TO_RAD;
+		float sin = Mth.sin(yawRad);
+		float cos = Mth.cos(yawRad);
 
-	private static void syncIntegratedServer(Minecraft client, boolean on) {
-		if (!client.hasSingleplayerServer() || client.player == null) {
-			return;
+		// move.x = strafe (left +, right -), move.y = forward — same as Entity#getInputVector
+		double mx = move.x * cos - move.y * sin;
+		double mz = move.y * cos + move.x * sin;
+
+		double speed = speedLevel * BASE_SPEED;
+		double len = Math.sqrt(mx * mx + mz * mz);
+		if (len > 1.0E-8D) {
+			mx = mx / len * speed;
+			mz = mz / len * speed;
 		}
-		var server = client.getSingleplayerServer();
-		if (server == null) {
-			return;
-		}
-		var uuid = client.player.getUUID();
-		server.execute(() -> {
-			ServerPlayer serverPlayer = server.getPlayerList().getPlayer(uuid);
-			if (serverPlayer == null) {
-				return;
-			}
-			applyTo(serverPlayer, on);
-		});
+
+		Vec3 vel = player.getDeltaMovement();
+		player.setDeltaMovement(mx, vel.y, mz);
 	}
 }
