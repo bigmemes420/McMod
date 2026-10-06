@@ -504,7 +504,8 @@ public class ExampleMenuScreen extends Screen {
 					XRayModule.getOpacity(),
 					XRayModule.MIN_OPACITY,
 					XRayModule.MAX_OPACITY,
-					XRayModule::setOpacity
+					XRayModule::setOpacity,
+					XRayModule::commitOpacity
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}

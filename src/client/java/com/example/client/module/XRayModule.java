@@ -1,61 +1,49 @@
 package com.example.client.module;
 
-import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.phys.AABB;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
- * Visuals: remesh-free X-Ray with live opacity on non-selected blocks.
+ * Visuals: X-Ray with a Meteor-style absolute vertex-alpha opacity path.
  * <p>
- * Avoids baking every non-selected block onto TRANSLUCENT (the prior path
- * stalled FPS via full {@code allChanged()} remesh + translucent sort).
+ * Selected blocks render opaque with every face forced. Non-selected blocks:
  * <ul>
- *   <li>Active (opacity &lt; 100): skip OPAQUE terrain each frame — no remesh.</li>
- *   <li>Selected blocks: always-on-top filled gizmos from a periodic scan.</li>
- *   <li>Opacity 0: non-selected fully hidden (classic).</li>
- *   <li>Opacity 1–99: nearby non-selected solids drawn as merged translucent
- *       ghost AABBs with slider alpha — limited range/cap, no chunk remesh.</li>
- *   <li>Opacity 100: inactive.</li>
+ *   <li>opacity 0 → {@link RenderShape#INVISIBLE} (classic hide)</li>
+ *   <li>opacity 1–99 → absolute vertex alpha (0–255) baked onto TRANSLUCENT</li>
+ *   <li>opacity 100 → X-Ray fade inactive</li>
  * </ul>
+ * Remesh uses {@code levelExtractor.allChanged()} (debounced once per tick).
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
 	public static final float MAX_OPACITY = 100.0F;
 	public static final float DEFAULT_OPACITY = 0.0F;
 
-	/** Nearby ghost walls for mid-opacity; kept small for FPS. */
-	private static final int GHOST_RANGE = 16;
-	private static final int GHOST_MAX_CELLS = 1800;
-	private static final int GHOST_SCAN_PERIOD = 12;
-
 	private static boolean enabled;
 	private static float opacity = DEFAULT_OPACITY;
 	private static final LinkedHashSet<Identifier> fullOpacityBlocks = new LinkedHashSet<>();
-	private static final BlockEspScanner selectedScanner =
-			new BlockEspScanner(XRayModule::getFullOpacityBlocks, BlockEspScanner.DEFAULT_RANGE);
 
-	private static final List<BlockPos> ghostHits = new ArrayList<>();
-	private static final List<AABB> ghostBoxes = new ArrayList<>();
-	private static int ghostTick;
+	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+	/** Structural / committed opacity rebuilds — flushed once per client tick. */
+	private static volatile boolean sectionsDirty;
+
+	/** Restored when X-Ray turns off so the user's smartCull preference returns. */
+	private static boolean savedSmartCull = true;
+	private static boolean smartCullOverridden;
 
 	static {
 		BlockEspDefaults.seedOresAndChests(fullOpacityBlocks);
@@ -74,6 +62,11 @@ public final class XRayModule {
 
 	public static float getOpacityFraction() {
 		return opacity / MAX_OPACITY;
+	}
+
+	/** Absolute 0–255 alpha for non-selected faded blocks. */
+	public static int getOpacityAlpha() {
+		return Mth.clamp(Math.round(getOpacityFraction() * 255.0F), 0, 255);
 	}
 
 	public static Set<Identifier> getFullOpacityBlocks() {
@@ -95,13 +88,15 @@ public final class XRayModule {
 		}
 		boolean changed = selected ? fullOpacityBlocks.add(id) : fullOpacityBlocks.remove(id);
 		if (changed) {
-			selectedScanner.clear();
-			invalidateGhost();
+			markSectionsDirty();
 			ModConfig.save();
 		}
 	}
 
-	/** Live opacity — no remesh; ghost alpha and terrain skip update next frame. */
+	/**
+	 * Live opacity value. Remeshes when crossing hidden/fade/off thresholds.
+	 * In-band fade changes wait for {@link #commitOpacity()} (slider release).
+	 */
 	public static void setOpacity(float value) {
 		float clamped = Mth.clamp(value, MIN_OPACITY, MAX_OPACITY);
 		if (opacity == clamped) {
@@ -109,11 +104,23 @@ public final class XRayModule {
 		}
 		float previous = opacity;
 		opacity = clamped;
-		if ((previous <= MIN_OPACITY) != (clamped <= MIN_OPACITY)
-				|| (previous >= MAX_OPACITY) != (clamped >= MAX_OPACITY)) {
-			invalidateGhost();
+		if (enabled) {
+			boolean prevHidden = previous <= MIN_OPACITY;
+			boolean nowHidden = clamped <= MIN_OPACITY;
+			boolean prevOff = previous >= MAX_OPACITY;
+			boolean nowOff = clamped >= MAX_OPACITY;
+			if (prevHidden != nowHidden || prevOff != nowOff) {
+				markSectionsDirty();
+			}
 		}
 		ModConfig.save();
+	}
+
+	/** Remesh once after the opacity slider is released (in-band alpha bake). */
+	public static void commitOpacity() {
+		if (enabled && opacity > MIN_OPACITY && opacity < MAX_OPACITY) {
+			markSectionsDirty();
+		}
 	}
 
 	public static void loadOpacity(float value) {
@@ -122,8 +129,9 @@ public final class XRayModule {
 
 	public static void loadFullOpacityBlocks(String csv) {
 		BlockEspDefaults.loadCsv(fullOpacityBlocks, csv, () -> BlockEspDefaults.seedOresAndChests(fullOpacityBlocks));
-		selectedScanner.clear();
-		invalidateGhost();
+		if (enabled) {
+			markSectionsDirty();
+		}
 	}
 
 	public static String fullOpacityBlocksCsv() {
@@ -135,10 +143,8 @@ public final class XRayModule {
 			return;
 		}
 		enabled = value;
-		if (!enabled) {
-			selectedScanner.clear();
-			invalidateGhost();
-		}
+		applySmartCull(Minecraft.getInstance());
+		markSectionsDirty();
 		NotificationsModule.notifyToggle(
 				enabled ? "screen.modid.menu.visuals.xray.enabled"
 						: "screen.modid.menu.visuals.xray.disabled"
@@ -154,142 +160,106 @@ public final class XRayModule {
 		return enabled && opacity < MAX_OPACITY;
 	}
 
-	/** Skip OPAQUE SOLID+CUTOUT for this frame while X-Ray is active. */
-	public static boolean shouldHideOpaqueTerrain() {
-		return isActive();
+	private static boolean isAir(Block block) {
+		return block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR;
+	}
+
+	public static RenderShape modifyRenderShape(BlockState state, RenderShape original) {
+		if (!isActive() || original == RenderShape.INVISIBLE) {
+			return original;
+		}
+		Block block = state.getBlock();
+		if (isAir(block) || isFullOpacity(block)) {
+			return original;
+		}
+		if (opacity <= MIN_OPACITY) {
+			return RenderShape.INVISIBLE;
+		}
+		return original;
+	}
+
+	public static boolean shouldDisableOcclusion(BlockState state) {
+		if (!isActive()) {
+			return false;
+		}
+		Block block = state.getBlock();
+		return !isAir(block) && !isFullOpacity(block);
+	}
+
+	public static boolean shouldForceRenderFace(BlockState state) {
+		if (!isActive()) {
+			return false;
+		}
+		Block block = state.getBlock();
+		return !isAir(block) && isFullOpacity(block);
+	}
+
+	public static boolean shouldForceRenderFace(BlockState state, BlockState neighbor, Direction direction) {
+		return shouldForceRenderFace(state);
+	}
+
+	public static boolean shouldFade(BlockState state) {
+		if (!isActive() || opacity <= MIN_OPACITY) {
+			return false;
+		}
+		Block block = state.getBlock();
+		return !isAir(block) && !isFullOpacity(block);
+	}
+
+	public static void beginTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.TRUE);
+	}
+
+	public static void endTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.FALSE);
+	}
+
+	public static boolean isTranslucentPass() {
+		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
+	}
+
+	/**
+	 * Absolute-alpha rewrite for a baked vertex color (Meteor-style).
+	 * Keeps RGB, replaces alpha with {@link #getOpacityAlpha()}.
+	 */
+	public static int applyFadeAlpha(int argb) {
+		int alpha = getOpacityAlpha();
+		if (alpha <= 0) {
+			return argb & 0x00FFFFFF;
+		}
+		return (alpha << 24) | (argb & 0x00FFFFFF);
 	}
 
 	public static void tick(Minecraft client) {
-		if (!isActive()) {
-			selectedScanner.clear();
-			invalidateGhost();
+		applySmartCull(client);
+		if (!sectionsDirty) {
 			return;
 		}
-		selectedScanner.tick(client);
-		if (opacity > MIN_OPACITY) {
-			tickGhost(client);
-		} else {
-			invalidateGhost();
+		if (client.level == null || client.levelExtractor == null) {
+			return;
 		}
+		sectionsDirty = false;
+		// Proven remesh path (Meteor / Wurst): full extractor rebuild.
+		client.levelExtractor.allChanged();
 	}
 
-	/** Invoked from {@code LevelRenderEvents.BEFORE_GIZMOS}. */
-	public static void renderOverlays(LevelRenderer levelRenderer) {
-		if (!isActive()) {
-			return;
-		}
-		int stroke = MenuTheme.get().outline;
-		int selectedFill = WorldBlockEspRenderer.fillWithAlpha(stroke & 0xFFFFFF, 0.85F);
-		WorldBlockEspRenderer.drawFilledMerged(
-				levelRenderer,
-				selectedScanner.hits(),
-				stroke,
-				selectedFill,
-				2.0F
-		);
-
-		if (opacity <= MIN_OPACITY || ghostBoxes.isEmpty()) {
-			return;
-		}
-		float ghostAlpha = Mth.clamp(getOpacityFraction() * 0.55F, 0.05F, 0.55F);
-		int ghostFill = WorldBlockEspRenderer.fillWithAlpha(0x6A6A78, ghostAlpha);
-		WorldBlockEspRenderer.drawFilledAabbs(levelRenderer, ghostBoxes, ghostFill);
+	private static void markSectionsDirty() {
+		sectionsDirty = true;
 	}
 
-	private static void tickGhost(Minecraft client) {
-		if (client.level == null || client.player == null) {
-			invalidateGhost();
+	private static void applySmartCull(Minecraft client) {
+		if (client == null) {
 			return;
 		}
-		ghostTick++;
-		if (ghostTick < GHOST_SCAN_PERIOD && !ghostBoxes.isEmpty()) {
-			return;
-		}
-		ghostTick = 0;
-		rescanGhost(client.level, client.player.blockPosition());
-	}
-
-	private static void rescanGhost(Level level, BlockPos origin) {
-		ghostHits.clear();
-		int r = GHOST_RANGE;
-		int minX = origin.getX() - r;
-		int maxX = origin.getX() + r;
-		int minY = Math.max(level.getMinY(), origin.getY() - r);
-		int maxY = Math.min(level.getMaxY(), origin.getY() + r);
-		int minZ = origin.getZ() - r;
-		int maxZ = origin.getZ() + r;
-
-		int minChunkX = minX >> 4;
-		int maxChunkX = maxX >> 4;
-		int minChunkZ = minZ >> 4;
-		int maxChunkZ = maxZ >> 4;
-		int minSectionY = Math.max(level.getMinSectionY(), minY >> 4);
-		int maxSectionY = Math.min(level.getMaxSectionY(), maxY >> 4);
-
-		outer:
-		for (int cx = minChunkX; cx <= maxChunkX; cx++) {
-			for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
-				if (!level.hasChunk(cx, cz)) {
-					continue;
-				}
-				LevelChunk chunk = level.getChunk(cx, cz);
-				for (int sy = minSectionY; sy <= maxSectionY; sy++) {
-					int sectionIndex = level.getSectionIndexFromSectionY(sy);
-					if (sectionIndex < 0 || sectionIndex >= level.getSectionsCount()) {
-						continue;
-					}
-					LevelChunkSection section = chunk.getSection(sectionIndex);
-					if (section.hasOnlyAir()) {
-						continue;
-					}
-					int baseX = cx << 4;
-					int baseY = sy << 4;
-					int baseZ = cz << 4;
-					for (int lx = 0; lx < 16; lx++) {
-						int x = baseX + lx;
-						if (x < minX || x > maxX) {
-							continue;
-						}
-						for (int lz = 0; lz < 16; lz++) {
-							int z = baseZ + lz;
-							if (z < minZ || z > maxZ) {
-								continue;
-							}
-							for (int ly = 0; ly < 16; ly++) {
-								int y = baseY + ly;
-								if (y < minY || y > maxY) {
-									continue;
-								}
-								BlockState state = section.getBlockState(lx, ly, lz);
-								if (state.isAir()) {
-									continue;
-								}
-								Block block = state.getBlock();
-								if (isAir(block) || isFullOpacity(block)) {
-									continue;
-								}
-								ghostHits.add(new BlockPos(x, y, z));
-								if (ghostHits.size() >= GHOST_MAX_CELLS) {
-									break outer;
-								}
-							}
-						}
-					}
-				}
+		if (isActive()) {
+			if (!smartCullOverridden) {
+				savedSmartCull = client.smartCull;
+				smartCullOverridden = true;
 			}
+			client.smartCull = false;
+		} else if (smartCullOverridden) {
+			client.smartCull = savedSmartCull;
+			smartCullOverridden = false;
 		}
-
-		ghostBoxes.clear();
-		ghostBoxes.addAll(WorldBlockEspRenderer.mergeConnectedSolid(ghostHits));
-	}
-
-	private static void invalidateGhost() {
-		ghostHits.clear();
-		ghostBoxes.clear();
-		ghostTick = 0;
-	}
-
-	private static boolean isAir(Block block) {
-		return block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR;
 	}
 }

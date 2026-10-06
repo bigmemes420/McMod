@@ -30,7 +30,7 @@
   "screen.modid.menu.visuals.fullbright.enabled": "Fullbright enabled — full scene brightness",
   "screen.modid.menu.visuals.fullbright.disabled": "Fullbright disabled",
   "screen.modid.menu.visuals.xray": "X-Ray",
-  "screen.modid.menu.visuals.xray.enabled": "X-Ray enabled — remesh-free skip + ghost opacity on non-selected",
+  "screen.modid.menu.visuals.xray.enabled": "X-Ray enabled — absolute vertex alpha on non-selected",
   "screen.modid.menu.visuals.xray.disabled": "X-Ray disabled",
   "screen.modid.menu.visuals.xray.edit": "Edit",
   "screen.modid.menu.visuals.xray.edit.title": "X-Ray Blocks",

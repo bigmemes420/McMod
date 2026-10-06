@@ -10,8 +10,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Visuals: Player ESP with Outline / 2D / 3D modes. Optional vanilla outline on
- * boxes. Color lives on this module's settings (not the central Menu theme).
+ * Visuals: Player ESP with Outline / 2D / 3D modes. "Outline Boxes" draws a
+ * black outer stroke on the ESP boxes (not a vanilla player entity outline).
+ * Color lives on this module's settings (not the central Menu theme).
  */
 public final class PlayerEspModule {
 	public enum Mode {
@@ -25,7 +26,7 @@ public final class PlayerEspModule {
 	private static boolean enabled;
 	private static Mode mode = Mode.BOX_3D;
 	private static int color = DEFAULT_COLOR;
-	/** When true, also force vanilla through-walls outline while drawing boxes. */
+	/** When true, draw a black outer stroke under 2D/3D ESP boxes. */
 	private static boolean outlineBoxes;
 
 	private PlayerEspModule() {
@@ -107,15 +108,12 @@ public final class PlayerEspModule {
 		enabled = value;
 	}
 
-	/** True when vanilla outline should force through-walls outline on this player. */
+	/** True when vanilla outline mode should force through-walls outline on this player. */
 	public static boolean shouldOutline(LivingEntity entity) {
 		if (!enabled || !(entity instanceof Player) || entity instanceof LocalPlayer) {
 			return false;
 		}
-		if (mode == Mode.OUTLINE) {
-			return true;
-		}
-		return outlineBoxes && (mode == Mode.BOX_2D || mode == Mode.BOX_3D);
+		return mode == Mode.OUTLINE;
 	}
 
 	public static int outlineColor() {
@@ -140,7 +138,7 @@ public final class PlayerEspModule {
 			if (player == self || player.isRemoved()) {
 				continue;
 			}
-			EntityEspRenderer.draw(levelRenderer, player, drawMode, stroke);
+			EntityEspRenderer.draw(levelRenderer, player, drawMode, stroke, outlineBoxes);
 		}
 	}
 }
