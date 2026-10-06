@@ -5,6 +5,7 @@ import com.example.client.module.FlightModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
+import com.example.client.module.PlayerOutlinesModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.FlatMenuButton;
@@ -13,6 +14,7 @@ import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 
 public class ExampleMenuScreen extends Screen {
@@ -161,6 +163,17 @@ public class ExampleMenuScreen extends Screen {
 				NametagsModule::setEnabled,
 				NametagsModule::setScale
 		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.player_outlines"),
+				PlayerOutlinesModule.isEnabled(),
+				(button, enabled) -> PlayerOutlinesModule.setEnabled(enabled)
+		));
 	}
 
 	private void addMiscContent() {
@@ -265,6 +278,16 @@ public class ExampleMenuScreen extends Screen {
 		if (this.colorMenuOpen) {
 			rebuildMenu();
 		}
+	}
+
+	/** Insert (or rebound open key) also closes the menu while it is open. */
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (ExampleModClient.matchesOpenMenuKey(event)) {
+			this.onClose();
+			return true;
+		}
+		return super.keyPressed(event);
 	}
 
 	/**

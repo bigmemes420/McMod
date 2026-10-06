@@ -8,6 +8,7 @@ import com.example.client.widget.SaturationValueWidget;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 /**
  * Interactive ARGB color picker (HSV square + hue bar + RGB sliders) with live
@@ -217,6 +218,16 @@ public class ColorPickerScreen extends Screen {
 	@Override
 	public void onClose() {
 		this.minecraft.gui.setScreen(this.parent);
+	}
+
+	/** Open/close menu keybind dismisses the color picker and the parent menu. */
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (ExampleModClient.matchesOpenMenuKey(event)) {
+			this.minecraft.gui.setScreen(null);
+			return true;
+		}
+		return super.keyPressed(event);
 	}
 
 	@Override

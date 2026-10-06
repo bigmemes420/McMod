@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.KeyEvent;
 
 public class ExampleModClient implements ClientModInitializer {
 	private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(ExampleMod.id("menu"));
@@ -39,6 +40,11 @@ public class ExampleModClient implements ClientModInitializer {
 			SpeedModule.tick(client);
 			NoFallModule.tick(client);
 		});
+	}
+
+	/** True when {@code event} matches the configured open/close menu keybind. */
+	public static boolean matchesOpenMenuKey(KeyEvent event) {
+		return openMenuKey != null && openMenuKey.matches(event);
 	}
 
 	private static void toggleMenu(Minecraft client) {

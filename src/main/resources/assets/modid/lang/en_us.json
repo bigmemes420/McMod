@@ -1,6 +1,6 @@
 {
   "key.category.modid.menu": "Rooty Menu",
-  "key.modid.open_menu": "Open Rooty Menu",
+  "key.modid.open_menu": "Open/Close Rooty Menu",
   "screen.modid.menu.title": "Rooty Menu",
   "screen.modid.menu.close": "Close",
   "screen.modid.menu.colors": "Menu",
@@ -22,6 +22,9 @@
   "screen.modid.menu.visuals.nametags": "Nametags",
   "screen.modid.menu.visuals.nametags.enabled": "Nametags enabled \u2014 through walls (incl. sneaking)",
   "screen.modid.menu.visuals.nametags.disabled": "Nametags disabled",
+  "screen.modid.menu.visuals.player_outlines": "Player Outlines",
+  "screen.modid.menu.visuals.player_outlines.enabled": "Player Outlines enabled \u2014 through-walls outline",
+  "screen.modid.menu.visuals.player_outlines.disabled": "Player Outlines disabled",
   "screen.modid.menu.movement.flight": "Flight",
   "screen.modid.menu.movement.flight.enabled": "Flight enabled \u2014 double-jump / jump in air to fly",
   "screen.modid.menu.movement.flight.disabled": "Flight disabled",
