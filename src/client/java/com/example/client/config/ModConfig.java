@@ -63,6 +63,7 @@ public final class ModConfig {
 		FlightModule.loadEnabled(bool(props, "flight", false));
 		SpeedModule.loadEnabled(bool(props, "speed", false));
 		SpeedModule.loadSpeedLevel(floatVal(props, "speedLevel", SpeedModule.DEFAULT_LEVEL));
+		SpeedModule.loadMode(props.getProperty("speedMode", "NORMAL"));
 		NoFallModule.loadEnabled(bool(props, "nofall", false));
 		NametagsModule.loadEnabled(bool(props, "nametags", false));
 		NametagsModule.loadScale(floatVal(props, "nametagsScale", NametagsModule.DEFAULT_SCALE));
@@ -96,6 +97,7 @@ public final class ModConfig {
 			props.setProperty("flight", String.valueOf(FlightModule.isEnabled()));
 			props.setProperty("speed", String.valueOf(SpeedModule.isEnabled()));
 			props.setProperty("speedLevel", Float.toString(SpeedModule.getSpeedLevel()));
+			props.setProperty("speedMode", SpeedModule.getMode().name());
 			props.setProperty("nofall", String.valueOf(NoFallModule.isEnabled()));
 			props.setProperty("nametags", String.valueOf(NametagsModule.isEnabled()));
 			props.setProperty("nametagsScale", Float.toString(NametagsModule.getScale()));

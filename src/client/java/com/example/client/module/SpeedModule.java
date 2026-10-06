@@ -8,11 +8,34 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Locale;
+
 /**
  * Client Movement module: each tick, sets the local player's horizontal velocity from
- * WASD input and look yaw. Does not touch movement attributes, Timer, or global game speed.
+ * WASD input and look yaw. Modes:
+ * <ul>
+ *   <li>{@link Mode#NORMAL} — override horizontal velocity on ground and in air</li>
+ *   <li>{@link Mode#STRAFE} — modify air strafing only (ground movement untouched)</li>
+ * </ul>
+ * Does not touch movement attributes, Timer, or global game speed.
  */
 public final class SpeedModule {
+	public enum Mode {
+		NORMAL,
+		STRAFE;
+
+		public static Mode fromString(String raw) {
+			if (raw == null || raw.isBlank()) {
+				return NORMAL;
+			}
+			try {
+				return Mode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+			} catch (IllegalArgumentException e) {
+				return NORMAL;
+			}
+		}
+	}
+
 	/** Horizontal blocks/tick at speed level 1. Level N => N * BASE_SPEED. */
 	private static final double BASE_SPEED = 0.1D;
 
@@ -22,6 +45,7 @@ public final class SpeedModule {
 
 	private static boolean enabled;
 	private static float speedLevel = DEFAULT_LEVEL;
+	private static Mode mode = Mode.NORMAL;
 
 	private SpeedModule() {
 	}
@@ -32,6 +56,10 @@ public final class SpeedModule {
 
 	public static float getSpeedLevel() {
 		return speedLevel;
+	}
+
+	public static Mode getMode() {
+		return mode;
 	}
 
 	public static void setSpeedLevel(float level) {
@@ -45,6 +73,18 @@ public final class SpeedModule {
 
 	public static void loadSpeedLevel(float level) {
 		speedLevel = Mth.clamp(level, MIN_LEVEL, MAX_LEVEL);
+	}
+
+	public static void setMode(Mode value) {
+		if (value == null || mode == value) {
+			return;
+		}
+		mode = value;
+		ModConfig.save();
+	}
+
+	public static void loadMode(String raw) {
+		mode = Mode.fromString(raw);
 	}
 
 	public static void setEnabled(boolean value) {
@@ -67,7 +107,8 @@ public final class SpeedModule {
 	}
 
 	/**
-	 * Apply input-based horizontal velocity while enabled. Vertical motion is left alone.
+	 * Apply input-based horizontal velocity while enabled.
+	 * {@link Mode#STRAFE} only applies while airborne.
 	 */
 	public static void tick(Minecraft client) {
 		if (!enabled) {
@@ -75,6 +116,10 @@ public final class SpeedModule {
 		}
 		LocalPlayer player = client.player;
 		if (player == null || player.input == null) {
+			return;
+		}
+
+		if (mode == Mode.STRAFE && player.onGround()) {
 			return;
 		}
 

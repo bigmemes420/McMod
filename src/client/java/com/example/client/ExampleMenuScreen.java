@@ -17,12 +17,13 @@ import com.example.client.module.XRayModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.LevelCapsuleButton;
-import com.example.client.widget.ModeCycleButton;
+import com.example.client.widget.ModeDropdownButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 public class ExampleMenuScreen extends Screen {
@@ -274,7 +275,20 @@ public class ExampleMenuScreen extends Screen {
 			));
 		}
 		int modeX = CONTENT_LEFT + CAPSULE_WIDTH + 8;
-		this.addRenderableWidget(new ModeCycleButton(
+		// Add Edit first, then dropdown last so the open list draws above neighbors.
+		this.addRenderableWidget(new CapsuleButton(
+				modeX + MODE_WIDTH + 8,
+				y,
+				EDIT_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.finder.edit"),
+				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new FinderBlocksScreen(this));
+					}
+				}
+		));
+		this.addRenderableWidget(new ModeDropdownButton(
 				modeX,
 				y,
 				MODE_WIDTH,
@@ -287,18 +301,6 @@ public class ExampleMenuScreen extends Screen {
 				index -> {
 					FinderModule.setMode(index == 1 ? FinderModule.RenderMode.FILLED : FinderModule.RenderMode.OUTLINE);
 					rebuildMenu();
-				}
-		));
-		this.addRenderableWidget(new CapsuleButton(
-				modeX + MODE_WIDTH + 8,
-				y,
-				EDIT_WIDTH,
-				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.finder.edit"),
-				button -> {
-					if (this.minecraft != null) {
-						this.minecraft.gui.setScreen(new FinderBlocksScreen(this));
-					}
 				}
 		));
 	}
@@ -389,6 +391,18 @@ public class ExampleMenuScreen extends Screen {
 				SpeedModule::setEnabled,
 				SpeedModule::setSpeedLevel
 		));
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 8,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.movement.speed.mode.normal"),
+					Component.translatable("screen.modid.menu.movement.speed.mode.strafe")
+				},
+				SpeedModule.getMode() == SpeedModule.Mode.STRAFE ? 1 : 0,
+				index -> SpeedModule.setMode(index == 1 ? SpeedModule.Mode.STRAFE : SpeedModule.Mode.NORMAL)
+		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
 		this.addRenderableWidget(new ToggleCapsuleButton(
@@ -452,6 +466,16 @@ public class ExampleMenuScreen extends Screen {
 		if (this.colorMenuOpen) {
 			rebuildMenu();
 		}
+	}
+
+	/** Close any open mode dropdown when clicking outside it. */
+	@Override
+	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		ModeDropdownButton open = ModeDropdownButton.getOpen();
+		if (open != null && !open.isMouseOver(event.x(), event.y())) {
+			open.close();
+		}
+		return super.mouseClicked(event, doubleClick);
 	}
 
 	/** Insert (or rebound open key) also closes the menu while it is open. */
