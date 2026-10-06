@@ -1,6 +1,7 @@
 package com.example.client.mixin;
 
 import com.example.client.module.InventoryMoveModule;
+import com.example.client.module.SneakModule;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -16,8 +17,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * While Inventory Move is on and a container GUI is open, rebuild movement
- * from physical key state (GUI otherwise clears KeyMapping.isDown).
+ * Inventory Move: rebuild WASD from physical keys while a container is open.
+ * Sneak module: force the shift bit (Legit / Cheat) after input is built.
  */
 @Mixin(KeyboardInput.class)
 public abstract class KeyboardInputMixin extends ClientInput {
@@ -26,22 +27,22 @@ public abstract class KeyboardInputMixin extends ClientInput {
 	private Options options;
 
 	@Inject(method = "tick", at = @At("TAIL"))
-	private void rooty$inventoryMove(CallbackInfo ci) {
+	private void rooty$inventoryMoveAndSneak(CallbackInfo ci) {
 		Minecraft client = Minecraft.getInstance();
-		if (!InventoryMoveModule.shouldPassMovement(client)) {
-			return;
+		if (InventoryMoveModule.shouldPassMovement(client)) {
+			boolean forward = isPhysicallyDown(this.options.keyUp);
+			boolean backward = isPhysicallyDown(this.options.keyDown);
+			boolean left = isPhysicallyDown(this.options.keyLeft);
+			boolean right = isPhysicallyDown(this.options.keyRight);
+			boolean jump = isPhysicallyDown(this.options.keyJump);
+			boolean shift = isPhysicallyDown(this.options.keyShift);
+			boolean sprint = isPhysicallyDown(this.options.keySprint);
+			this.keyPresses = new Input(forward, backward, left, right, jump, shift, sprint);
+			float impulseY = impulse(forward, backward);
+			float impulseX = impulse(left, right);
+			this.moveVector = new Vec2(impulseX, impulseY).normalized();
 		}
-		boolean forward = isPhysicallyDown(this.options.keyUp);
-		boolean backward = isPhysicallyDown(this.options.keyDown);
-		boolean left = isPhysicallyDown(this.options.keyLeft);
-		boolean right = isPhysicallyDown(this.options.keyRight);
-		boolean jump = isPhysicallyDown(this.options.keyJump);
-		boolean shift = isPhysicallyDown(this.options.keyShift);
-		boolean sprint = isPhysicallyDown(this.options.keySprint);
-		this.keyPresses = new Input(forward, backward, left, right, jump, shift, sprint);
-		float impulseY = impulse(forward, backward);
-		float impulseX = impulse(left, right);
-		this.moveVector = new Vec2(impulseX, impulseY).normalized();
+		SneakModule.applyInput(client);
 	}
 
 	private static float impulse(boolean positive, boolean negative) {

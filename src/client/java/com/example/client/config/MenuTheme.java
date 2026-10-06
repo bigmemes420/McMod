@@ -69,7 +69,8 @@ public final class MenuTheme {
 	/** Nametag plate/background outline (Nametags module). */
 	public int nametagOutline = 0xFFFFFFFF;
 
-	/** Through-world Finder block outline / filled-box color (legacy fallback). */
+	/** @deprecated Finder colors live per-block on FinderModule; kept for old theme files. */
+	@Deprecated
 	public int finderOutline = 0xFFFFD54A;
 
 	private MenuTheme() {
@@ -139,7 +140,6 @@ public final class MenuTheme {
 			case "dropdownSelectedOutline" -> dropdownSelectedOutline = argb;
 			case "accentOn" -> accentOn = argb;
 			case "nametagOutline" -> nametagOutline = argb;
-			case "finderOutline" -> finderOutline = argb;
 			default -> {
 			}
 		}
@@ -173,7 +173,6 @@ public final class MenuTheme {
 		map.put("dropdownSelectedOutline", dropdownSelectedOutline);
 		map.put("accentOn", accentOn);
 		map.put("nametagOutline", nametagOutline);
-		map.put("finderOutline", finderOutline);
 		return map;
 	}
 
@@ -205,7 +204,6 @@ public final class MenuTheme {
 			case "dropdownSelectedOutline" -> "Dropdown Selected Outline";
 			case "accentOn" -> "Accent (ON)";
 			case "nametagOutline" -> "Nametag Outline";
-			case "finderOutline" -> "Finder Outline";
 			default -> key;
 		};
 	}

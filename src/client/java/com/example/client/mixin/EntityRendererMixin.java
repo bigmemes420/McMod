@@ -2,6 +2,7 @@ package com.example.client.mixin;
 
 import com.example.client.module.MobEspModule;
 import com.example.client.module.NametagsModule;
+import com.example.client.module.PlayerEspModule;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.util.ARGB;
@@ -14,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Nametags: clear {@code isDiscrete} so submitNameTag uses SEE_THROUGH.
- * Mob ESP outline mode: force through-walls outline color on mobs.
+ * Player / Mob ESP outline modes: force through-walls outline color.
  */
 @Mixin(EntityRenderer.class)
 public class EntityRendererMixin {
@@ -23,8 +24,12 @@ public class EntityRendererMixin {
 		if (NametagsModule.isEnabled()) {
 			state.isDiscrete = false;
 		}
-		if (entity instanceof LivingEntity living && MobEspModule.shouldOutline(living)) {
-			state.outlineColor = ARGB.opaque(MobEspModule.outlineColor());
+		if (entity instanceof LivingEntity living) {
+			if (PlayerEspModule.shouldOutline(living)) {
+				state.outlineColor = ARGB.opaque(PlayerEspModule.outlineColor());
+			} else if (MobEspModule.shouldOutline(living)) {
+				state.outlineColor = ARGB.opaque(MobEspModule.outlineColor(living));
+			}
 		}
 	}
 }

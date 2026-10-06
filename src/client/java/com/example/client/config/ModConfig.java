@@ -24,6 +24,7 @@ import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
+import com.example.client.module.SneakModule;
 import com.example.client.module.ScaffoldModule;
 import com.example.client.module.SpeedModule;
 import com.example.client.module.SpiderModule;
@@ -86,6 +87,7 @@ public final class ModConfig {
 		SpeedModule.loadMode(props.getProperty("speedMode", "NORMAL"));
 		NoFallModule.loadEnabled(bool(props, "nofall", false));
 		AutoSprintModule.loadEnabled(bool(props, "autosprint", false));
+		AutoSprintModule.loadMode(props.getProperty("autosprintMode", "LEGIT"));
 		StepModule.loadEnabled(bool(props, "step", false));
 		StepModule.loadHeight(floatVal(props, "stepHeight", StepModule.DEFAULT_HEIGHT));
 		SpiderModule.loadEnabled(bool(props, "spider", false));
@@ -98,9 +100,12 @@ public final class ModConfig {
 		PlayerEspModule.loadEnabled(bool(props, "playerEsp", bool(props, "playerOutlines", false)));
 		PlayerEspModule.loadMode(props.getProperty("playerEspMode", "BOX_3D"));
 		PlayerEspModule.loadColor(intVal(props, "playerEspColor", PlayerEspModule.DEFAULT_COLOR));
+		PlayerEspModule.loadOutlineBoxes(bool(props, "playerEspOutlineBoxes", false));
 		MobEspModule.loadEnabled(bool(props, "mobEsp", false));
 		MobEspModule.loadMode(props.getProperty("mobEspMode", "OUTLINE"));
 		MobEspModule.loadColor(intVal(props, "mobEspColor", MobEspModule.DEFAULT_COLOR));
+		MobEspModule.loadSelectedMobs(props.getProperty("mobEspMobs", ""));
+		MobEspModule.loadMobColors(props.getProperty("mobEspColors", ""));
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
 		XRayModule.loadEnabled(bool(props, "xray", false));
 		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
@@ -137,6 +142,8 @@ public final class ModConfig {
 		InventoryMoveModule.loadEnabled(bool(props, "inventoryMove", false));
 		InventoryMoveModule.loadRotateSpeed(floatVal(props, "inventoryMoveRotateSpeed", InventoryMoveModule.DEFAULT_ROTATE_SPEED));
 		NoSlowModule.loadEnabled(bool(props, "noslow", false));
+		SneakModule.loadEnabled(bool(props, "sneak", false));
+		SneakModule.loadMode(props.getProperty("sneakMode", "LEGIT"));
 		NotificationsModule.loadEnabled(bool(props, "notifications", true));
 		ModuleKeybinds.loadFrom(props);
 		ExampleMenuScreen.loadLastTab(props.getProperty("lastTab", "GENERAL"));
@@ -158,6 +165,7 @@ public final class ModConfig {
 			props.setProperty("speedMode", SpeedModule.getMode().name());
 			props.setProperty("nofall", String.valueOf(NoFallModule.isEnabled()));
 			props.setProperty("autosprint", String.valueOf(AutoSprintModule.isEnabled()));
+			props.setProperty("autosprintMode", AutoSprintModule.getMode().name());
 			props.setProperty("step", String.valueOf(StepModule.isEnabled()));
 			props.setProperty("stepHeight", Float.toString(StepModule.getHeight()));
 			props.setProperty("spider", String.valueOf(SpiderModule.isEnabled()));
@@ -170,9 +178,12 @@ public final class ModConfig {
 			props.setProperty("playerEsp", String.valueOf(PlayerEspModule.isEnabled()));
 			props.setProperty("playerEspMode", PlayerEspModule.getMode().name());
 			props.setProperty("playerEspColor", Integer.toString(PlayerEspModule.getColor()));
+			props.setProperty("playerEspOutlineBoxes", String.valueOf(PlayerEspModule.isOutlineBoxes()));
 			props.setProperty("mobEsp", String.valueOf(MobEspModule.isEnabled()));
 			props.setProperty("mobEspMode", MobEspModule.getMode().name());
 			props.setProperty("mobEspColor", Integer.toString(MobEspModule.getColor()));
+			props.setProperty("mobEspMobs", MobEspModule.selectedMobsCsv());
+			props.setProperty("mobEspColors", MobEspModule.mobColorsCsv());
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
 			props.setProperty("xray", String.valueOf(XRayModule.isEnabled()));
 			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
@@ -208,6 +219,8 @@ public final class ModConfig {
 			props.setProperty("inventoryMove", String.valueOf(InventoryMoveModule.isEnabled()));
 			props.setProperty("inventoryMoveRotateSpeed", Float.toString(InventoryMoveModule.getRotateSpeed()));
 			props.setProperty("noslow", String.valueOf(NoSlowModule.isEnabled()));
+			props.setProperty("sneak", String.valueOf(SneakModule.isEnabled()));
+			props.setProperty("sneakMode", SneakModule.getMode().name());
 			props.setProperty("notifications", String.valueOf(NotificationsModule.isEnabled()));
 			props.setProperty("lastTab", ExampleMenuScreen.getLastTabName());
 			ModuleKeybinds.writeTo(props);

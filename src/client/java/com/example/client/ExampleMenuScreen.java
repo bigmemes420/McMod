@@ -21,6 +21,7 @@ import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
+import com.example.client.module.SneakModule;
 import com.example.client.module.TowerModule;
 import com.example.client.module.ScaffoldModule;
 import com.example.client.module.ModuleKeybinds;
@@ -36,6 +37,7 @@ import com.example.client.widget.CogButton;
 import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.LabeledSliderWidget;
 import com.example.client.widget.ModeDropdownButton;
+import com.example.client.widget.ColorSwatchButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -267,13 +269,27 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addColorSettingRow(int y, String label, int color, java.util.function.Consumer<Integer> onApply) {
+		int swatch = 28;
+		int gap = 8;
 		this.addRenderableWidget(new FlatMenuButton(
 				CONTENT_LEFT,
 				y,
-				SETTINGS_WIDTH,
+				SETTINGS_WIDTH - swatch - gap,
 				CAPSULE_HEIGHT,
 				Component.literal(label + " #" + MenuTheme.toHex(color)),
 				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new ColorPickerScreen(this, label, color, onApply));
+					}
+				}
+		));
+		this.addRenderableWidget(new ColorSwatchButton(
+				CONTENT_LEFT + SETTINGS_WIDTH - swatch,
+				y,
+				swatch,
+				CAPSULE_HEIGHT,
+				color,
+				() -> {
 					if (this.minecraft != null) {
 						this.minecraft.gui.setScreen(new ColorPickerScreen(this, label, color, onApply));
 					}
@@ -325,7 +341,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		// Player ESP: capsule + cog + mode dropdown
+		// Player ESP: capsule + cog + mode dropdown (Outline / 2D / 3D)
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
@@ -343,18 +359,29 @@ public class ExampleMenuScreen extends Screen {
 				settingsOpen("player_esp"),
 				button -> toggleSettings("player_esp")
 		));
+		int playerModeIndex = switch (PlayerEspModule.getMode()) {
+			case BOX_2D -> 1;
+			case BOX_3D -> 2;
+			default -> 0;
+		};
 		this.addRenderableWidget(new ModeDropdownButton(
 				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
 				y,
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
+					Component.translatable("screen.modid.menu.visuals.player_esp.mode.outline"),
 					Component.translatable("screen.modid.menu.visuals.player_esp.mode.box_2d"),
 					Component.translatable("screen.modid.menu.visuals.player_esp.mode.box_3d")
 				},
-				PlayerEspModule.getMode() == PlayerEspModule.Mode.BOX_2D ? 0 : 1,
+				playerModeIndex,
 				index -> {
-					PlayerEspModule.setMode(index == 0 ? PlayerEspModule.Mode.BOX_2D : PlayerEspModule.Mode.BOX_3D);
+					PlayerEspModule.Mode mode = switch (index) {
+						case 1 -> PlayerEspModule.Mode.BOX_2D;
+						case 2 -> PlayerEspModule.Mode.BOX_3D;
+						default -> PlayerEspModule.Mode.OUTLINE;
+					};
+					PlayerEspModule.setMode(mode);
 					rebuildMenu();
 				}
 		));
@@ -364,10 +391,20 @@ public class ExampleMenuScreen extends Screen {
 				PlayerEspModule.setColor(c);
 				rebuildMenu();
 			});
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			this.addRenderableWidget(new ToggleCapsuleButton(
+					CONTENT_LEFT,
+					y,
+					SETTINGS_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.visuals.player_esp.outline_boxes"),
+					PlayerEspModule.isOutlineBoxes(),
+					(button, enabled) -> PlayerEspModule.setOutlineBoxes(enabled)
+			));
 			y += CAPSULE_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		// Mob ESP: capsule + cog + mode dropdown (Outline / 2D / 3D)
+		// Mob ESP: capsule + Edit + mode dropdown (Outline / 2D / 3D)
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
@@ -378,12 +415,18 @@ public class ExampleMenuScreen extends Screen {
 				"mob_esp",
 				(button, enabled) -> MobEspModule.setEnabled(enabled)
 		));
-		this.addRenderableWidget(new CogButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+		int mobAfterCapsule = CONTENT_LEFT + CAPSULE_WIDTH + 6;
+		this.addRenderableWidget(new FlatMenuButton(
+				mobAfterCapsule,
 				y,
-				COG_SIZE,
-				settingsOpen("mob_esp"),
-				button -> toggleSettings("mob_esp")
+				EDIT_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.mob_esp.edit"),
+				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new MobEspMobsScreen(this));
+					}
+				}
 		));
 		int mobModeIndex = switch (MobEspModule.getMode()) {
 			case BOX_2D -> 1;
@@ -391,7 +434,7 @@ public class ExampleMenuScreen extends Screen {
 			default -> 0;
 		};
 		this.addRenderableWidget(new ModeDropdownButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
+				mobAfterCapsule + EDIT_WIDTH + 6,
 				y,
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
@@ -412,13 +455,6 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
-		if (settingsOpen("mob_esp")) {
-			addColorSettingRow(y, "Color", MobEspModule.getColor(), c -> {
-				MobEspModule.setColor(c);
-				rebuildMenu();
-			});
-			y += CAPSULE_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
-		}
 
 		y = addToggleModule(
 				y,
@@ -814,7 +850,7 @@ public class ExampleMenuScreen extends Screen {
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
-		addToggleModule(
+		y = addToggleModule(
 				y,
 				null,
 				"noslow",
@@ -822,6 +858,29 @@ public class ExampleMenuScreen extends Screen {
 				NoSlowModule.isEnabled(),
 				(button, enabled) -> NoSlowModule.setEnabled(enabled)
 		);
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.player.sneak"),
+				SneakModule.isEnabled(),
+				"sneak",
+				(button, enabled) -> SneakModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.player.sneak.mode.legit"),
+					Component.translatable("screen.modid.menu.player.sneak.mode.cheat")
+				},
+				SneakModule.getMode() == SneakModule.Mode.CHEAT ? 1 : 0,
+				index -> SneakModule.setMode(index == 1 ? SneakModule.Mode.CHEAT : SneakModule.Mode.LEGIT)
+		));
 	}
 
 	private void addMiscContent() {
@@ -949,14 +1008,29 @@ public class ExampleMenuScreen extends Screen {
 				(button, enabled) -> NoFallModule.setEnabled(enabled)
 		);
 
-		y = addToggleModule(
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
 				y,
-				null,
-				"autosprint",
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.movement.autosprint"),
 				AutoSprintModule.isEnabled(),
+				"autosprint",
 				(button, enabled) -> AutoSprintModule.setEnabled(enabled)
-		);
+		));
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.movement.autosprint.mode.legit"),
+					Component.translatable("screen.modid.menu.movement.autosprint.mode.rage")
+				},
+				AutoSprintModule.getMode() == AutoSprintModule.Mode.RAGE ? 1 : 0,
+				index -> AutoSprintModule.setMode(index == 1 ? AutoSprintModule.Mode.RAGE : AutoSprintModule.Mode.LEGIT)
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
 		y = addToggleModule(
 				y,

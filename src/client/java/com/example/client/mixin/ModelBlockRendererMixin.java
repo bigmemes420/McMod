@@ -8,7 +8,6 @@ import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.ARGB;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,16 +17,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Mesh-split X-Ray (opacity 1–99%):
+ * Absolute vertex-alpha X-Ray (opacity 1–99%):
  * <ul>
- *   <li>Mark the whole {@code tesselateBlock} call as a translucent pass so
- *       {@link SectionCompilerMixin} routes every quad of a faded block onto
- *       {@code TRANSLUCENT} (SOLID ignores vertex alpha).</li>
- *   <li>Multiply vertex alpha on each quad to the current opacity fraction
- *       (selected blocks never enter this path).</li>
+ *   <li>Mark the whole {@code tesselateBlock} as a translucent pass so
+ *       {@link SectionCompilerMixin} routes quads onto TRANSLUCENT.</li>
+ *   <li>Replace (not multiply) each vertex alpha with the slider byte —
+ *       Meteor-style absolute alpha that SOLID would ignore.</li>
  * </ul>
- * No overlay boxes — alpha is baked into the terrain mesh. Section rebuilds
- * are owned by {@link com.example.client.module.XRayModule} (debounced).
  */
 @Mixin(ModelBlockRenderer.class)
 public class ModelBlockRendererMixin {
@@ -35,7 +31,7 @@ public class ModelBlockRendererMixin {
 	@Final
 	private QuadInstance quadInstance;
 
-	@Inject(method = "tesselateBlock", at = @At("HEAD"))
+	@Inject(method = "tesselateBlock", at = @At("HEAD"), cancellable = true)
 	private void rooty$xrayBeginBlock(
 			BlockQuadOutput output,
 			float x,
@@ -48,9 +44,14 @@ public class ModelBlockRendererMixin {
 			long seed,
 			CallbackInfo ci
 	) {
-		if (XRayModule.shouldFade(state)) {
-			XRayModule.beginTranslucentPass();
+		if (!XRayModule.shouldFade(state)) {
+			return;
 		}
+		if (XRayModule.getOpacityAlpha() <= 0) {
+			ci.cancel();
+			return;
+		}
+		XRayModule.beginTranslucentPass();
 	}
 
 	@Inject(method = "tesselateBlock", at = @At("RETURN"))
@@ -90,9 +91,9 @@ public class ModelBlockRendererMixin {
 		if (!XRayModule.shouldFade(state)) {
 			return;
 		}
-		float alpha = XRayModule.getOpacityFraction();
-		// Fade non-selected blocks: alpha is honored because SectionCompilerMixin
-		// routes this tessellation onto TRANSLUCENT.
-		this.quadInstance.multiplyColor(ARGB.color(alpha, 0xFFFFFF));
+		// Absolute alpha replace (keeps RGB) — not multiplyColor.
+		for (int i = 0; i < 4; i++) {
+			this.quadInstance.setColor(i, XRayModule.applyFadeAlpha(this.quadInstance.getColor(i)));
+		}
 	}
 }

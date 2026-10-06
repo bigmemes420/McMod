@@ -3,7 +3,6 @@ package com.example.client.module;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -18,12 +17,15 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Visuals module: mesh-based X-Ray (MC 26.3).
+ * Visuals: X-Ray with a Meteor-style absolute vertex-alpha opacity path.
  * <p>
- * Non-selected blocks use real vertex alpha on the translucent layer (1–99%)
- * or {@link RenderShape#INVISIBLE} at 0%. Section rebuilds are structural only
- * (enable / selection / opacity mode boundaries) plus a single rebuild when the
- * opacity slider is released — never {@code allChanged} remesh thrash.
+ * Selected blocks render opaque with every face forced. Non-selected blocks:
+ * <ul>
+ *   <li>opacity 0 → {@link RenderShape#INVISIBLE} (classic hide)</li>
+ *   <li>opacity 1–99 → absolute vertex alpha (0–255) baked onto TRANSLUCENT</li>
+ *   <li>opacity 100 → X-Ray fade inactive</li>
+ * </ul>
+ * Remesh uses {@code levelExtractor.allChanged()} (debounced once per tick).
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
@@ -62,6 +64,11 @@ public final class XRayModule {
 		return opacity / MAX_OPACITY;
 	}
 
+	/** Absolute 0–255 alpha for non-selected faded blocks. */
+	public static int getOpacityAlpha() {
+		return Mth.clamp(Math.round(getOpacityFraction() * 255.0F), 0, 255);
+	}
+
 	public static Set<Identifier> getFullOpacityBlocks() {
 		return Collections.unmodifiableSet(fullOpacityBlocks);
 	}
@@ -87,7 +94,7 @@ public final class XRayModule {
 	}
 
 	/**
-	 * Live opacity value. Remeshes only when crossing hidden/fade/off thresholds.
+	 * Live opacity value. Remeshes when crossing hidden/fade/off thresholds.
 	 * In-band fade changes wait for {@link #commitOpacity()} (slider release).
 	 */
 	public static void setOpacity(float value) {
@@ -211,32 +218,33 @@ public final class XRayModule {
 		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
 	}
 
+	/**
+	 * Absolute-alpha rewrite for a baked vertex color (Meteor-style).
+	 * Keeps RGB, replaces alpha with {@link #getOpacityAlpha()}.
+	 */
+	public static int applyFadeAlpha(int argb) {
+		int alpha = getOpacityAlpha();
+		if (alpha <= 0) {
+			return argb & 0x00FFFFFF;
+		}
+		return (alpha << 24) | (argb & 0x00FFFFFF);
+	}
+
 	public static void tick(Minecraft client) {
 		applySmartCull(client);
 		if (!sectionsDirty) {
 			return;
 		}
-		if (client.level == null || client.levelRenderer == null) {
+		if (client.level == null || client.levelExtractor == null) {
 			return;
 		}
 		sectionsDirty = false;
-		rebuildVisibleSections(client);
+		// Proven remesh path (Meteor / Wurst): full extractor rebuild.
+		client.levelExtractor.allChanged();
 	}
 
 	private static void markSectionsDirty() {
 		sectionsDirty = true;
-	}
-
-	/**
-	 * Soft remesh: mark compiled sections UNCOMPILED so the normal scheduler
-	 * rebuilds them. Avoids {@code levelExtractor.allChanged()} thrash.
-	 */
-	private static void rebuildVisibleSections(Minecraft client) {
-		ViewArea viewArea = client.levelRenderer.viewArea();
-		if (viewArea == null) {
-			return;
-		}
-		viewArea.releaseAllBuffers();
 	}
 
 	private static void applySmartCull(Minecraft client) {

@@ -6,14 +6,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.util.ARGB;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Visuals: Player ESP with 2D / 3D box modes. Color lives on this module's
- * settings (not the central Menu theme).
+ * Visuals: Player ESP with Outline / 2D / 3D modes. Optional vanilla outline on
+ * boxes. Color lives on this module's settings (not the central Menu theme).
  */
 public final class PlayerEspModule {
 	public enum Mode {
+		OUTLINE,
 		BOX_2D,
 		BOX_3D
 	}
@@ -23,6 +25,8 @@ public final class PlayerEspModule {
 	private static boolean enabled;
 	private static Mode mode = Mode.BOX_3D;
 	private static int color = DEFAULT_COLOR;
+	/** When true, also force vanilla through-walls outline while drawing boxes. */
+	private static boolean outlineBoxes;
 
 	private PlayerEspModule() {
 	}
@@ -37,6 +41,10 @@ public final class PlayerEspModule {
 
 	public static int getColor() {
 		return color;
+	}
+
+	public static boolean isOutlineBoxes() {
+		return outlineBoxes;
 	}
 
 	public static void setMode(Mode value) {
@@ -71,6 +79,18 @@ public final class PlayerEspModule {
 		color = ARGB.opaque(argb);
 	}
 
+	public static void setOutlineBoxes(boolean value) {
+		if (outlineBoxes == value) {
+			return;
+		}
+		outlineBoxes = value;
+		ModConfig.save();
+	}
+
+	public static void loadOutlineBoxes(boolean value) {
+		outlineBoxes = value;
+	}
+
 	public static void setEnabled(boolean value) {
 		if (enabled == value) {
 			return;
@@ -87,9 +107,24 @@ public final class PlayerEspModule {
 		enabled = value;
 	}
 
+	/** True when vanilla outline should force through-walls outline on this player. */
+	public static boolean shouldOutline(LivingEntity entity) {
+		if (!enabled || !(entity instanceof Player) || entity instanceof LocalPlayer) {
+			return false;
+		}
+		if (mode == Mode.OUTLINE) {
+			return true;
+		}
+		return outlineBoxes && (mode == Mode.BOX_2D || mode == Mode.BOX_3D);
+	}
+
+	public static int outlineColor() {
+		return ARGB.opaque(color);
+	}
+
 	/** Invoked from {@code LevelRenderEvents.BEFORE_GIZMOS}. */
 	public static void render(LevelRenderer levelRenderer) {
-		if (!enabled) {
+		if (!enabled || mode == Mode.OUTLINE) {
 			return;
 		}
 		Minecraft client = Minecraft.getInstance();
