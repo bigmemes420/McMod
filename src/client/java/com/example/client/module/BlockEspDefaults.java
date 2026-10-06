@@ -95,8 +95,14 @@ public final class BlockEspDefaults {
 	}
 
 	/**
-	 * @param csv null/blank → seed defaults; {@link #EMPTY_SENTINEL} → leave empty;
-	 *            otherwise parse ids (invalid ids skipped; all-invalid → seed).
+	 * Load a CSV block list into {@code into}.
+	 * <ul>
+	 *   <li>null/blank → seed defaults</li>
+	 *   <li>{@link #EMPTY_SENTINEL} → leave empty (user cleared the list)</li>
+	 *   <li>otherwise parse ids; registry membership is NOT required at load
+	 *       time so selections persist even if load runs before registries are
+	 *       queried, and we never wipe a non-empty saved list by re-seeding</li>
+	 * </ul>
 	 */
 	public static void loadCsv(Set<Identifier> into, String csv, Runnable seedIfEmpty) {
 		into.clear();
@@ -113,13 +119,13 @@ public final class BlockEspDefaults {
 				continue;
 			}
 			Identifier id = Identifier.tryParse(trimmed);
-			if (id != null && BuiltInRegistries.BLOCK.containsKey(id)) {
+			if (id != null) {
 				into.add(id);
 			}
 		}
-		if (into.isEmpty()) {
-			seedIfEmpty.run();
-		}
+		// Do not re-seed when every token failed to parse: keep empty and let
+		// the next successful save rewrite the file. Re-seeding used to wipe
+		// user selections whenever registry checks failed at client init.
 	}
 
 	public static String toCsv(Set<Identifier> ids) {

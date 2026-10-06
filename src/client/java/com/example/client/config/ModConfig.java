@@ -110,7 +110,7 @@ public final class ModConfig {
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
 		XRayModule.loadEnabled(bool(props, "xray", false));
 		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
-		XRayModule.loadFullOpacityBlocks(props.getProperty("xrayBlocks", ""));
+		XRayModule.loadFullOpacityBlocks(loadBlockList(props, "xrayBlocks", "xrayBlock"));
 		FinderModule.loadEnabled(bool(props, "finder", false));
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
 		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
@@ -190,7 +190,7 @@ public final class ModConfig {
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
 			props.setProperty("xray", String.valueOf(XRayModule.isEnabled()));
 			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
-			props.setProperty("xrayBlocks", XRayModule.fullOpacityBlocksCsv());
+			writeBlockList(props, "xrayBlocks", "xrayBlock", XRayModule.fullOpacityBlocksCsv());
 			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
 			props.setProperty("finderMode", FinderModule.getMode().name());
 			props.setProperty("finderOpacity", Float.toString(FinderModule.getOpacity()));
@@ -242,6 +242,61 @@ public final class ModConfig {
 		} finally {
 			saving = false;
 		}
+	}
+
+
+	/**
+	 * Prefer indexed {@code prefix.0..} keys when present (avoids fragile long
+	 * CSV + colon escaping in a single Properties value); fall back to the CSV key.
+	 */
+	private static String loadBlockList(Properties props, String csvKey, String indexPrefix) {
+		String countRaw = props.getProperty(indexPrefix + "Count");
+		if (countRaw != null) {
+			try {
+				int count = Integer.parseInt(countRaw.trim());
+				if (count <= 0) {
+					return com.example.client.module.BlockEspDefaults.EMPTY_SENTINEL;
+				}
+				StringBuilder sb = new StringBuilder();
+				for (int i = 0; i < count; i++) {
+					String id = props.getProperty(indexPrefix + "." + i);
+					if (id == null || id.isBlank()) {
+						continue;
+					}
+					if (sb.length() > 0) {
+						sb.append(',');
+					}
+					sb.append(id.trim());
+				}
+				if (sb.length() > 0) {
+					return sb.toString();
+				}
+				return com.example.client.module.BlockEspDefaults.EMPTY_SENTINEL;
+			} catch (NumberFormatException ignored) {
+				// fall through to CSV
+			}
+		}
+		return props.getProperty(csvKey, "");
+	}
+
+	private static void writeBlockList(Properties props, String csvKey, String indexPrefix, String csv) {
+		props.setProperty(csvKey, csv == null ? "" : csv);
+		if (csv == null || csv.isBlank()
+				|| com.example.client.module.BlockEspDefaults.EMPTY_SENTINEL.equals(csv.trim())) {
+			props.setProperty(indexPrefix + "Count", "0");
+			return;
+		}
+		String[] parts = csv.split(",");
+		int written = 0;
+		for (String part : parts) {
+			String trimmed = part.trim();
+			if (trimmed.isEmpty() || com.example.client.module.BlockEspDefaults.EMPTY_SENTINEL.equals(trimmed)) {
+				continue;
+			}
+			props.setProperty(indexPrefix + "." + written, trimmed);
+			written++;
+		}
+		props.setProperty(indexPrefix + "Count", Integer.toString(written));
 	}
 
 	private static boolean bool(Properties props, String key, boolean def) {

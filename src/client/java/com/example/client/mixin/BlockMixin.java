@@ -10,8 +10,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Meteor-style X-Ray face force: selected blocks always draw every face while
- * X-Ray is active ({@code Block.shouldRenderFace} ≡ classic shouldDrawSide).
+ * Meteor {@code BlockMixin}: force-render every face of whitelisted X-Ray
+ * blocks so ores stay visible through faded/hidden neighbors (runs at HEAD
+ * for More Culling compatibility).
  */
 @Mixin(Block.class)
 public class BlockMixin {

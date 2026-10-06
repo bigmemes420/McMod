@@ -1,6 +1,7 @@
 package com.example.client;
 
 import com.example.client.config.MenuTheme;
+import com.example.client.config.ModConfig;
 import com.example.client.module.XRayModule;
 import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.ToggleCapsuleButton;
@@ -169,6 +170,7 @@ public class XRayBlocksScreen extends Screen {
 
 	@Override
 	public void onClose() {
+		ModConfig.save();
 		if (this.minecraft != null) {
 			this.minecraft.gui.setScreen(this.parent);
 		}

@@ -3,29 +3,36 @@ package com.example.client.module;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.Shapes;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Visuals: X-Ray with a Meteor-style absolute vertex-alpha opacity path.
+ * Visuals: X-Ray ported from Meteor Client's approach for Fabric MC 26.3.
  * <p>
- * Selected blocks render opaque with every face forced. Non-selected blocks:
+ * Selected (whitelist) blocks render as normal full-opaque meshes with every
+ * face forced. Non-selected blocks respect the opacity slider:
  * <ul>
- *   <li>opacity 0 → {@link RenderShape#INVISIBLE} (classic hide)</li>
- *   <li>opacity 1–99 → absolute vertex alpha (0–255) baked onto TRANSLUCENT</li>
- *   <li>opacity 100 → X-Ray fade inactive</li>
+ *   <li>0 → tessellation cancelled (hidden)</li>
+ *   <li>1–99 → absolute vertex alpha on TRANSLUCENT</li>
+ *   <li>100 → X-Ray fade inactive</li>
  * </ul>
- * Remesh uses {@code levelExtractor.allChanged()} (debounced once per tick).
+ * No overlay boxes. Chunk occlusion is cancelled (VisGraph) and ambient
+ * occlusion light is forced full while active. Remesh via
+ * {@code levelExtractor.allChanged()} (debounced once per tick).
+ *
+ * @see <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a>
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
@@ -35,8 +42,6 @@ public final class XRayModule {
 	private static boolean enabled;
 	private static float opacity = DEFAULT_OPACITY;
 	private static final LinkedHashSet<Identifier> fullOpacityBlocks = new LinkedHashSet<>();
-
-	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
 	/** Structural / committed opacity rebuilds — flushed once per client tick. */
 	private static volatile boolean sectionsDirty;
@@ -64,7 +69,7 @@ public final class XRayModule {
 		return opacity / MAX_OPACITY;
 	}
 
-	/** Absolute 0–255 alpha for non-selected faded blocks. */
+	/** Absolute 0–255 alpha for non-selected faded blocks (Meteor opacity byte). */
 	public static int getOpacityAlpha() {
 		return Mth.clamp(Math.round(getOpacityFraction() * 255.0F), 0, 255);
 	}
@@ -80,6 +85,14 @@ public final class XRayModule {
 
 	public static boolean isFullOpacity(Identifier id) {
 		return id != null && fullOpacityBlocks.contains(id);
+	}
+
+	/**
+	 * Meteor {@code isBlocked}: true when the block should be faded/hidden
+	 * (not on the whitelist). Air is never blocked.
+	 */
+	public static boolean isBlocked(Block block) {
+		return !isAir(block) && !isFullOpacity(block);
 	}
 
 	public static void setFullOpacity(Identifier id, boolean selected) {
@@ -164,28 +177,46 @@ public final class XRayModule {
 		return block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR;
 	}
 
-	public static RenderShape modifyRenderShape(BlockState state, RenderShape original) {
-		if (!isActive() || original == RenderShape.INVISIBLE) {
-			return original;
+	/**
+	 * Meteor {@code Xray.getAlpha}: {@code -1} = leave alone (selected / inactive),
+	 * {@code 0} = hide, {@code 1–255} = fade non-selected.
+	 */
+	public static int getAlpha(BlockState state) {
+		if (!isActive()) {
+			return -1;
 		}
 		Block block = state.getBlock();
 		if (isAir(block) || isFullOpacity(block)) {
-			return original;
+			return -1;
 		}
-		if (opacity <= MIN_OPACITY) {
-			return RenderShape.INVISIBLE;
-		}
-		return original;
+		return getOpacityAlpha();
 	}
 
-	public static boolean shouldDisableOcclusion(BlockState state) {
+	public static int getAlpha(BlockState state, BlockPos pos) {
+		return getAlpha(state);
+	}
+
+	/**
+	 * Meteor {@code modifyDrawSide}: when a selected block's face would be culled,
+	 * still draw it if the neighbor does not fully occlude (so ores show through
+	 * stone that is faded/hidden).
+	 */
+	public static boolean modifyDrawSide(BlockState state, BlockGetter view, BlockPos pos, Direction facing, boolean returns) {
 		if (!isActive()) {
-			return false;
+			return returns;
 		}
-		Block block = state.getBlock();
-		return !isAir(block) && !isFullOpacity(block);
+		if (!returns && !isBlocked(state.getBlock())) {
+			BlockPos adjPos = pos.relative(facing);
+			BlockState adjState = view.getBlockState(adjPos);
+			return adjState.getFaceOcclusionShape(facing.getOpposite()) != Shapes.block()
+					|| adjState.getBlock() != state.getBlock()
+					|| !adjState.isSolidRender()
+					|| isBlocked(adjState.getBlock());
+		}
+		return returns;
 	}
 
+	/** Force every face of selected blocks (Meteor {@code BlockMixin}). */
 	public static boolean shouldForceRenderFace(BlockState state) {
 		if (!isActive()) {
 			return false;
@@ -198,32 +229,8 @@ public final class XRayModule {
 		return shouldForceRenderFace(state);
 	}
 
-	public static boolean shouldFade(BlockState state) {
-		if (!isActive() || opacity <= MIN_OPACITY) {
-			return false;
-		}
-		Block block = state.getBlock();
-		return !isAir(block) && !isFullOpacity(block);
-	}
-
-	public static void beginTranslucentPass() {
-		TRANSLUCENT_PASS.set(Boolean.TRUE);
-	}
-
-	public static void endTranslucentPass() {
-		TRANSLUCENT_PASS.set(Boolean.FALSE);
-	}
-
-	public static boolean isTranslucentPass() {
-		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
-	}
-
-	/**
-	 * Absolute-alpha rewrite for a baked vertex color (Meteor-style).
-	 * Keeps RGB, replaces alpha with {@link #getOpacityAlpha()}.
-	 */
-	public static int applyFadeAlpha(int argb) {
-		int alpha = getOpacityAlpha();
+	/** Absolute-alpha rewrite for a baked vertex color (Sodium/Meteor path). */
+	public static int applyFadeAlpha(int argb, int alpha) {
 		if (alpha <= 0) {
 			return argb & 0x00FFFFFF;
 		}
@@ -239,7 +246,6 @@ public final class XRayModule {
 			return;
 		}
 		sectionsDirty = false;
-		// Proven remesh path (Meteor / Wurst): full extractor rebuild.
 		client.levelExtractor.allChanged();
 	}
 
