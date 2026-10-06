@@ -3,6 +3,7 @@ package com.example.client;
 import com.example.ExampleMod;
 import com.example.client.config.ModConfig;
 import com.example.client.module.AutoClickerModule;
+import com.example.client.module.FinderModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.ReachModule;
@@ -14,6 +15,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -36,6 +38,11 @@ public class ExampleModClient implements ClientModInitializer {
 				CATEGORY
 		));
 
+		LevelRenderEvents.BEFORE_GIZMOS.register(context -> {
+			XRayModule.renderOverlays(context.levelRenderer());
+			FinderModule.renderOverlays(context.levelRenderer());
+		});
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (openMenuKey.consumeClick()) {
 				toggleMenu(client);
@@ -47,6 +54,7 @@ public class ExampleModClient implements ClientModInitializer {
 			VelocityModule.tick(client);
 			ReachModule.tick(client);
 			XRayModule.tick(client);
+			FinderModule.tick(client);
 		});
 	}
 

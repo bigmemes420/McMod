@@ -8,9 +8,7 @@
 		"EntityRendererMixin",
 		"SubmitNodeCollectionMixin",
 		"LightmapRenderStateExtractorMixin",
-		"BlockStateBaseMixin",
-		"ModelBlockRendererMixin",
-		"SectionCompilerMixin"
+		"ChunkSectionsToRenderMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

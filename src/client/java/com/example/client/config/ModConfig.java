@@ -3,6 +3,7 @@ package com.example.client.config;
 import com.example.ExampleMod;
 import com.example.client.ExampleMenuScreen;
 import com.example.client.module.AutoClickerModule;
+import com.example.client.module.FinderModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.NametagsModule;
@@ -70,6 +71,8 @@ public final class ModConfig {
 		XRayModule.loadEnabled(bool(props, "xray", false));
 		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
 		XRayModule.loadFullOpacityBlocks(props.getProperty("xrayBlocks", ""));
+		FinderModule.loadEnabled(bool(props, "finder", false));
+		FinderModule.loadSelectedBlocks(props.getProperty("finderBlocks", ""));
 		AutoClickerModule.loadEnabled(bool(props, "autoclicker", false));
 		AutoClickerModule.loadCps(floatVal(props, "autoclickerCps", AutoClickerModule.DEFAULT_CPS));
 		VelocityModule.loadEnabled(bool(props, "velocity", false));
@@ -99,6 +102,8 @@ public final class ModConfig {
 			props.setProperty("xray", String.valueOf(XRayModule.isEnabled()));
 			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
 			props.setProperty("xrayBlocks", XRayModule.fullOpacityBlocksCsv());
+			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
+			props.setProperty("finderBlocks", FinderModule.selectedBlocksCsv());
 			props.setProperty("autoclicker", String.valueOf(AutoClickerModule.isEnabled()));
 			props.setProperty("autoclickerCps", Float.toString(AutoClickerModule.getCps()));
 			props.setProperty("velocity", String.valueOf(VelocityModule.isEnabled()));

@@ -4,6 +4,7 @@ import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 import com.example.client.module.AutoClickerModule;
 import com.example.client.module.FlightModule;
+import com.example.client.module.FinderModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
@@ -240,6 +241,29 @@ public class ExampleMenuScreen extends Screen {
 				button -> {
 					if (this.minecraft != null) {
 						this.minecraft.gui.setScreen(new XRayBlocksScreen(this));
+					}
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.finder"),
+				FinderModule.isEnabled(),
+				(button, enabled) -> FinderModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CapsuleButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 8,
+				y,
+				EDIT_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.finder.edit"),
+				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new FinderBlocksScreen(this));
 					}
 				}
 		));
