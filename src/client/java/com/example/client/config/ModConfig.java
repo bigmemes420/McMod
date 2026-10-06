@@ -12,6 +12,7 @@ import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
+import com.example.client.module.ElytraControlModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.JesusModule;
@@ -83,6 +84,8 @@ public final class ModConfig {
 		FlightModule.loadEnabled(bool(props, "flight", false));
 		FlightModule.loadMode(props.getProperty("flightMode", "VANILLA"));
 		FlightModule.loadSpeed(floatVal(props, "flightSpeed", FlightModule.DEFAULT_SPEED));
+		ElytraControlModule.loadEnabled(bool(props, "elytraControl", false));
+		ElytraControlModule.loadSpeed(floatVal(props, "elytraControlSpeed", ElytraControlModule.DEFAULT_SPEED));
 		SpeedModule.loadEnabled(bool(props, "speed", false));
 		SpeedModule.loadSpeedLevel(floatVal(props, "speedLevel", SpeedModule.DEFAULT_LEVEL));
 		SpeedModule.loadMode(props.getProperty("speedMode", "NORMAL"));
@@ -163,6 +166,8 @@ public final class ModConfig {
 			props.setProperty("flight", String.valueOf(FlightModule.isEnabled()));
 			props.setProperty("flightMode", FlightModule.getMode().name());
 			props.setProperty("flightSpeed", Float.toString(FlightModule.getSpeed()));
+			props.setProperty("elytraControl", String.valueOf(ElytraControlModule.isEnabled()));
+			props.setProperty("elytraControlSpeed", Float.toString(ElytraControlModule.getSpeed()));
 			props.setProperty("speed", String.valueOf(SpeedModule.isEnabled()));
 			props.setProperty("speedLevel", Float.toString(SpeedModule.getSpeedLevel()));
 			props.setProperty("speedMode", SpeedModule.getMode().name());

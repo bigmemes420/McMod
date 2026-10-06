@@ -11,6 +11,7 @@
 		"BlockMixin",
 		"BlockBehaviourMixin",
 		"ModelBlockRendererMixin",
+		"SectionCompilerMixin",
 		"VisGraphMixin",
 		"FluidRendererMixin",
 		"EntityMixin",

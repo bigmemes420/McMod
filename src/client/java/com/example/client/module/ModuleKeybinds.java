@@ -62,6 +62,7 @@ public final class ModuleKeybinds {
 		register("noslow", Component.translatable("screen.modid.menu.player.noslow"), NoSlowModule::isEnabled, NoSlowModule::setEnabled);
 		register("sneak", Component.translatable("screen.modid.menu.player.sneak"), SneakModule::isEnabled, SneakModule::setEnabled);
 		register("flight", Component.translatable("screen.modid.menu.movement.flight"), FlightModule::isEnabled, FlightModule::setEnabled);
+		register("elytra_control", Component.translatable("screen.modid.menu.movement.elytra_control"), ElytraControlModule::isEnabled, ElytraControlModule::setEnabled);
 		register("speed", Component.translatable("screen.modid.menu.movement.speed"), SpeedModule::isEnabled, SpeedModule::setEnabled);
 		register("nofall", Component.translatable("screen.modid.menu.movement.nofall"), NoFallModule::isEnabled, NoFallModule::setEnabled);
 		register("autosprint", Component.translatable("screen.modid.menu.movement.autosprint"), AutoSprintModule::isEnabled, AutoSprintModule::setEnabled);

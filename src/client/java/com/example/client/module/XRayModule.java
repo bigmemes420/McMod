@@ -29,7 +29,9 @@ import java.util.Set;
  *   <li>100 → X-Ray fade inactive</li>
  * </ul>
  * No overlay boxes. Chunk occlusion is cancelled (VisGraph) and ambient
- * occlusion light is forced full while active. Remesh via
+ * occlusion light is forced full while active. Faded quads are forced onto
+ * TRANSLUCENT via SectionCompiler translucent-pass + BakedQuad layer rewrite
+ * (MC 26.3 force-opaque SOLID path otherwise ignores vertex alpha). Remesh via
  * {@code levelExtractor.allChanged()} (debounced once per tick).
  *
  * @see <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a>
@@ -45,6 +47,9 @@ public final class XRayModule {
 
 	/** Structural / committed opacity rebuilds — flushed once per client tick. */
 	private static volatile boolean sectionsDirty;
+
+	/** SectionCompiler routes quads to TRANSLUCENT while a faded block is meshing. */
+	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
 	/** Restored when X-Ray turns off so the user's smartCull preference returns. */
 	private static boolean savedSmartCull = true;
@@ -235,6 +240,19 @@ public final class XRayModule {
 			return argb & 0x00FFFFFF;
 		}
 		return (alpha << 24) | (argb & 0x00FFFFFF);
+	}
+
+	/** True while meshing a non-selected faded block (SectionCompilerMixin). */
+	public static boolean isTranslucentPass() {
+		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
+	}
+
+	public static void beginTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.TRUE);
+	}
+
+	public static void endTranslucentPass() {
+		TRANSLUCENT_PASS.set(Boolean.FALSE);
 	}
 
 	public static void tick(Minecraft client) {

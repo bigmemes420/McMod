@@ -5,10 +5,12 @@ import com.mojang.blaze3d.vertex.QuadInstance;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.BlockQuadOutput;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,13 +22,16 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.List;
-
 /**
- * Meteor Client {@code ModelBlockRendererMixin} port for MC 26.3:
- * cancel tessellation when alpha is 0, bake absolute vertex alpha for faded
- * blocks, rewrite the quad's {@link ChunkSectionLayer} to TRANSLUCENT, and
- * apply {@link XRayModule#modifyDrawSide} on face culling.
+ * Meteor Client {@code ModelBlockRendererMixin} port for MC 26.3, with the
+ * SectionCompiler translucent-pass flag that MC 26.3's force-opaque SOLID
+ * output path requires for non-selected alpha to actually show:
+ * <ul>
+ *   <li>Cancel tessellation when alpha is 0 (hidden)</li>
+ *   <li>Meteor {@code multiplyColor} + absolute alpha bake before {@code put}</li>
+ *   <li>Rewrite quad layer to TRANSLUCENT + {@link XRayModule#beginTranslucentPass}</li>
+ *   <li>Selected / inactive ({@code alpha == -1}) left untouched at 100%</li>
+ * </ul>
  */
 @Mixin(ModelBlockRenderer.class)
 public class ModelBlockRendererMixin {
@@ -37,28 +42,74 @@ public class ModelBlockRendererMixin {
 	@Unique
 	private static final ThreadLocal<Integer> ALPHAS = ThreadLocal.withInitial(() -> -1);
 
-	@Inject(method = {"tesselateFlat", "tesselateAmbientOcclusion"}, at = @At("HEAD"), cancellable = true)
-	private void rooty$xrayTesselate(
+	@Inject(method = "tesselateBlock", at = @At("HEAD"), cancellable = true)
+	private void rooty$xrayBeginBlock(
 			BlockQuadOutput output,
 			float x,
 			float y,
 			float z,
-			List<?> parts,
 			BlockAndTintGetter level,
-			BlockState state,
 			BlockPos pos,
+			BlockState state,
+			BlockStateModel model,
+			long seed,
 			CallbackInfo ci
 	) {
 		int alpha = XRayModule.getAlpha(state, pos);
+		ALPHAS.set(alpha);
 		if (alpha == 0) {
 			ci.cancel();
 			return;
 		}
-		ALPHAS.set(alpha);
+		if (alpha > 0 && alpha < 255) {
+			XRayModule.beginTranslucentPass();
+		}
+	}
+
+	@Inject(method = "tesselateBlock", at = @At("RETURN"))
+	private void rooty$xrayEndBlock(
+			BlockQuadOutput output,
+			float x,
+			float y,
+			float z,
+			BlockAndTintGetter level,
+			BlockPos pos,
+			BlockState state,
+			BlockStateModel model,
+			long seed,
+			CallbackInfo ci
+	) {
+		XRayModule.endTranslucentPass();
+		ALPHAS.set(-1);
 	}
 
 	@Inject(method = "putQuadWithTint", at = @At("HEAD"))
-	private void rooty$xrayPutQuadAlpha(
+	private void rooty$xrayPutQuadMultiply(
+			BlockQuadOutput output,
+			float x,
+			float y,
+			float z,
+			BlockAndTintGetter level,
+			BlockState state,
+			BlockPos pos,
+			BakedQuad quad,
+			CallbackInfo ci
+	) {
+		int alpha = ALPHAS.get();
+		if (alpha != -1) {
+			// Meteor: multiply existing vertex colors by (A,255,255,255).
+			this.quadInstance.multiplyColor(ARGB.color(alpha, 255, 255, 255));
+		}
+	}
+
+	@Inject(
+			method = "putQuadWithTint",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/renderer/block/BlockQuadOutput;put(FFFLnet/minecraft/client/resources/model/geometry/BakedQuad;Lcom/mojang/blaze3d/vertex/QuadInstance;)V"
+			)
+	)
+	private void rooty$xrayPutQuadAbsolute(
 			BlockQuadOutput output,
 			float x,
 			float y,
@@ -73,7 +124,7 @@ public class ModelBlockRendererMixin {
 		if (alpha == -1) {
 			return;
 		}
-		// Absolute alpha (Sodium Meteor path) — keeps RGB, replaces A.
+		// Absolute alpha replace after tint multiply — SOLID ignores relative alpha.
 		for (int i = 0; i < 4; i++) {
 			this.quadInstance.setColor(i, XRayModule.applyFadeAlpha(this.quadInstance.getColor(i), alpha));
 		}

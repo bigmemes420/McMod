@@ -12,6 +12,7 @@ import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
+import com.example.client.module.ElytraControlModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.JesusModule;
@@ -68,6 +69,7 @@ public class ExampleModClient implements ClientModInitializer {
 			}
 			ModuleKeybinds.tick(client);
 			FlightModule.tick(client);
+			ElytraControlModule.tick(client);
 			SpeedModule.tick(client);
 			NoFallModule.tick(client);
 			AutoSprintModule.tick(client);

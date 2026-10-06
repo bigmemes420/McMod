@@ -8,6 +8,7 @@ import com.example.client.module.AutoClickerModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.CriticalsModule;
+import com.example.client.module.ElytraControlModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FullbrightModule;
@@ -973,6 +974,36 @@ public class ExampleMenuScreen extends Screen {
 					FlightModule.MIN_SPEED,
 					FlightModule.MAX_SPEED,
 					FlightModule::setSpeed
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.movement.elytra_control"),
+				ElytraControlModule.isEnabled(),
+				"elytra_control",
+				(button, enabled) -> ElytraControlModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("elytra_control"),
+				button -> toggleSettings("elytra_control")
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("elytra_control")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.movement.elytra_control.speed"),
+					ElytraControlModule.getSpeed(),
+					ElytraControlModule.MIN_SPEED,
+					ElytraControlModule.MAX_SPEED,
+					ElytraControlModule::setSpeed
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
