@@ -38,9 +38,11 @@ public final class RadarModule {
 	public static final float MAX_RANGE = 128.0F;
 	public static final float DEFAULT_RANGE = 64.0F;
 
-	private static final int PANEL_LEFT = 8;
-	private static final int PANEL_TOP = 8;
-	private static final int PANEL_SIZE = 110;
+	public static final int DEFAULT_HUD_X = 8;
+	public static final int DEFAULT_HUD_Y = 8;
+	public static final int DEFAULT_HUD_SIZE = 110;
+	public static final int MIN_HUD_SIZE = 64;
+	public static final int MAX_HUD_SIZE = 280;
 	private static final int HEAD_SIZE = 12;
 	private static final int MAX_ENTRIES = 24;
 	private static final int PANEL_BG = 0xC0101018;
@@ -54,6 +56,9 @@ public final class RadarModule {
 	private static TargetMode mode = TargetMode.BOTH;
 	private static boolean showHeight = true;
 	private static float range = DEFAULT_RANGE;
+	private static int hudX = DEFAULT_HUD_X;
+	private static int hudY = DEFAULT_HUD_Y;
+	private static int hudSize = DEFAULT_HUD_SIZE;
 
 	private RadarModule() {
 	}
@@ -72,6 +77,40 @@ public final class RadarModule {
 
 	public static float getRange() {
 		return range;
+	}
+
+	public static int getHudX() {
+		return hudX;
+	}
+
+	public static int getHudY() {
+		return hudY;
+	}
+
+	public static int getHudSize() {
+		return hudSize;
+	}
+
+	/** Live layout update while dragging (no disk write). */
+	public static void setHudLayoutLive(int x, int y, int size) {
+		hudX = Math.max(0, x);
+		hudY = Math.max(0, y);
+		hudSize = Mth.clamp(size, MIN_HUD_SIZE, MAX_HUD_SIZE);
+	}
+
+	public static void setHudLayout(int x, int y, int size) {
+		setHudLayoutLive(x, y, size);
+		ModConfig.save();
+	}
+
+	public static void loadHudLayout(int x, int y, int size) {
+		hudX = Math.max(0, x);
+		hudY = Math.max(0, y);
+		hudSize = Mth.clamp(size, MIN_HUD_SIZE, MAX_HUD_SIZE);
+	}
+
+	public static boolean containsPoint(double mx, double my) {
+		return mx >= hudX && my >= hudY && mx < hudX + hudSize && my < hudY + hudSize;
 	}
 
 	public static void setEnabled(boolean value) {
@@ -143,8 +182,9 @@ public final class RadarModule {
 		if (client.player == null || client.level == null) {
 			return;
 		}
-		// Hide while a full screen (menu) is open — radar is an in-game HUD.
-		if (client.gui.screen() != null) {
+		// Hide under normal screens; keep drawing under HudEditScreen so layout is visible.
+		var screen = client.gui.screen();
+		if (screen != null && !(screen instanceof com.example.client.HudEditScreen)) {
 			return;
 		}
 
@@ -157,9 +197,9 @@ public final class RadarModule {
 		List<LivingEntity> targets = collectTargets(client, self);
 		targets.sort(Comparator.comparingDouble(e -> e.distanceToSqr(self)));
 
-		int size = PANEL_SIZE;
-		int left = PANEL_LEFT;
-		int top = PANEL_TOP;
+		int size = hudSize;
+		int left = hudX;
+		int top = hudY;
 		graphics.fill(left, top, left + size, top + size, PANEL_BG);
 		graphics.outline(left, top, size, size, PANEL_OUTLINE);
 

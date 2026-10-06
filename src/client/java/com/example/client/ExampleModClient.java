@@ -44,6 +44,7 @@ public class ExampleModClient implements ClientModInitializer {
 	private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(ExampleMod.id("menu"));
 
 	private static KeyMapping openMenuKey;
+	private static KeyMapping hudEditKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -57,6 +58,13 @@ public class ExampleModClient implements ClientModInitializer {
 				InputConstants.KEY_INSERT,
 				CATEGORY
 		));
+		// Toggle HUD layout edit mode (move/resize Radar). Ignored while other screens are open.
+		hudEditKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.modid.hud_edit",
+				InputConstants.Type.KEYBOARD,
+				InputConstants.KEY_DELETE,
+				CATEGORY
+		));
 
 		LevelRenderEvents.BEFORE_GIZMOS.register(context -> {
 			FinderModule.renderOverlays(context.levelRenderer());
@@ -67,6 +75,9 @@ public class ExampleModClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (openMenuKey.consumeClick()) {
 				toggleMenu(client);
+			}
+			while (hudEditKey.consumeClick()) {
+				toggleHudEdit(client);
 			}
 			ModuleKeybinds.tick(client);
 			FlightModule.tick(client);
@@ -99,11 +110,27 @@ public class ExampleModClient implements ClientModInitializer {
 		return openMenuKey != null && openMenuKey.matches(event);
 	}
 
+	public static boolean matchesHudEditKey(KeyEvent event) {
+		return hudEditKey != null && hudEditKey.matches(event);
+	}
+
 	private static void toggleMenu(Minecraft client) {
 		if (client.gui.screen() instanceof ExampleMenuScreen) {
 			client.gui.setScreen(null);
 		} else if (client.gui.screen() == null) {
 			client.gui.setScreen(new ExampleMenuScreen());
+		}
+	}
+
+	/**
+	 * Toggle on key press. Only enters edit mode in-game (no screen), so Delete
+	 * still erases text in chat / signs / Rooty Menu search boxes.
+	 */
+	private static void toggleHudEdit(Minecraft client) {
+		if (client.gui.screen() instanceof HudEditScreen) {
+			client.gui.setScreen(null);
+		} else if (client.gui.screen() == null && client.player != null) {
+			client.gui.setScreen(new HudEditScreen());
 		}
 	}
 }

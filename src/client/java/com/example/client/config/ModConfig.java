@@ -115,6 +115,11 @@ public final class ModConfig {
 		RadarModule.loadMode(props.getProperty("radarMode", "BOTH"));
 		RadarModule.loadShowHeight(bool(props, "radarShowHeight", true));
 		RadarModule.loadRange(floatVal(props, "radarRange", RadarModule.DEFAULT_RANGE));
+		RadarModule.loadHudLayout(
+				intVal(props, "radarHudX", RadarModule.DEFAULT_HUD_X),
+				intVal(props, "radarHudY", RadarModule.DEFAULT_HUD_Y),
+				intVal(props, "radarHudSize", RadarModule.DEFAULT_HUD_SIZE)
+		);
 		FinderModule.loadEnabled(bool(props, "finder", false));
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
 		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
@@ -198,6 +203,9 @@ public final class ModConfig {
 			props.setProperty("radarMode", RadarModule.getMode().name());
 			props.setProperty("radarShowHeight", String.valueOf(RadarModule.isShowHeight()));
 			props.setProperty("radarRange", Float.toString(RadarModule.getRange()));
+			props.setProperty("radarHudX", Integer.toString(RadarModule.getHudX()));
+			props.setProperty("radarHudY", Integer.toString(RadarModule.getHudY()));
+			props.setProperty("radarHudSize", Integer.toString(RadarModule.getHudSize()));
 			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
 			props.setProperty("finderMode", FinderModule.getMode().name());
 			props.setProperty("finderOpacity", Float.toString(FinderModule.getOpacity()));

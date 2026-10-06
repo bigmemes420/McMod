@@ -85,6 +85,7 @@ public class ExampleMenuScreen extends Screen {
 	private static final float TITLE_SCALE = 1.6F;
 	/** Logo drawn top-left; title shifts right of it. */
 	private static final int LOGO_SIZE = 24;
+	private static final int LOGO_TEX_SIZE = 128;
 	private static final int LOGO_LEFT = 6;
 	private static final int TITLE_LEFT = LOGO_LEFT + LOGO_SIZE + 8;
 	private static final Identifier ROOTY_LOGO = ExampleMod.id("textures/gui/rooty_logo.png");
@@ -1298,6 +1299,9 @@ public class ExampleMenuScreen extends Screen {
 		graphics.horizontalLine(0, this.width - 1, barBottom, theme.topBarLine);
 		// Logo in title band (background stratum) so it is not covered by blur/widgets
 		int logoY = Math.max(0, (TITLE_BAND - LOGO_SIZE) / 2);
+		// 13-arg blit: drawSize + regionSize + texSize.
+		// The 10-arg overload sets region=drawSize, which only samples the
+		// top-left LOGO_SIZE×LOGO_SIZE of the 128×128 PNG (cut-off jet).
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
 				ROOTY_LOGO,
@@ -1307,8 +1311,11 @@ public class ExampleMenuScreen extends Screen {
 				0.0F,
 				LOGO_SIZE,
 				LOGO_SIZE,
-				128,
-				128
+				LOGO_TEX_SIZE,
+				LOGO_TEX_SIZE,
+				LOGO_TEX_SIZE,
+				LOGO_TEX_SIZE,
+				0xFFFFFFFF
 		);
 	}
 
