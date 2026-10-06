@@ -1289,8 +1289,8 @@ public class ExampleMenuScreen extends Screen {
 				0.0F,
 				LOGO_SIZE,
 				LOGO_SIZE,
-				64,
-				64,
+				128,
+				128,
 				0xFFFFFFFF
 		);
 		var pose = graphics.pose();

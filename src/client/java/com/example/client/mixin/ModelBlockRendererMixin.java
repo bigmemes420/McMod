@@ -81,7 +81,7 @@ public class ModelBlockRendererMixin {
 			return;
 		}
 		if (alpha > 0 && alpha < 255) {
-			XRayModule.beginTranslucentPass();
+			XRayModule.beginTranslucentPass(alpha);
 		}
 	}
 

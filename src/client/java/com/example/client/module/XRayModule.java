@@ -32,8 +32,9 @@ import java.util.Set;
  * occlusion light is forced full while active. Faded quads are forced onto
  * TRANSLUCENT via SectionCompiler translucent-pass + BakedQuad layer rewrite.
  * {@code forceOpaque} is disabled while active so the SOLID hard-path cannot
- * discard slider alpha. Remesh via {@code levelExtractor.allChanged()}
- * (debounced once per tick).
+ * discard slider alpha. Vertex alpha is forced again in
+ * {@code BufferBuilder.addVertex} (last write before the mesh). Remesh via
+ * {@code levelExtractor.allChanged()} (debounced once per tick).
  *
  * @see <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a>
  */
@@ -49,8 +50,13 @@ public final class XRayModule {
 	/** Structural / committed opacity rebuilds — flushed once per client tick. */
 	private static volatile boolean sectionsDirty;
 
-	/** SectionCompiler routes quads to TRANSLUCENT while a faded block is meshing. */
-	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
+	/**
+	 * Per-meshing-thread alpha for the block currently being tessellated.
+	 * {@code -1} = leave alone; {@code 0} = hidden (cancelled upstream);
+	 * {@code 1–254} = fade — SectionCompiler must use TRANSLUCENT and
+	 * {@link com.mojang.blaze3d.vertex.BufferBuilder} must keep this alpha.
+	 */
+	private static final ThreadLocal<Integer> MESH_ALPHA = ThreadLocal.withInitial(() -> -1);
 
 	/** Restored when X-Ray turns off so the user's smartCull preference returns. */
 	private static boolean savedSmartCull = true;
@@ -121,16 +127,10 @@ public final class XRayModule {
 		if (opacity == clamped) {
 			return;
 		}
-		float previous = opacity;
 		opacity = clamped;
+		// Alpha is baked into the chunk mesh — remesh on any change (tick-debounced).
 		if (enabled) {
-			boolean prevHidden = previous <= MIN_OPACITY;
-			boolean nowHidden = clamped <= MIN_OPACITY;
-			boolean prevOff = previous >= MAX_OPACITY;
-			boolean nowOff = clamped >= MAX_OPACITY;
-			if (prevHidden != nowHidden || prevOff != nowOff) {
-				markSectionsDirty();
-			}
+			markSectionsDirty();
 		}
 		ModConfig.save();
 	}
@@ -243,17 +243,23 @@ public final class XRayModule {
 		return (alpha << 24) | (argb & 0x00FFFFFF);
 	}
 
-	/** True while meshing a non-selected faded block (SectionCompilerMixin). */
+	/** True while meshing a non-selected faded block (alpha 1–254). */
 	public static boolean isTranslucentPass() {
-		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
+		int a = MESH_ALPHA.get();
+		return a > 0 && a < 255;
 	}
 
-	public static void beginTranslucentPass() {
-		TRANSLUCENT_PASS.set(Boolean.TRUE);
+	/** Absolute mesh alpha for the current faded block, or -1 if not fading. */
+	public static int getMeshAlpha() {
+		return MESH_ALPHA.get();
+	}
+
+	public static void beginTranslucentPass(int alpha) {
+		MESH_ALPHA.set(alpha);
 	}
 
 	public static void endTranslucentPass() {
-		TRANSLUCENT_PASS.set(Boolean.FALSE);
+		MESH_ALPHA.set(-1);
 	}
 
 	public static void tick(Minecraft client) {
