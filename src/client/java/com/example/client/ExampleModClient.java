@@ -7,6 +7,7 @@ import com.example.client.module.TriggerBotModule;
 import com.example.client.module.HitboxesModule;
 import com.example.client.module.CriticalsModule;
 import com.example.client.module.AutoTotemModule;
+import com.example.client.module.AirPlaceModule;
 import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
@@ -56,6 +57,7 @@ public class ExampleModClient implements ClientModInitializer {
 		));
 
 		LevelRenderEvents.BEFORE_GIZMOS.register(context -> {
+			XRayModule.renderOverlays(context.levelRenderer());
 			FinderModule.renderOverlays(context.levelRenderer());
 			PlayerEspModule.render(context.levelRenderer());
 			MobEspModule.render(context.levelRenderer());
@@ -84,6 +86,7 @@ public class ExampleModClient implements ClientModInitializer {
 			ScaffoldModule.tick(client);
 			FastPlaceModule.tick(client);
 			TowerModule.tick(client);
+			AirPlaceModule.tick(client);
 			InventoryMoveModule.tick(client);
 			XRayModule.tick(client);
 			FinderModule.tick(client);

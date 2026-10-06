@@ -57,6 +57,7 @@ public final class ModuleKeybinds {
 		register("scaffold", Component.translatable("screen.modid.menu.world.scaffold"), ScaffoldModule::isEnabled, ScaffoldModule::setEnabled);
 		register("fastplace", Component.translatable("screen.modid.menu.world.fastplace"), FastPlaceModule::isEnabled, FastPlaceModule::setEnabled);
 		register("tower", Component.translatable("screen.modid.menu.world.tower"), TowerModule::isEnabled, TowerModule::setEnabled);
+		register("airplace", Component.translatable("screen.modid.menu.world.airplace"), AirPlaceModule::isEnabled, AirPlaceModule::setEnabled);
 		register("inventory_move", Component.translatable("screen.modid.menu.player.inventory_move"), InventoryMoveModule::isEnabled, InventoryMoveModule::setEnabled);
 		register("noslow", Component.translatable("screen.modid.menu.player.noslow"), NoSlowModule::isEnabled, NoSlowModule::setEnabled);
 		register("sneak", Component.translatable("screen.modid.menu.player.sneak"), SneakModule::isEnabled, SneakModule::setEnabled);

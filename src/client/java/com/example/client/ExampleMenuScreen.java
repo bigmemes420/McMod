@@ -2,6 +2,7 @@ package com.example.client;
 
 import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
+import com.example.client.module.AirPlaceModule;
 import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoClickerModule;
 import com.example.client.module.AutoSprintModule;
@@ -503,8 +504,7 @@ public class ExampleMenuScreen extends Screen {
 					XRayModule.getOpacity(),
 					XRayModule.MIN_OPACITY,
 					XRayModule.MAX_OPACITY,
-					XRayModule::setOpacity,
-					XRayModule::commitOpacity
+					XRayModule::setOpacity
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
@@ -819,7 +819,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		addToggleModule(
+		y = addToggleModule(
 				y,
 				null,
 				"tower",
@@ -827,6 +827,25 @@ public class ExampleMenuScreen extends Screen {
 				TowerModule.isEnabled(),
 				(button, enabled) -> TowerModule.setEnabled(enabled)
 		);
+
+		y = addToggleModule(
+				y,
+				"airplace",
+				"airplace",
+				Component.translatable("screen.modid.menu.world.airplace"),
+				AirPlaceModule.isEnabled(),
+				(button, enabled) -> AirPlaceModule.setEnabled(enabled)
+		);
+		if (settingsOpen("airplace")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.world.airplace.distance"),
+					AirPlaceModule.getDistance(),
+					AirPlaceModule.MIN_DISTANCE,
+					AirPlaceModule.MAX_DISTANCE,
+					AirPlaceModule::setDistance
+			);
+		}
 	}
 
 	private void addPlayerContent() {

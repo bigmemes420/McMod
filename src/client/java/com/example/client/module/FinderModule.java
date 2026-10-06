@@ -10,18 +10,21 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.AABB;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Visuals module: through-world block ESP for a dedicated selection list.
- * Modes: Outline, Filled Boxes, Combined Fill (merged fills + outer-edge
- * outlines only). Each selected block has a randomized default color.
+ * Modes: Outline, Filled Boxes, Combined Fill. Render path caches merged
+ * AABBs per color between scans to keep FPS high.
  */
 public final class FinderModule {
 	public enum RenderMode {
@@ -68,12 +71,17 @@ public final class FinderModule {
 	private static float outlineThickness = DEFAULT_OUTLINE_THICKNESS;
 	private static float distance = DEFAULT_DISTANCE;
 	private static final LinkedHashSet<Identifier> selectedBlocks = new LinkedHashSet<>();
-	/** Per-block custom ARGB; missing entries use {@link BlockEspDefaults#colorFor}. */
 	private static final LinkedHashMap<Identifier, Integer> blockColors = new LinkedHashMap<>();
 	private static final BlockEspScanner scanner = new BlockEspScanner(FinderModule::getSelectedBlocks, BlockEspScanner.DEFAULT_RANGE);
 
+	/** Cached per-color merged AABBs — rebuilt when scanner generation changes. */
+	private static final List<ColorGroup> renderCache = new ArrayList<>();
+	private static int cachedGen = -1;
+	private static RenderMode cachedMode = null;
+
 	static {
 		BlockEspDefaults.seedOresAndChests(selectedBlocks);
+		scanner.setScanPeriodTicks(10);
 	}
 
 	private FinderModule() {
@@ -122,6 +130,7 @@ public final class FinderModule {
 		}
 		if (changed) {
 			scanner.clear();
+			invalidateRenderCache();
 			ModConfig.save();
 		}
 	}
@@ -143,19 +152,20 @@ public final class FinderModule {
 			selectedBlocks.add(id);
 			scanner.clear();
 		}
+		invalidateRenderCache();
 		ModConfig.save();
 	}
 
 	public static void loadSelectedBlocks(String csv) {
 		BlockEspDefaults.loadCsv(selectedBlocks, csv, () -> BlockEspDefaults.seedOresAndChests(selectedBlocks));
 		scanner.clear();
+		invalidateRenderCache();
 	}
 
 	public static String selectedBlocksCsv() {
 		return BlockEspDefaults.toCsv(selectedBlocks);
 	}
 
-	/** Persist as {@code id=#AARRGGBB,id2=#AARRGGBB}. */
 	public static String blockColorsCsv() {
 		StringBuilder sb = new StringBuilder();
 		for (Map.Entry<Identifier, Integer> e : blockColors.entrySet()) {
@@ -187,6 +197,7 @@ public final class FinderModule {
 				blockColors.put(id, color);
 			}
 		}
+		invalidateRenderCache();
 	}
 
 	public static void setMode(RenderMode value) {
@@ -194,6 +205,7 @@ public final class FinderModule {
 			return;
 		}
 		mode = value;
+		invalidateRenderCache();
 		ModConfig.save();
 	}
 
@@ -238,6 +250,7 @@ public final class FinderModule {
 		}
 		distance = clamped;
 		scanner.setRange(Math.round(distance));
+		invalidateRenderCache();
 		ModConfig.save();
 	}
 
@@ -253,6 +266,7 @@ public final class FinderModule {
 		enabled = value;
 		if (!enabled) {
 			scanner.clear();
+			invalidateRenderCache();
 		}
 		NotificationsModule.notifyToggle(
 				enabled ? "screen.modid.menu.visuals.finder.enabled"
@@ -268,6 +282,7 @@ public final class FinderModule {
 	public static void tick(Minecraft client) {
 		if (!enabled) {
 			scanner.clear();
+			invalidateRenderCache();
 			return;
 		}
 		scanner.tick(client);
@@ -283,29 +298,16 @@ public final class FinderModule {
 			return;
 		}
 
-		Minecraft client = Minecraft.getInstance();
-		Level level = client.level;
+		ensureRenderCache(Minecraft.getInstance().level, hits);
 		float thickness = getOutlineThickness();
-
-		if (mode == RenderMode.OUTLINE) {
-			Map<Integer, java.util.List<BlockPos>> byColor = new LinkedHashMap<>();
-			for (BlockPos pos : hits) {
-				Identifier id = idAt(level, pos);
-				byColor.computeIfAbsent(getBlockColor(id), k -> new java.util.ArrayList<>()).add(pos);
-			}
-			for (Map.Entry<Integer, java.util.List<BlockPos>> e : byColor.entrySet()) {
-				WorldBlockEspRenderer.drawOutlines(levelRenderer, e.getValue(), e.getKey(), thickness);
-			}
-			return;
-		}
-
 		float fillAlpha = Mth.clamp(getOpacityFraction(), 0.0F, 1.0F);
 
 		if (mode == RenderMode.COMBINED_FILL) {
+			// Combined still needs per-block ids for silhouette; reuse hit list once.
 			WorldBlockEspRenderer.drawCombinedFill(
 					levelRenderer,
 					hits,
-					pos -> idAt(level, pos),
+					pos -> idAt(Minecraft.getInstance().level, pos),
 					id -> WorldBlockEspRenderer.fillWithAlpha(getBlockColor(id) & 0xFFFFFF, fillAlpha),
 					FinderModule::getBlockColor,
 					thickness
@@ -313,17 +315,40 @@ public final class FinderModule {
 			return;
 		}
 
-		// FILLED — stroke + fill, per-block color
-		Map<Integer, java.util.List<BlockPos>> byColor = new LinkedHashMap<>();
+		for (ColorGroup group : renderCache) {
+			if (mode == RenderMode.OUTLINE) {
+				WorldBlockEspRenderer.drawOutlineAabbs(levelRenderer, group.boxes, group.stroke, thickness);
+			} else {
+				int fill = WorldBlockEspRenderer.fillWithAlpha(group.stroke & 0xFFFFFF, fillAlpha);
+				WorldBlockEspRenderer.drawFilledAabbs(levelRenderer, group.boxes, group.stroke, fill, thickness);
+			}
+		}
+	}
+
+	private static void ensureRenderCache(Level level, List<BlockPos> hits) {
+		int gen = scanner.generation();
+		if (gen == cachedGen && cachedMode == mode && !renderCache.isEmpty()) {
+			return;
+		}
+		cachedGen = gen;
+		cachedMode = mode;
+		renderCache.clear();
+
+		Map<Integer, List<BlockPos>> byColor = new LinkedHashMap<>();
 		for (BlockPos pos : hits) {
 			Identifier id = idAt(level, pos);
-			byColor.computeIfAbsent(getBlockColor(id), k -> new java.util.ArrayList<>()).add(pos);
+			byColor.computeIfAbsent(getBlockColor(id), k -> new ArrayList<>()).add(pos);
 		}
-		for (Map.Entry<Integer, java.util.List<BlockPos>> e : byColor.entrySet()) {
-			int stroke = e.getKey();
-			int fill = WorldBlockEspRenderer.fillWithAlpha(stroke & 0xFFFFFF, fillAlpha);
-			WorldBlockEspRenderer.drawFilled(levelRenderer, e.getValue(), stroke, fill, thickness);
+		for (Map.Entry<Integer, List<BlockPos>> e : byColor.entrySet()) {
+			List<AABB> boxes = WorldBlockEspRenderer.mergeConnectedSolid(e.getValue());
+			renderCache.add(new ColorGroup(e.getKey(), boxes));
 		}
+	}
+
+	private static void invalidateRenderCache() {
+		cachedGen = -1;
+		renderCache.clear();
+		cachedMode = null;
 	}
 
 	private static Identifier idAt(Level level, BlockPos pos) {
@@ -331,5 +356,8 @@ public final class FinderModule {
 			return null;
 		}
 		return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock());
+	}
+
+	private record ColorGroup(int stroke, List<AABB> boxes) {
 	}
 }

@@ -27,6 +27,8 @@ public final class BlockEspScanner {
 	private final List<BlockPos> hits = new ArrayList<>();
 	private int tickCounter;
 	private int scanPeriodTicks = 8;
+	/** Bumped on every clear/rescan so render caches can invalidate cheaply. */
+	private int generation;
 
 	public BlockEspScanner(Supplier<Set<Identifier>> selection, int range) {
 		this.selection = selection;
@@ -35,6 +37,10 @@ public final class BlockEspScanner {
 
 	public int getRange() {
 		return this.range;
+	}
+
+	public int generation() {
+		return this.generation;
 	}
 
 	public void setRange(int range) {
@@ -57,12 +63,15 @@ public final class BlockEspScanner {
 	public void clear() {
 		this.hits.clear();
 		this.tickCounter = 0;
+		this.generation++;
 	}
 
 	/** Call once per client tick while the owning module is enabled. */
 	public void tick(Minecraft client) {
 		if (client.level == null || client.player == null) {
-			this.hits.clear();
+			if (!this.hits.isEmpty()) {
+				clear();
+			}
 			return;
 		}
 		this.tickCounter++;
@@ -76,6 +85,7 @@ public final class BlockEspScanner {
 	private void rescan(Level level, BlockPos origin) {
 		Set<Identifier> wanted = this.selection.get();
 		this.hits.clear();
+		this.generation++;
 		if (wanted.isEmpty() || this.range <= 0) {
 			return;
 		}

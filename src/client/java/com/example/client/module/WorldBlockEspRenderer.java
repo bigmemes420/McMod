@@ -21,8 +21,8 @@ import java.util.function.Function;
 
 /**
  * Draws through-world block ESP using MC 26.3 always-on-top gizmos.
- * Call from {@code LevelRenderEvents.BEFORE_GIZMOS} so boxes are finalized
- * into the current frame's always-on-top pass — no chunk remesh required.
+ * Prefer merged AABB draws ({@link #drawOutlinesMerged}, {@link #drawFilledMerged})
+ * to keep gizmo count low for FPS.
  */
 public final class WorldBlockEspRenderer {
 	private static final BlockPos[] FACE_OFFSETS = {
@@ -40,19 +40,34 @@ public final class WorldBlockEspRenderer {
 	}
 
 	public static void drawOutlines(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
+		drawOutlinesMerged(levelRenderer, positions, strokeArgb, strokeWidth);
+	}
+
+	/** Stroke merged solid AABBs (far fewer gizmos than per-block cuboids). */
+	public static void drawOutlinesMerged(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
 		if (positions.isEmpty()) {
 			return;
 		}
 		float width = Math.max(0.5F, strokeWidth);
 		GizmoStyle style = GizmoStyle.stroke(ARGB.opaque(strokeArgb), width);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (BlockPos pos : positions) {
-				Gizmos.cuboid(pos, style).setAlwaysOnTop();
+			for (AABB box : mergeConnectedSolid(positions)) {
+				Gizmos.cuboid(box, style).setAlwaysOnTop();
 			}
 		}
 	}
 
 	public static void drawFilled(
+			LevelRenderer levelRenderer,
+			List<BlockPos> positions,
+			int strokeArgb,
+			int fillArgb,
+			float strokeWidth
+	) {
+		drawFilledMerged(levelRenderer, positions, strokeArgb, fillArgb, strokeWidth);
+	}
+
+	public static void drawFilledMerged(
 			LevelRenderer levelRenderer,
 			List<BlockPos> positions,
 			int strokeArgb,
@@ -65,8 +80,8 @@ public final class WorldBlockEspRenderer {
 		float width = Math.max(0.5F, strokeWidth);
 		GizmoStyle style = GizmoStyle.strokeAndFill(ARGB.opaque(strokeArgb), width, fillArgb);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (BlockPos pos : positions) {
-				Gizmos.cuboid(pos, style).setAlwaysOnTop();
+			for (AABB box : mergeConnectedSolid(positions)) {
+				Gizmos.cuboid(box, style).setAlwaysOnTop();
 			}
 		}
 	}
@@ -78,16 +93,62 @@ public final class WorldBlockEspRenderer {
 		}
 		GizmoStyle style = GizmoStyle.fill(fillArgb);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (BlockPos pos : positions) {
-				Gizmos.cuboid(pos, style).setAlwaysOnTop();
+			for (AABB box : mergeConnectedSolid(positions)) {
+				Gizmos.cuboid(box, style).setAlwaysOnTop();
+			}
+		}
+	}
+
+	/** Fill-only for pre-merged AABBs (X-Ray ghost / cached Finder). */
+	public static void drawFilledAabbs(LevelRenderer levelRenderer, List<AABB> boxes, int fillArgb) {
+		if (boxes.isEmpty()) {
+			return;
+		}
+		GizmoStyle style = GizmoStyle.fill(fillArgb);
+		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
+			for (AABB box : boxes) {
+				Gizmos.cuboid(box, style).setAlwaysOnTop();
+			}
+		}
+	}
+
+	/** Stroke-only for pre-merged AABBs. */
+	public static void drawOutlineAabbs(LevelRenderer levelRenderer, List<AABB> boxes, int strokeArgb, float strokeWidth) {
+		if (boxes.isEmpty()) {
+			return;
+		}
+		float width = Math.max(0.5F, strokeWidth);
+		GizmoStyle style = GizmoStyle.stroke(ARGB.opaque(strokeArgb), width);
+		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
+			for (AABB box : boxes) {
+				Gizmos.cuboid(box, style).setAlwaysOnTop();
+			}
+		}
+	}
+
+	/** Stroke+fill for pre-merged AABBs. */
+	public static void drawFilledAabbs(
+			LevelRenderer levelRenderer,
+			List<AABB> boxes,
+			int strokeArgb,
+			int fillArgb,
+			float strokeWidth
+	) {
+		if (boxes.isEmpty()) {
+			return;
+		}
+		float width = Math.max(0.5F, strokeWidth);
+		GizmoStyle style = GizmoStyle.strokeAndFill(ARGB.opaque(strokeArgb), width, fillArgb);
+		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
+			for (AABB box : boxes) {
+				Gizmos.cuboid(box, style).setAlwaysOnTop();
 			}
 		}
 	}
 
 	/**
 	 * Combined Fill: merge face-connected same-type blocks into solid AABBs for
-	 * the fill, then stroke only external silhouette edges (no shared face
-	 * outlines, no coplanar shared edges between identical neighbors).
+	 * the fill, then stroke only external silhouette edges.
 	 */
 	public static void drawCombinedFill(
 			LevelRenderer levelRenderer,
@@ -126,15 +187,6 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/**
-	 * Stroke only external silhouette edges of a connected same-type group.
-	 * <p>
-	 * For each exposed face (no same-type neighbor in that direction), emit the
-	 * face's four edges — but skip an edge when the in-plane neighbor is also in
-	 * the group and also has that face exposed (shared coplanar edge). That
-	 * removes the internal grid lines that {@code Gizmos.rect} left on combined
-	 * clusters.
-	 */
 	private static void drawSilhouetteEdges(List<BlockPos> group, int strokeArgb, float strokeWidth) {
 		Set<Long> set = new HashSet<>(group.size() * 2);
 		for (BlockPos p : group) {
@@ -143,7 +195,7 @@ public final class WorldBlockEspRenderer {
 		for (BlockPos pos : group) {
 			for (Direction face : FACES) {
 				if (set.contains(pos.relative(face).asLong())) {
-					continue; // shared face — not part of the silhouette
+					continue;
 				}
 				emitExposedFaceEdges(pos, face, set, strokeArgb, strokeWidth);
 			}
@@ -200,10 +252,6 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/**
-	 * Skip coplanar shared edges: if the in-plane neighbor is also in the group
-	 * and also has this face exposed, the edge is internal to the silhouette.
-	 */
 	private static void maybeEdge(
 			Set<Long> set,
 			BlockPos pos,
@@ -229,7 +277,10 @@ public final class WorldBlockEspRenderer {
 	 * Flood-fill connected components, then greedily expand each into the
 	 * largest solid AABB fully contained in the component.
 	 */
-	static List<AABB> mergeConnectedSolid(List<BlockPos> positions) {
+	public static List<AABB> mergeConnectedSolid(List<BlockPos> positions) {
+		if (positions.isEmpty()) {
+			return List.of();
+		}
 		Set<Long> all = new HashSet<>(positions.size() * 2);
 		for (BlockPos p : positions) {
 			all.add(p.asLong());
@@ -262,7 +313,6 @@ public final class WorldBlockEspRenderer {
 		return out;
 	}
 
-	/** Greedy axis expand: grow a box while every cell inside remains in the set. */
 	private static List<AABB> packSolidAabbs(List<BlockPos> component) {
 		Set<Long> remaining = new HashSet<>(component.size() * 2);
 		for (BlockPos p : component) {

@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Inventory Move: rebuild WASD from physical keys while a container is open.
- * Sneak module: force the shift bit (Legit / Cheat) after input is built.
+ * Sneak Legit: force the shift bit on client input (Cheat is packet-only).
  */
 @Mixin(KeyboardInput.class)
 public abstract class KeyboardInputMixin extends ClientInput {

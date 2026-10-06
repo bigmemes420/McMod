@@ -7,6 +7,7 @@ import com.example.client.module.TriggerBotModule;
 import com.example.client.module.HitboxesModule;
 import com.example.client.module.CriticalsModule;
 import com.example.client.module.AutoTotemModule;
+import com.example.client.module.AirPlaceModule;
 import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
@@ -139,6 +140,8 @@ public final class ModConfig {
 		FastPlaceModule.loadEnabled(bool(props, "fastplace", false));
 		FastPlaceModule.loadSpeed(floatVal(props, "fastplaceSpeed", FastPlaceModule.DEFAULT_SPEED));
 		TowerModule.loadEnabled(bool(props, "tower", false));
+		AirPlaceModule.loadEnabled(bool(props, "airplace", false));
+		AirPlaceModule.loadDistance(floatVal(props, "airplaceDistance", AirPlaceModule.DEFAULT_DISTANCE));
 		InventoryMoveModule.loadEnabled(bool(props, "inventoryMove", false));
 		InventoryMoveModule.loadRotateSpeed(floatVal(props, "inventoryMoveRotateSpeed", InventoryMoveModule.DEFAULT_ROTATE_SPEED));
 		NoSlowModule.loadEnabled(bool(props, "noslow", false));
@@ -216,6 +219,8 @@ public final class ModConfig {
 			props.setProperty("fastplace", String.valueOf(FastPlaceModule.isEnabled()));
 			props.setProperty("fastplaceSpeed", Float.toString(FastPlaceModule.getSpeed()));
 			props.setProperty("tower", String.valueOf(TowerModule.isEnabled()));
+			props.setProperty("airplace", String.valueOf(AirPlaceModule.isEnabled()));
+			props.setProperty("airplaceDistance", Float.toString(AirPlaceModule.getDistance()));
 			props.setProperty("inventoryMove", String.valueOf(InventoryMoveModule.isEnabled()));
 			props.setProperty("inventoryMoveRotateSpeed", Float.toString(InventoryMoveModule.getRotateSpeed()));
 			props.setProperty("noslow", String.valueOf(NoSlowModule.isEnabled()));

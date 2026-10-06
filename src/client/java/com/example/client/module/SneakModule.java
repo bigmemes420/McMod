@@ -9,8 +9,13 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.player.Input;
 
 /**
- * Player: force sneak. Legit holds sneak like the key (unsneaks in inventory);
- * Cheat forces the shift flag on the input packet sent to the server.
+ * Player: force sneak.
+ * <ul>
+ *   <li>Legit — holds sneak like the key (client pose + movement; unsneaks in inventory).</li>
+ *   <li>Cheat — packet-only: tells the server the player is sneaking via
+ *       {@code ServerboundPlayerInputPacket}, without forcing client sneak pose
+ *       or movement slowdown.</li>
+ * </ul>
  */
 public final class SneakModule {
 	public enum Mode {
@@ -68,23 +73,24 @@ public final class SneakModule {
 	}
 
 	/**
-	 * Whether KeyboardInput should force the shift bit this tick.
-	 * Legit: yes when no inventory GUI; Cheat: always (server flag via input packet).
+	 * Legit only: KeyboardInput should force the shift bit (client pose/movement).
 	 */
-	public static boolean shouldForceShift(Minecraft client) {
-		if (!enabled || client == null) {
+	public static boolean shouldForceClientShift(Minecraft client) {
+		if (!enabled || client == null || mode != Mode.LEGIT) {
 			return false;
-		}
-		if (mode == Mode.CHEAT) {
-			return true;
 		}
 		Screen screen = client.gui.screen();
 		return !(screen instanceof AbstractContainerScreen);
 	}
 
-	/** Apply forced shift onto the player's ClientInput after KeyboardInput.tick. */
+	/** Cheat: force shift on the input packet sent to the server only. */
+	public static boolean shouldPacketSneak() {
+		return enabled && mode == Mode.CHEAT;
+	}
+
+	/** Apply forced shift onto the player's ClientInput after KeyboardInput.tick (Legit). */
 	public static void applyInput(Minecraft client) {
-		if (!shouldForceShift(client)) {
+		if (!shouldForceClientShift(client)) {
 			return;
 		}
 		LocalPlayer player = client.player;
@@ -96,6 +102,22 @@ public final class SneakModule {
 			return;
 		}
 		player.input.keyPresses = new Input(
+				cur.forward(),
+				cur.backward(),
+				cur.left(),
+				cur.right(),
+				cur.jump(),
+				true,
+				cur.sprint()
+		);
+	}
+
+	/** Rewrite an input snapshot so Cheat mode reports sneaking to the server. */
+	public static Input maybePacketSneak(Input cur) {
+		if (cur == null || !shouldPacketSneak() || cur.shift()) {
+			return cur;
+		}
+		return new Input(
 				cur.forward(),
 				cur.backward(),
 				cur.left(),
