@@ -18,39 +18,6 @@ import java.util.Properties;
  * {@code <gameDir>/config/modid-menu-theme.properties}.
  */
 public final class MenuTheme {
-	public static final int[] PALETTE = {
-			0xFF1E1E28,
-			0xFF252530,
-			0xFF2A4A6A,
-			0xFF2E5A8A,
-			0xFF1A3A5A,
-			0xFF101018,
-			0xFF3A3A48,
-			0xFF1A1A22,
-			0xFF0E2A1A,
-			0xFF2A1A3A,
-			0xFFE0E0E0,
-			0xFF8EC8FF,
-			0xFFAAD4FF,
-			0xFF7EC8FF,
-			0xFFB0B0C0,
-			0xFF707080,
-			0xFF404050,
-			0xFF555555,
-			0xFFFFFFFF,
-			0xFFE8E8E8,
-			0xFFDDDDDD,
-			0xFFAAAAAA,
-			0xFF888888,
-			0xFF3DDC84,
-			0xFF2ECC71,
-			0xFFE74C3C,
-			0xFFF1C40F,
-			0xFF9B59B6,
-			0xFFE67E22,
-			0xFF1ABC9C,
-	};
-
 	private static MenuTheme instance;
 
 	public int topBar = 0xCC101018;
@@ -118,17 +85,6 @@ public final class MenuTheme {
 		} catch (IOException e) {
 			ExampleMod.LOGGER.warn("Failed to save menu theme: {}", e.toString());
 		}
-	}
-
-	public void cycle(String key) {
-		Integer current = asMap().get(key);
-		if (current == null) {
-			return;
-		}
-		int idx = indexOfPalette(current);
-		int next = PALETTE[(idx + 1) % PALETTE.length];
-		set(key, next);
-		save();
 	}
 
 	public void resetDefaults() {
@@ -231,15 +187,6 @@ public final class MenuTheme {
 			}
 		}
 		return theme;
-	}
-
-	private static int indexOfPalette(int color) {
-		for (int i = 0; i < PALETTE.length; i++) {
-			if (PALETTE[i] == color) {
-				return i;
-			}
-		}
-		return -1;
 	}
 
 	public static String toHex(int argb) {

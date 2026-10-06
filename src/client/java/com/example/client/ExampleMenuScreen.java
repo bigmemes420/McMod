@@ -203,10 +203,7 @@ public class ExampleMenuScreen extends Screen {
 					CAPSULE_WIDTH,
 					CAPSULE_HEIGHT,
 					Component.literal(label),
-					button -> {
-						MenuTheme.get().cycle(key);
-						rebuildMenu();
-					}
+					button -> this.minecraft.gui.setScreen(new ColorPickerScreen(this, key, color))
 			));
 			col++;
 			if (col >= maxCols) {
@@ -230,6 +227,13 @@ public class ExampleMenuScreen extends Screen {
 					rebuildMenu();
 				}
 		));
+	}
+
+	/** Rebuild widgets after returning from the color picker (theme may have changed). */
+	public void refreshColorMenu() {
+		if (this.colorMenuOpen) {
+			rebuildMenu();
+		}
 	}
 
 	/**
