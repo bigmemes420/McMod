@@ -12,9 +12,12 @@ import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.FlightModule;
+import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.JesusModule;
+import com.example.client.module.MobEspModule;
 import com.example.client.module.ModuleKeybinds;
 import com.example.client.module.NoFallModule;
+import com.example.client.module.PlayerEspModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.ScaffoldModule;
@@ -54,6 +57,8 @@ public class ExampleModClient implements ClientModInitializer {
 
 		LevelRenderEvents.BEFORE_GIZMOS.register(context -> {
 			FinderModule.renderOverlays(context.levelRenderer());
+			PlayerEspModule.render(context.levelRenderer());
+			MobEspModule.render(context.levelRenderer());
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -79,6 +84,7 @@ public class ExampleModClient implements ClientModInitializer {
 			ScaffoldModule.tick(client);
 			FastPlaceModule.tick(client);
 			TowerModule.tick(client);
+			InventoryMoveModule.tick(client);
 			XRayModule.tick(client);
 			FinderModule.tick(client);
 		});

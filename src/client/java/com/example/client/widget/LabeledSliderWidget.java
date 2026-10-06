@@ -29,6 +29,7 @@ public class LabeledSliderWidget extends AbstractWidget {
 	private static final int PANEL_PAD_X = 8;
 
 	private final OnLevelChange onLevelChange;
+	private final Runnable onRelease;
 	private final float minLevel;
 	private final float maxLevel;
 	private final String valueWidthSample;
@@ -47,11 +48,27 @@ public class LabeledSliderWidget extends AbstractWidget {
 			float maxLevel,
 			OnLevelChange onLevelChange
 	) {
+		this(x, y, width, height, label, level, minLevel, maxLevel, onLevelChange, null);
+	}
+
+	public LabeledSliderWidget(
+			int x,
+			int y,
+			int width,
+			int height,
+			Component label,
+			float level,
+			float minLevel,
+			float maxLevel,
+			OnLevelChange onLevelChange,
+			Runnable onRelease
+	) {
 		super(x, y, width, height, label);
 		this.minLevel = minLevel;
 		this.maxLevel = maxLevel;
 		this.level = Mth.clamp(level, minLevel, maxLevel);
 		this.onLevelChange = onLevelChange;
+		this.onRelease = onRelease;
 		this.valueWidthSample = String.format(
 				"%.1f",
 				Math.max(Math.abs(minLevel), Math.abs(maxLevel)) >= 10.0F ? 99.9F : maxLevel
@@ -142,7 +159,11 @@ public class LabeledSliderWidget extends AbstractWidget {
 
 	@Override
 	public void onRelease(MouseButtonEvent event) {
+		boolean wasDragging = this.dragging;
 		this.dragging = false;
+		if (wasDragging && this.onRelease != null) {
+			this.onRelease.run();
+		}
 	}
 
 	@Override

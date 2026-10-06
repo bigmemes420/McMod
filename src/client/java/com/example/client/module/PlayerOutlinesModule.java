@@ -1,38 +1,27 @@
 package com.example.client.module;
 
-import com.example.client.config.ModConfig;
-
 /**
- * Visuals module: when enabled, other players render with a through-walls
- * outline colored by {@link com.example.client.config.MenuTheme#outline}.
+ * @deprecated Replaced by {@link PlayerEspModule}. Kept as a thin alias so old
+ * config keys can migrate during one release.
  */
+@Deprecated
 public final class PlayerOutlinesModule {
-	private static boolean enabled;
-
 	private PlayerOutlinesModule() {
 	}
 
 	public static boolean isEnabled() {
-		return enabled;
+		return PlayerEspModule.isEnabled();
 	}
 
 	public static void setEnabled(boolean value) {
-		if (enabled == value) {
-			return;
-		}
-		enabled = value;
-		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.player_outlines.enabled"
-						: "screen.modid.menu.visuals.player_outlines.disabled"
-		);
-		ModConfig.save();
+		PlayerEspModule.setEnabled(value);
 	}
 
 	public static void loadEnabled(boolean value) {
-		enabled = value;
+		PlayerEspModule.loadEnabled(value);
 	}
 
 	public static void toggle() {
-		setEnabled(!enabled);
+		PlayerEspModule.setEnabled(!PlayerEspModule.isEnabled());
 	}
 }

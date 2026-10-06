@@ -3,6 +3,7 @@ package com.example.client.module;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -17,26 +18,17 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Visuals module: classic Fabric X-Ray for MC 26.3 (Meteor / hibiscus style).
+ * Visuals module: mesh-based X-Ray (MC 26.3).
  * <p>
- * Proven approach:
- * <ul>
- *   <li>Non-selected at opacity 0 → {@link RenderShape#INVISIBLE} (hidden).</li>
- *   <li>Non-selected at 1–99% → meshed on TRANSLUCENT with vertex alpha.</li>
- *   <li>Non-selected never occlude ({@code canOcclude=false}, empty face shapes)
- *       so buried selected ores still mesh every face.</li>
- *   <li>{@link Block#shouldRenderFace} forced true for selected blocks while
- *       active (Meteor {@code modifyDrawSide} equivalent).</li>
- *   <li>Section remesh via {@code LevelExtractor.allChanged()}; smartCull off
- *       so solid sections do not hide buried ores.</li>
- * </ul>
+ * Non-selected blocks use real vertex alpha on the translucent layer (1–99%)
+ * or {@link RenderShape#INVISIBLE} at 0%. Section rebuilds are structural only
+ * (enable / selection / opacity mode boundaries) plus a single rebuild when the
+ * opacity slider is released — never {@code allChanged} remesh thrash.
  */
 public final class XRayModule {
 	public static final float MIN_OPACITY = 0.0F;
 	public static final float MAX_OPACITY = 100.0F;
 	public static final float DEFAULT_OPACITY = 0.0F;
-
-	private static final long OPACITY_REMESH_DEBOUNCE_MS = 350L;
 
 	private static boolean enabled;
 	private static float opacity = DEFAULT_OPACITY;
@@ -44,9 +36,8 @@ public final class XRayModule {
 
 	private static final ThreadLocal<Boolean> TRANSLUCENT_PASS = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
+	/** Structural / committed opacity rebuilds — flushed once per client tick. */
 	private static volatile boolean sectionsDirty;
-	private static volatile boolean remeshImmediate;
-	private static volatile long opacityDirtyAtMs;
 
 	/** Restored when X-Ray turns off so the user's smartCull preference returns. */
 	private static boolean savedSmartCull = true;
@@ -90,11 +81,15 @@ public final class XRayModule {
 		}
 		boolean changed = selected ? fullOpacityBlocks.add(id) : fullOpacityBlocks.remove(id);
 		if (changed) {
-			markSectionsDirty(true);
+			markSectionsDirty();
 			ModConfig.save();
 		}
 	}
 
+	/**
+	 * Live opacity value. Remeshes only when crossing hidden/fade/off thresholds.
+	 * In-band fade changes wait for {@link #commitOpacity()} (slider release).
+	 */
 	public static void setOpacity(float value) {
 		float clamped = Mth.clamp(value, MIN_OPACITY, MAX_OPACITY);
 		if (opacity == clamped) {
@@ -107,17 +102,18 @@ public final class XRayModule {
 			boolean nowHidden = clamped <= MIN_OPACITY;
 			boolean prevOff = previous >= MAX_OPACITY;
 			boolean nowOff = clamped >= MAX_OPACITY;
-			// Threshold changes need an immediate remesh; in-band fade changes
-			// debounce so the slider stays responsive without thrashing.
 			if (prevHidden != nowHidden || prevOff != nowOff) {
-				markSectionsDirty(true);
-			} else if (!nowHidden && !nowOff) {
-				markSectionsDirty(false);
-			} else if (nowHidden || nowOff) {
-				markSectionsDirty(true);
+				markSectionsDirty();
 			}
 		}
 		ModConfig.save();
+	}
+
+	/** Remesh once after the opacity slider is released (in-band alpha bake). */
+	public static void commitOpacity() {
+		if (enabled && opacity > MIN_OPACITY && opacity < MAX_OPACITY) {
+			markSectionsDirty();
+		}
 	}
 
 	public static void loadOpacity(float value) {
@@ -127,7 +123,7 @@ public final class XRayModule {
 	public static void loadFullOpacityBlocks(String csv) {
 		BlockEspDefaults.loadCsv(fullOpacityBlocks, csv, () -> BlockEspDefaults.seedOresAndChests(fullOpacityBlocks));
 		if (enabled) {
-			markSectionsDirty(true);
+			markSectionsDirty();
 		}
 	}
 
@@ -141,7 +137,7 @@ public final class XRayModule {
 		}
 		enabled = value;
 		applySmartCull(Minecraft.getInstance());
-		markSectionsDirty(true);
+		markSectionsDirty();
 		NotificationsModule.notifyToggle(
 				enabled ? "screen.modid.menu.visuals.xray.enabled"
 						: "screen.modid.menu.visuals.xray.disabled"
@@ -153,7 +149,6 @@ public final class XRayModule {
 		enabled = value;
 	}
 
-	/** X-Ray is on and opacity is below 100% (hiding or fading non-selected). */
 	public static boolean isActive() {
 		return enabled && opacity < MAX_OPACITY;
 	}
@@ -162,10 +157,6 @@ public final class XRayModule {
 		return block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR;
 	}
 
-	/**
-	 * Non-selected solid blocks at opacity 0 become {@link RenderShape#INVISIBLE}.
-	 * At 1–99% they keep their model so alpha can be applied during meshing.
-	 */
 	public static RenderShape modifyRenderShape(BlockState state, RenderShape original) {
 		if (!isActive() || original == RenderShape.INVISIBLE) {
 			return original;
@@ -180,10 +171,6 @@ public final class XRayModule {
 		return original;
 	}
 
-	/**
-	 * Non-selected blocks must not occlude faces while X-Ray is active
-	 * ({@code canOcclude} + empty face occlusion shapes).
-	 */
 	public static boolean shouldDisableOcclusion(BlockState state) {
 		if (!isActive()) {
 			return false;
@@ -192,10 +179,6 @@ public final class XRayModule {
 		return !isAir(block) && !isFullOpacity(block);
 	}
 
-	/**
-	 * Meteor-style force-draw: selected blocks always render every face while
-	 * X-Ray is active (buried ores visible through stone).
-	 */
 	public static boolean shouldForceRenderFace(BlockState state) {
 		if (!isActive()) {
 			return false;
@@ -204,7 +187,6 @@ public final class XRayModule {
 		return !isAir(block) && isFullOpacity(block);
 	}
 
-	/** Kept for callers that still pass a neighbor / direction. */
 	public static boolean shouldForceRenderFace(BlockState state, BlockState neighbor, Direction direction) {
 		return shouldForceRenderFace(state);
 	}
@@ -229,42 +211,34 @@ public final class XRayModule {
 		return Boolean.TRUE.equals(TRANSLUCENT_PASS.get());
 	}
 
-	/** Call from client tick so rebuilds land once (debounced for opacity). */
 	public static void tick(Minecraft client) {
 		applySmartCull(client);
 		if (!sectionsDirty) {
 			return;
 		}
-		if (client.level == null || client.levelExtractor == null) {
+		if (client.level == null || client.levelRenderer == null) {
 			return;
 		}
-		if (!remeshImmediate) {
-			long wait = System.currentTimeMillis() - opacityDirtyAtMs;
-			if (wait < OPACITY_REMESH_DEBOUNCE_MS) {
-				return;
-			}
-		}
 		sectionsDirty = false;
-		remeshImmediate = false;
-		opacityDirtyAtMs = 0L;
-		// Proven remesh path used by Meteor Client (levelExtractor.allChanged).
-		client.levelExtractor.allChanged();
+		rebuildVisibleSections(client);
 	}
 
-	private static void markSectionsDirty(boolean immediate) {
+	private static void markSectionsDirty() {
 		sectionsDirty = true;
-		if (immediate) {
-			remeshImmediate = true;
-			opacityDirtyAtMs = 0L;
-		} else if (opacityDirtyAtMs == 0L) {
-			opacityDirtyAtMs = System.currentTimeMillis();
-		}
 	}
 
 	/**
-	 * Disable advanced section occlusion while X-Ray is active so buried ores
-	 * inside otherwise-opaque sections stay visible (Meteor chunk-occlusion cancel).
+	 * Soft remesh: mark compiled sections UNCOMPILED so the normal scheduler
+	 * rebuilds them. Avoids {@code levelExtractor.allChanged()} thrash.
 	 */
+	private static void rebuildVisibleSections(Minecraft client) {
+		ViewArea viewArea = client.levelRenderer.viewArea();
+		if (viewArea == null) {
+			return;
+		}
+		viewArea.releaseAllBuffers();
+	}
+
 	private static void applySmartCull(Minecraft client) {
 		if (client == null) {
 			return;

@@ -19,13 +19,43 @@ import net.minecraft.world.phys.Vec3;
  * World module: places blocks under the player's feet while moving (classic scaffold).
  */
 public final class ScaffoldModule {
+	public enum Mode {
+		HAND_ONLY,
+		OFFHAND_ONLY,
+		FROM_INVENTORY
+	}
+
 	private static boolean enabled;
+	private static Mode mode = Mode.FROM_INVENTORY;
 
 	private ScaffoldModule() {
 	}
 
 	public static boolean isEnabled() {
 		return enabled;
+	}
+
+	public static Mode getMode() {
+		return mode;
+	}
+
+	public static void setMode(Mode value) {
+		if (value == null || mode == value) {
+			return;
+		}
+		mode = value;
+		ModConfig.save();
+	}
+
+	public static void loadMode(String raw) {
+		if (raw == null || raw.isBlank()) {
+			return;
+		}
+		try {
+			mode = Mode.valueOf(raw.trim());
+		} catch (IllegalArgumentException ignored) {
+			mode = Mode.FROM_INVENTORY;
+		}
 	}
 
 	public static void setEnabled(boolean value) {
@@ -63,15 +93,16 @@ public final class ScaffoldModule {
 			return;
 		}
 
-		int slot = findHotbarBlock(player.getInventory());
-		if (slot < 0) {
+		PlaceSource source = resolveSource(player);
+		if (source == null) {
 			return;
 		}
 
 		int prev = player.getInventory().getSelectedSlot();
-		player.getInventory().setSelectedSlot(slot);
+		if (source.hand == InteractionHand.MAIN_HAND && source.hotbarSlot >= 0) {
+			player.getInventory().setSelectedSlot(source.hotbarSlot);
+		}
 
-		// Prefer placing against a neighboring solid face under the player.
 		Direction placeFace = Direction.UP;
 		BlockPos neighbor = below.below();
 		BlockState neighborState = client.level.getBlockState(neighbor);
@@ -98,9 +129,35 @@ public final class ScaffoldModule {
 				placeFace.getStepZ() * 0.5D
 		);
 		BlockHitResult hitResult = new BlockHitResult(hit, placeFace, neighbor, false);
-		client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
-		player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, false);
+		client.gameMode.useItemOn(player, source.hand, hitResult);
+		player.swing(source.hand, SwingAnimation.DEFAULT, false);
 		player.getInventory().setSelectedSlot(prev);
+	}
+
+	private static PlaceSource resolveSource(LocalPlayer player) {
+		return switch (mode) {
+			case HAND_ONLY -> {
+				ItemStack stack = player.getMainHandItem();
+				if (stack.getItem() instanceof BlockItem) {
+					yield new PlaceSource(InteractionHand.MAIN_HAND, player.getInventory().getSelectedSlot());
+				}
+				yield null;
+			}
+			case OFFHAND_ONLY -> {
+				ItemStack stack = player.getOffhandItem();
+				if (stack.getItem() instanceof BlockItem) {
+					yield new PlaceSource(InteractionHand.OFF_HAND, -1);
+				}
+				yield null;
+			}
+			case FROM_INVENTORY -> {
+				int slot = findHotbarBlock(player.getInventory());
+				if (slot < 0) {
+					yield null;
+				}
+				yield new PlaceSource(InteractionHand.MAIN_HAND, slot);
+			}
+		};
 	}
 
 	static int findHotbarBlock(Inventory inv) {
@@ -117,5 +174,8 @@ public final class ScaffoldModule {
 			}
 		}
 		return -1;
+	}
+
+	private record PlaceSource(InteractionHand hand, int hotbarSlot) {
 	}
 }

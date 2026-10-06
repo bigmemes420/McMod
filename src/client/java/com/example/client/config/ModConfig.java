@@ -18,7 +18,10 @@ import com.example.client.module.ModuleKeybinds;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
-import com.example.client.module.PlayerOutlinesModule;
+import com.example.client.module.InventoryMoveModule;
+import com.example.client.module.MobEspModule;
+import com.example.client.module.NoSlowModule;
+import com.example.client.module.PlayerEspModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.ScaffoldModule;
@@ -92,7 +95,12 @@ public final class ModConfig {
 		JesusModule.loadMode(props.getProperty("jesusMode", "WATER"));
 		NametagsModule.loadEnabled(bool(props, "nametags", false));
 		NametagsModule.loadScale(floatVal(props, "nametagsScale", NametagsModule.DEFAULT_SCALE));
-		PlayerOutlinesModule.loadEnabled(bool(props, "playerOutlines", false));
+		PlayerEspModule.loadEnabled(bool(props, "playerEsp", bool(props, "playerOutlines", false)));
+		PlayerEspModule.loadMode(props.getProperty("playerEspMode", "BOX_3D"));
+		PlayerEspModule.loadColor(intVal(props, "playerEspColor", PlayerEspModule.DEFAULT_COLOR));
+		MobEspModule.loadEnabled(bool(props, "mobEsp", false));
+		MobEspModule.loadMode(props.getProperty("mobEspMode", "OUTLINE"));
+		MobEspModule.loadColor(intVal(props, "mobEspColor", MobEspModule.DEFAULT_COLOR));
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
 		XRayModule.loadEnabled(bool(props, "xray", false));
 		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
@@ -122,8 +130,13 @@ public final class ModConfig {
 		HitboxesModule.loadSize(floatVal(props, "hitboxesSize", HitboxesModule.DEFAULT_SIZE));
 		AutoTotemModule.loadEnabled(bool(props, "autototem", false));
 		ScaffoldModule.loadEnabled(bool(props, "scaffold", false));
+		ScaffoldModule.loadMode(props.getProperty("scaffoldMode", "FROM_INVENTORY"));
 		FastPlaceModule.loadEnabled(bool(props, "fastplace", false));
+		FastPlaceModule.loadSpeed(floatVal(props, "fastplaceSpeed", FastPlaceModule.DEFAULT_SPEED));
 		TowerModule.loadEnabled(bool(props, "tower", false));
+		InventoryMoveModule.loadEnabled(bool(props, "inventoryMove", false));
+		InventoryMoveModule.loadRotateSpeed(floatVal(props, "inventoryMoveRotateSpeed", InventoryMoveModule.DEFAULT_ROTATE_SPEED));
+		NoSlowModule.loadEnabled(bool(props, "noslow", false));
 		NotificationsModule.loadEnabled(bool(props, "notifications", true));
 		ModuleKeybinds.loadFrom(props);
 		ExampleMenuScreen.loadLastTab(props.getProperty("lastTab", "GENERAL"));
@@ -154,7 +167,12 @@ public final class ModConfig {
 			props.setProperty("jesusMode", JesusModule.getMode().name());
 			props.setProperty("nametags", String.valueOf(NametagsModule.isEnabled()));
 			props.setProperty("nametagsScale", Float.toString(NametagsModule.getScale()));
-			props.setProperty("playerOutlines", String.valueOf(PlayerOutlinesModule.isEnabled()));
+			props.setProperty("playerEsp", String.valueOf(PlayerEspModule.isEnabled()));
+			props.setProperty("playerEspMode", PlayerEspModule.getMode().name());
+			props.setProperty("playerEspColor", Integer.toString(PlayerEspModule.getColor()));
+			props.setProperty("mobEsp", String.valueOf(MobEspModule.isEnabled()));
+			props.setProperty("mobEspMode", MobEspModule.getMode().name());
+			props.setProperty("mobEspColor", Integer.toString(MobEspModule.getColor()));
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
 			props.setProperty("xray", String.valueOf(XRayModule.isEnabled()));
 			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
@@ -183,8 +201,13 @@ public final class ModConfig {
 			props.setProperty("hitboxesSize", Float.toString(HitboxesModule.getSize()));
 			props.setProperty("autototem", String.valueOf(AutoTotemModule.isEnabled()));
 			props.setProperty("scaffold", String.valueOf(ScaffoldModule.isEnabled()));
+			props.setProperty("scaffoldMode", ScaffoldModule.getMode().name());
 			props.setProperty("fastplace", String.valueOf(FastPlaceModule.isEnabled()));
+			props.setProperty("fastplaceSpeed", Float.toString(FastPlaceModule.getSpeed()));
 			props.setProperty("tower", String.valueOf(TowerModule.isEnabled()));
+			props.setProperty("inventoryMove", String.valueOf(InventoryMoveModule.isEnabled()));
+			props.setProperty("inventoryMoveRotateSpeed", Float.toString(InventoryMoveModule.getRotateSpeed()));
+			props.setProperty("noslow", String.valueOf(NoSlowModule.isEnabled()));
 			props.setProperty("notifications", String.valueOf(NotificationsModule.isEnabled()));
 			props.setProperty("lastTab", ExampleMenuScreen.getLastTabName());
 			ModuleKeybinds.writeTo(props);
@@ -209,6 +232,23 @@ public final class ModConfig {
 			return def;
 		}
 		return Boolean.parseBoolean(raw.trim());
+	}
+
+	private static int intVal(Properties props, String key, int def) {
+		String raw = props.getProperty(key);
+		if (raw == null) {
+			return def;
+		}
+		try {
+			String s = raw.trim();
+			if (s.startsWith("#") || s.startsWith("0x") || s.startsWith("0X") || s.length() == 8) {
+				Integer parsed = MenuTheme.parseHex(s);
+				return parsed != null ? parsed : def;
+			}
+			return (int) Long.parseLong(s);
+		} catch (NumberFormatException e) {
+			return def;
+		}
 	}
 
 	private static float floatVal(Properties props, String key, float def) {

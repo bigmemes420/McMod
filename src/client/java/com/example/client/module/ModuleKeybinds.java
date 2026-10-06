@@ -41,7 +41,8 @@ public final class ModuleKeybinds {
 	public static void registerAll() {
 		MODULES.clear();
 		register("nametags", Component.translatable("screen.modid.menu.visuals.nametags"), NametagsModule::isEnabled, NametagsModule::setEnabled);
-		register("player_outlines", Component.translatable("screen.modid.menu.visuals.player_outlines"), PlayerOutlinesModule::isEnabled, PlayerOutlinesModule::setEnabled);
+		register("player_esp", Component.translatable("screen.modid.menu.visuals.player_esp"), PlayerEspModule::isEnabled, PlayerEspModule::setEnabled);
+		register("mob_esp", Component.translatable("screen.modid.menu.visuals.mob_esp"), MobEspModule::isEnabled, MobEspModule::setEnabled);
 		register("fullbright", Component.translatable("screen.modid.menu.visuals.fullbright"), FullbrightModule::isEnabled, FullbrightModule::setEnabled);
 		register("xray", Component.translatable("screen.modid.menu.visuals.xray"), XRayModule::isEnabled, XRayModule::setEnabled);
 		register("finder", Component.translatable("screen.modid.menu.visuals.finder"), FinderModule::isEnabled, FinderModule::setEnabled);
@@ -56,6 +57,8 @@ public final class ModuleKeybinds {
 		register("scaffold", Component.translatable("screen.modid.menu.world.scaffold"), ScaffoldModule::isEnabled, ScaffoldModule::setEnabled);
 		register("fastplace", Component.translatable("screen.modid.menu.world.fastplace"), FastPlaceModule::isEnabled, FastPlaceModule::setEnabled);
 		register("tower", Component.translatable("screen.modid.menu.world.tower"), TowerModule::isEnabled, TowerModule::setEnabled);
+		register("inventory_move", Component.translatable("screen.modid.menu.player.inventory_move"), InventoryMoveModule::isEnabled, InventoryMoveModule::setEnabled);
+		register("noslow", Component.translatable("screen.modid.menu.player.noslow"), NoSlowModule::isEnabled, NoSlowModule::setEnabled);
 		register("flight", Component.translatable("screen.modid.menu.movement.flight"), FlightModule::isEnabled, FlightModule::setEnabled);
 		register("speed", Component.translatable("screen.modid.menu.movement.speed"), SpeedModule::isEnabled, SpeedModule::setEnabled);
 		register("nofall", Component.translatable("screen.modid.menu.movement.nofall"), NoFallModule::isEnabled, NoFallModule::setEnabled);

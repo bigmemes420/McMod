@@ -13,7 +13,11 @@
 		"ModelBlockRendererMixin",
 		"SectionCompilerMixin",
 		"EntityMixin",
-		"MinecraftAccessor"
+		"EntityStuckMixin",
+		"MinecraftAccessor",
+		"KeyMappingAccessor",
+		"KeyboardInputMixin",
+		"LocalPlayerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

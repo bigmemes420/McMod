@@ -62,7 +62,8 @@ public final class MenuTheme {
 	/** Left-circle fill when a toggle capsule is ON. */
 	public int accentOn = 0xFF3DDC84;
 
-	/** Through-walls player outline (Player Outlines). */
+	/** @deprecated ESP colors live on PlayerEsp/MobEsp modules. */
+	@Deprecated
 	public int outline = 0xFFFFFFFF;
 
 	/** Nametag plate/background outline (Nametags module). */
@@ -137,7 +138,6 @@ public final class MenuTheme {
 			case "dropdownSelectedFill" -> dropdownSelectedFill = argb;
 			case "dropdownSelectedOutline" -> dropdownSelectedOutline = argb;
 			case "accentOn" -> accentOn = argb;
-			case "outline" -> outline = argb;
 			case "nametagOutline" -> nametagOutline = argb;
 			case "finderOutline" -> finderOutline = argb;
 			default -> {
@@ -172,7 +172,6 @@ public final class MenuTheme {
 		map.put("dropdownSelectedFill", dropdownSelectedFill);
 		map.put("dropdownSelectedOutline", dropdownSelectedOutline);
 		map.put("accentOn", accentOn);
-		map.put("outline", outline);
 		map.put("nametagOutline", nametagOutline);
 		map.put("finderOutline", finderOutline);
 		return map;
@@ -205,7 +204,6 @@ public final class MenuTheme {
 			case "dropdownSelectedFill" -> "Dropdown Selected Fill";
 			case "dropdownSelectedOutline" -> "Dropdown Selected Outline";
 			case "accentOn" -> "Accent (ON)";
-			case "outline" -> "Outline";
 			case "nametagOutline" -> "Nametag Outline";
 			case "finderOutline" -> "Finder Outline";
 			default -> key;

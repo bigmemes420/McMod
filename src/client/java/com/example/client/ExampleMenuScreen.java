@@ -15,7 +15,10 @@ import com.example.client.module.JesusModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
-import com.example.client.module.PlayerOutlinesModule;
+import com.example.client.module.InventoryMoveModule;
+import com.example.client.module.MobEspModule;
+import com.example.client.module.NoSlowModule;
+import com.example.client.module.PlayerEspModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.TowerModule;
@@ -44,6 +47,7 @@ import net.minecraft.network.chat.Component;
 public class ExampleMenuScreen extends Screen {
 	private enum Tab {
 		GENERAL,
+		PLAYER,
 		VISUALS,
 		COMBAT,
 		WORLD,
@@ -113,6 +117,8 @@ public class ExampleMenuScreen extends Screen {
 		int tabY = TITLE_BAND + (TOP_BAR_HEIGHT - TAB_HEIGHT) / 2;
 		int tabX = 8;
 		addTab(tabX, tabY, Tab.GENERAL, "screen.modid.menu.tab.general");
+		tabX += TAB_WIDTH + 6;
+		addTab(tabX, tabY, Tab.PLAYER, "screen.modid.menu.tab.player");
 		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.VISUALS, "screen.modid.menu.tab.visuals");
 		tabX += TAB_WIDTH + 6;
@@ -186,6 +192,7 @@ public class ExampleMenuScreen extends Screen {
 			case COMBAT -> addCombatContent();
 			case WORLD -> addWorldContent();
 			case MISC -> addMiscContent();
+			case PLAYER -> addPlayerContent();
 			case GENERAL -> addGeneralContent();
 		}
 	}
@@ -240,8 +247,37 @@ public class ExampleMenuScreen extends Screen {
 			float max,
 			LabeledSliderWidget.OnLevelChange onChange
 	) {
+		addLabeledSlider(x, y, width, label, value, min, max, onChange, null);
+	}
+
+	private void addLabeledSlider(
+			int x,
+			int y,
+			int width,
+			Component label,
+			float value,
+			float min,
+			float max,
+			LabeledSliderWidget.OnLevelChange onChange,
+			Runnable onRelease
+	) {
 		this.addRenderableWidget(new LabeledSliderWidget(
-				x, y, width, SLIDER_HEIGHT, label, value, min, max, onChange
+				x, y, width, SLIDER_HEIGHT, label, value, min, max, onChange, onRelease
+		));
+	}
+
+	private void addColorSettingRow(int y, String label, int color, java.util.function.Consumer<Integer> onApply) {
+		this.addRenderableWidget(new FlatMenuButton(
+				CONTENT_LEFT,
+				y,
+				SETTINGS_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.literal(label + " #" + MenuTheme.toHex(color)),
+				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new ColorPickerScreen(this, label, color, onApply));
+					}
+				}
 		));
 	}
 
@@ -289,14 +325,100 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		y = addToggleModule(
+		// Player ESP: capsule + cog + mode dropdown
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
 				y,
-				null,
-				"player_outlines",
-				Component.translatable("screen.modid.menu.visuals.player_outlines"),
-				PlayerOutlinesModule.isEnabled(),
-				(button, enabled) -> PlayerOutlinesModule.setEnabled(enabled)
-		);
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.player_esp"),
+				PlayerEspModule.isEnabled(),
+				"player_esp",
+				(button, enabled) -> PlayerEspModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("player_esp"),
+				button -> toggleSettings("player_esp")
+		));
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.visuals.player_esp.mode.box_2d"),
+					Component.translatable("screen.modid.menu.visuals.player_esp.mode.box_3d")
+				},
+				PlayerEspModule.getMode() == PlayerEspModule.Mode.BOX_2D ? 0 : 1,
+				index -> {
+					PlayerEspModule.setMode(index == 0 ? PlayerEspModule.Mode.BOX_2D : PlayerEspModule.Mode.BOX_3D);
+					rebuildMenu();
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("player_esp")) {
+			addColorSettingRow(y, "Color", PlayerEspModule.getColor(), c -> {
+				PlayerEspModule.setColor(c);
+				rebuildMenu();
+			});
+			y += CAPSULE_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		// Mob ESP: capsule + cog + mode dropdown (Outline / 2D / 3D)
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.mob_esp"),
+				MobEspModule.isEnabled(),
+				"mob_esp",
+				(button, enabled) -> MobEspModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("mob_esp"),
+				button -> toggleSettings("mob_esp")
+		));
+		int mobModeIndex = switch (MobEspModule.getMode()) {
+			case BOX_2D -> 1;
+			case BOX_3D -> 2;
+			default -> 0;
+		};
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.visuals.mob_esp.mode.outline"),
+					Component.translatable("screen.modid.menu.visuals.mob_esp.mode.box_2d"),
+					Component.translatable("screen.modid.menu.visuals.mob_esp.mode.box_3d")
+				},
+				mobModeIndex,
+				index -> {
+					MobEspModule.Mode mode = switch (index) {
+						case 1 -> MobEspModule.Mode.BOX_2D;
+						case 2 -> MobEspModule.Mode.BOX_3D;
+						default -> MobEspModule.Mode.OUTLINE;
+					};
+					MobEspModule.setMode(mode);
+					rebuildMenu();
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("mob_esp")) {
+			addColorSettingRow(y, "Color", MobEspModule.getColor(), c -> {
+				MobEspModule.setColor(c);
+				rebuildMenu();
+			});
+			y += CAPSULE_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
 		y = addToggleModule(
 				y,
@@ -345,7 +467,8 @@ public class ExampleMenuScreen extends Screen {
 					XRayModule.getOpacity(),
 					XRayModule.MIN_OPACITY,
 					XRayModule.MAX_OPACITY,
-					XRayModule::setOpacity
+					XRayModule::setOpacity,
+					XRayModule::commitOpacity
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
@@ -602,22 +725,64 @@ public class ExampleMenuScreen extends Screen {
 
 	private void addWorldContent() {
 		int y = CONTENT_TOP;
-		y = addToggleModule(
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
 				y,
-				null,
-				"scaffold",
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
 				Component.translatable("screen.modid.menu.world.scaffold"),
 				ScaffoldModule.isEnabled(),
+				"scaffold",
 				(button, enabled) -> ScaffoldModule.setEnabled(enabled)
-		);
+		));
+		int scaffoldModeIndex = switch (ScaffoldModule.getMode()) {
+			case HAND_ONLY -> 0;
+			case OFFHAND_ONLY -> 1;
+			default -> 2;
+		};
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				MODE_WIDTH + 24,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.world.scaffold.mode.hand"),
+					Component.translatable("screen.modid.menu.world.scaffold.mode.offhand"),
+					Component.translatable("screen.modid.menu.world.scaffold.mode.inventory")
+				},
+				scaffoldModeIndex,
+				index -> {
+					ScaffoldModule.Mode mode = switch (index) {
+						case 0 -> ScaffoldModule.Mode.HAND_ONLY;
+						case 1 -> ScaffoldModule.Mode.OFFHAND_ONLY;
+						default -> ScaffoldModule.Mode.FROM_INVENTORY;
+					};
+					ScaffoldModule.setMode(mode);
+					rebuildMenu();
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
 		y = addToggleModule(
 				y,
-				null,
+				"fastplace",
 				"fastplace",
 				Component.translatable("screen.modid.menu.world.fastplace"),
 				FastPlaceModule.isEnabled(),
 				(button, enabled) -> FastPlaceModule.setEnabled(enabled)
 		);
+		if (settingsOpen("fastplace")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.world.fastplace.speed"),
+					FastPlaceModule.getSpeed(),
+					FastPlaceModule.MIN_SPEED,
+					FastPlaceModule.MAX_SPEED,
+					FastPlaceModule::setSpeed
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
 		addToggleModule(
 				y,
 				null,
@@ -625,6 +790,37 @@ public class ExampleMenuScreen extends Screen {
 				Component.translatable("screen.modid.menu.world.tower"),
 				TowerModule.isEnabled(),
 				(button, enabled) -> TowerModule.setEnabled(enabled)
+		);
+	}
+
+	private void addPlayerContent() {
+		int y = CONTENT_TOP;
+		y = addToggleModule(
+				y,
+				"inventory_move",
+				"inventory_move",
+				Component.translatable("screen.modid.menu.player.inventory_move"),
+				InventoryMoveModule.isEnabled(),
+				(button, enabled) -> InventoryMoveModule.setEnabled(enabled)
+		);
+		if (settingsOpen("inventory_move")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.player.inventory_move.rotate_speed"),
+					InventoryMoveModule.getRotateSpeed(),
+					InventoryMoveModule.MIN_ROTATE_SPEED,
+					InventoryMoveModule.MAX_ROTATE_SPEED,
+					InventoryMoveModule::setRotateSpeed
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+		addToggleModule(
+				y,
+				null,
+				"noslow",
+				Component.translatable("screen.modid.menu.player.noslow"),
+				NoSlowModule.isEnabled(),
+				(button, enabled) -> NoSlowModule.setEnabled(enabled)
 		);
 	}
 
@@ -962,6 +1158,7 @@ public class ExampleMenuScreen extends Screen {
 		} else {
 			String panelKey = switch (this.selectedTab) {
 				case GENERAL -> "screen.modid.menu.tab.general";
+				case PLAYER -> "screen.modid.menu.tab.player";
 				case VISUALS -> "screen.modid.menu.tab.visuals";
 				case COMBAT -> "screen.modid.menu.tab.combat";
 				case WORLD -> "screen.modid.menu.tab.world";
