@@ -1,5 +1,6 @@
 package com.example.client;
 
+import com.example.ExampleMod;
 import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 import com.example.client.module.AirPlaceModule;
@@ -43,10 +44,12 @@ import com.example.client.widget.ColorSwatchButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 public class ExampleMenuScreen extends Screen {
 	private enum Tab {
@@ -80,6 +83,11 @@ public class ExampleMenuScreen extends Screen {
 	private static final int CAPSULE_GAP = 8;
 	private static final int SETTINGS_GAP = 4;
 	private static final float TITLE_SCALE = 1.6F;
+	/** Logo drawn top-left; title shifts right of it. */
+	private static final int LOGO_SIZE = 22;
+	private static final int LOGO_LEFT = 6;
+	private static final int TITLE_LEFT = LOGO_LEFT + LOGO_SIZE + 8;
+	private static final Identifier ROOTY_LOGO = ExampleMod.id("textures/gui/rooty_logo.png");
 
 	/** Remembers the last top tab across menu open/close (also persisted). */
 	private static Tab lastSelectedTab = Tab.GENERAL;
@@ -467,7 +475,7 @@ public class ExampleMenuScreen extends Screen {
 				(button, enabled) -> FullbrightModule.setEnabled(enabled)
 		);
 
-		// X-Ray: capsule + cog + flat Edit
+		// X-Ray: capsule + cog + Edit (Edit next to cog)
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
@@ -511,7 +519,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		// Finder: capsule + cog + mode dropdown + flat Edit
+		// Finder: capsule + cog + Edit + mode dropdown (Edit next to cog; dropdown right of Edit)
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
@@ -522,16 +530,18 @@ public class ExampleMenuScreen extends Screen {
 				"finder",
 				(button, enabled) -> FinderModule.setEnabled(enabled)
 		));
-		int afterCog = CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6;
+		int finderCogX = CONTENT_LEFT + CAPSULE_WIDTH + 6;
+		int finderEditX = finderCogX + COG_SIZE + 6;
+		int finderDropdownX = finderEditX + EDIT_WIDTH + 6;
 		this.addRenderableWidget(new CogButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				finderCogX,
 				y,
 				COG_SIZE,
 				settingsOpen("finder"),
 				button -> toggleSettings("finder")
 		));
 		this.addRenderableWidget(new FlatMenuButton(
-				afterCog + MODE_WIDTH + 6,
+				finderEditX,
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,
@@ -548,7 +558,7 @@ public class ExampleMenuScreen extends Screen {
 			default -> 0;
 		};
 		this.addRenderableWidget(new ModeDropdownButton(
-				afterCog,
+				finderDropdownX,
 				y,
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
@@ -1268,11 +1278,25 @@ public class ExampleMenuScreen extends Screen {
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
 		MenuTheme theme = MenuTheme.get();
 
-		// Title above the top bar at 60% larger font
+		// Logo top-left; title shifted slightly right of the logo
+		int logoY = Math.max(0, (TITLE_BAND - LOGO_SIZE) / 2);
+		graphics.blit(
+				RenderPipelines.GUI_TEXTURED,
+				ROOTY_LOGO,
+				LOGO_LEFT,
+				logoY,
+				0.0F,
+				0.0F,
+				LOGO_SIZE,
+				LOGO_SIZE,
+				64,
+				64,
+				0xFFFFFFFF
+		);
 		var pose = graphics.pose();
 		pose.pushMatrix();
 		float titleY = (TITLE_BAND - this.font.lineHeight * TITLE_SCALE) / 2.0F;
-		pose.translate(CONTENT_LEFT, titleY);
+		pose.translate(TITLE_LEFT, titleY);
 		pose.scale(TITLE_SCALE);
 		graphics.text(this.font, this.title, 0, 0, theme.title, true);
 		pose.popMatrix();

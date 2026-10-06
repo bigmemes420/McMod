@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Meteor {@code FluidRendererMixin} (simplified): non-selected fluids respect
- * X-Ray opacity; selected fluid blocks stay normal.
+ * X-Ray opacity slider; selected fluid blocks stay 100% opaque.
  */
 @Mixin(FluidRenderer.class)
 public class FluidRendererMixin {
@@ -36,10 +36,23 @@ public class FluidRendererMixin {
 	) {
 		int alpha = XRayModule.getAlpha(fluidState.createLegacyBlock(), pos);
 		if (alpha == 0) {
+			ALPHAS.set(-1);
 			ci.cancel();
 			return;
 		}
 		ALPHAS.set(alpha);
+	}
+
+	@Inject(method = "tesselate", at = @At("RETURN"))
+	private void rooty$xrayFluidTesselateEnd(
+			BlockAndTintGetter level,
+			BlockPos pos,
+			FluidRenderer.Output output,
+			BlockState blockState,
+			FluidState fluidState,
+			CallbackInfo ci
+	) {
+		ALPHAS.set(-1);
 	}
 
 	@Inject(method = "vertex", at = @At("HEAD"), cancellable = true)

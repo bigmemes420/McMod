@@ -30,9 +30,10 @@ import java.util.Set;
  * </ul>
  * No overlay boxes. Chunk occlusion is cancelled (VisGraph) and ambient
  * occlusion light is forced full while active. Faded quads are forced onto
- * TRANSLUCENT via SectionCompiler translucent-pass + BakedQuad layer rewrite
- * (MC 26.3 force-opaque SOLID path otherwise ignores vertex alpha). Remesh via
- * {@code levelExtractor.allChanged()} (debounced once per tick).
+ * TRANSLUCENT via SectionCompiler translucent-pass + BakedQuad layer rewrite.
+ * {@code forceOpaque} is disabled while active so the SOLID hard-path cannot
+ * discard slider alpha. Remesh via {@code levelExtractor.allChanged()}
+ * (debounced once per tick).
  *
  * @see <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a>
  */

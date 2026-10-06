@@ -22,16 +22,18 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.List;
+
 /**
- * Meteor Client {@code ModelBlockRendererMixin} port for MC 26.3, with the
- * SectionCompiler translucent-pass flag that MC 26.3's force-opaque SOLID
- * output path requires for non-selected alpha to actually show:
+ * Meteor Client {@code ModelBlockRendererMixin} port for MC 26.3 Fabric.
+ * Non-selected blocks honor the opacity slider; selected stay 100% opaque.
  * <ul>
- *   <li>Cancel tessellation when alpha is 0 (hidden)</li>
- *   <li>Meteor {@code multiplyColor} + absolute alpha bake before {@code put}</li>
- *   <li>Rewrite quad layer to TRANSLUCENT + {@link XRayModule#beginTranslucentPass}</li>
- *   <li>Selected / inactive ({@code alpha == -1}) left untouched at 100%</li>
+ *   <li>0 → tessellation cancelled (hidden)</li>
+ *   <li>1–254 → multiplyColor + absolute alpha on TRANSLUCENT</li>
+ *   <li>-1 (selected / inactive) → untouched full-opaque mesh</li>
  * </ul>
+ * Also disables {@code forceOpaque} while X-Ray is active so the SectionCompiler
+ * SOLID hard-path cannot discard vertex alpha (leaves / cutoutLeaves).
  */
 @Mixin(ModelBlockRenderer.class)
 public class ModelBlockRendererMixin {
@@ -41,6 +43,21 @@ public class ModelBlockRendererMixin {
 
 	@Unique
 	private static final ThreadLocal<Integer> ALPHAS = ThreadLocal.withInitial(() -> -1);
+
+	/**
+	 * MC 26.3 routes leaves through a force-opaque SOLID output that ignores
+	 * BakedQuad layer / vertex alpha. Disable that while X-Ray is fading.
+	 */
+	@Inject(method = "forceOpaque", at = @At("HEAD"), cancellable = true)
+	private static void rooty$xrayDisableForceOpaque(
+			boolean cutoutLeaves,
+			BlockState state,
+			CallbackInfoReturnable<Boolean> cir
+	) {
+		if (XRayModule.isActive()) {
+			cir.setReturnValue(false);
+		}
+	}
 
 	@Inject(method = "tesselateBlock", at = @At("HEAD"), cancellable = true)
 	private void rooty$xrayBeginBlock(
@@ -58,6 +75,8 @@ public class ModelBlockRendererMixin {
 		int alpha = XRayModule.getAlpha(state, pos);
 		ALPHAS.set(alpha);
 		if (alpha == 0) {
+			// RETURN injectors do not run after cancel — clear thread locals here.
+			ALPHAS.set(-1);
 			ci.cancel();
 			return;
 		}
@@ -81,6 +100,32 @@ public class ModelBlockRendererMixin {
 	) {
 		XRayModule.endTranslucentPass();
 		ALPHAS.set(-1);
+	}
+
+	/**
+	 * Belt-and-suspenders with Meteor: also cancel/fade at the private
+	 * flat / AO entry points in case another caller skips {@code tesselateBlock}.
+	 */
+	@Inject(method = {"tesselateFlat", "tesselateAmbientOcclusion"}, at = @At("HEAD"), cancellable = true)
+	private void rooty$xrayTesselatePart(
+			BlockQuadOutput output,
+			float x,
+			float y,
+			float z,
+			List<?> parts,
+			BlockAndTintGetter level,
+			BlockState state,
+			BlockPos pos,
+			CallbackInfo ci
+	) {
+		int alpha = ALPHAS.get();
+		if (alpha == -1) {
+			alpha = XRayModule.getAlpha(state, pos);
+			ALPHAS.set(alpha);
+		}
+		if (alpha == 0) {
+			ci.cancel();
+		}
 	}
 
 	@Inject(method = "putQuadWithTint", at = @At("HEAD"))
