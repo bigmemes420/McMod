@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Set;
 
-/** Shared default ore/chest block ids for X-Ray and Finder. */
+/** Shared default ore/chest block ids for Finder. */
 public final class BlockEspDefaults {
 	/** Written when the user clears every block so load does not re-seed defaults. */
 	public static final String EMPTY_SENTINEL = "-";

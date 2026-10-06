@@ -22,6 +22,7 @@ import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.MobEspModule;
 import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
+import com.example.client.module.RadarModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.SneakModule;
@@ -34,7 +35,6 @@ import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
 import com.example.client.module.TriggerBotModule;
 import com.example.client.module.VelocityModule;
-import com.example.client.module.XRayModule;
 import com.example.client.widget.CapsuleButton;
 import com.example.client.widget.CogButton;
 import com.example.client.widget.FlatMenuButton;
@@ -84,7 +84,7 @@ public class ExampleMenuScreen extends Screen {
 	private static final int SETTINGS_GAP = 4;
 	private static final float TITLE_SCALE = 1.6F;
 	/** Logo drawn top-left; title shifts right of it. */
-	private static final int LOGO_SIZE = 22;
+	private static final int LOGO_SIZE = 24;
 	private static final int LOGO_LEFT = 6;
 	private static final int TITLE_LEFT = LOGO_LEFT + LOGO_SIZE + 8;
 	private static final Identifier ROOTY_LOGO = ExampleMod.id("textures/gui/rooty_logo.png");
@@ -475,49 +475,6 @@ public class ExampleMenuScreen extends Screen {
 				(button, enabled) -> FullbrightModule.setEnabled(enabled)
 		);
 
-		// X-Ray: capsule + cog + Edit (Edit next to cog)
-		this.addRenderableWidget(new ToggleCapsuleButton(
-				CONTENT_LEFT,
-				y,
-				CAPSULE_WIDTH,
-				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.xray"),
-				XRayModule.isEnabled(),
-				"xray",
-				(button, enabled) -> XRayModule.setEnabled(enabled)
-		));
-		this.addRenderableWidget(new CogButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 6,
-				y,
-				COG_SIZE,
-				settingsOpen("xray"),
-				button -> toggleSettings("xray")
-		));
-		this.addRenderableWidget(new FlatMenuButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
-				y,
-				EDIT_WIDTH,
-				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.xray.edit"),
-				button -> {
-					if (this.minecraft != null) {
-						this.minecraft.gui.setScreen(new XRayBlocksScreen(this));
-					}
-				}
-		));
-		y += CAPSULE_HEIGHT + CAPSULE_GAP;
-		if (settingsOpen("xray")) {
-			addLabeledSlider(
-					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.visuals.xray.opacity"),
-					XRayModule.getOpacity(),
-					XRayModule.MIN_OPACITY,
-					XRayModule.MAX_OPACITY,
-					XRayModule::setOpacity,
-					XRayModule::commitOpacity
-			);
-			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
-		}
 
 		// Finder: capsule + cog + Edit + mode dropdown (Edit next to cog; dropdown right of Edit)
 		this.addRenderableWidget(new ToggleCapsuleButton(
@@ -608,7 +565,75 @@ public class ExampleMenuScreen extends Screen {
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
+
+		// Radar: capsule + cog + mode dropdown (Mobs / Players / Both)
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.radar"),
+				RadarModule.isEnabled(),
+				"radar",
+				(button, enabled) -> RadarModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("radar"),
+				button -> toggleSettings("radar")
+		));
+		int radarModeIndex = switch (RadarModule.getMode()) {
+			case MOBS -> 0;
+			case PLAYERS -> 1;
+			default -> 2;
+		};
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.visuals.radar.mode.mobs"),
+					Component.translatable("screen.modid.menu.visuals.radar.mode.players"),
+					Component.translatable("screen.modid.menu.visuals.radar.mode.both")
+				},
+				radarModeIndex,
+				index -> {
+					RadarModule.TargetMode mode = switch (index) {
+						case 0 -> RadarModule.TargetMode.MOBS;
+						case 1 -> RadarModule.TargetMode.PLAYERS;
+						default -> RadarModule.TargetMode.BOTH;
+					};
+					RadarModule.setMode(mode);
+					rebuildMenu();
+				}
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("radar")) {
+			this.addRenderableWidget(new ToggleCapsuleButton(
+					CONTENT_LEFT,
+					y,
+					SETTINGS_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.visuals.radar.show_height"),
+					RadarModule.isShowHeight(),
+					(button, enabled) -> RadarModule.setShowHeight(enabled)
+			));
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.modid.menu.visuals.radar.range"),
+					RadarModule.getRange(),
+					RadarModule.MIN_RANGE,
+					RadarModule.MAX_RANGE,
+					RadarModule::setRange
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 	}
+
 
 	private void addCombatContent() {
 		int y = CONTENT_TOP;
@@ -1271,14 +1296,7 @@ public class ExampleMenuScreen extends Screen {
 		int barBottom = TITLE_BAND + TOP_BAR_HEIGHT;
 		graphics.fill(0, barTop, this.width, barBottom, theme.topBar);
 		graphics.horizontalLine(0, this.width - 1, barBottom, theme.topBarLine);
-	}
-
-	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-		super.extractRenderState(graphics, mouseX, mouseY, delta);
-		MenuTheme theme = MenuTheme.get();
-
-		// Logo top-left; title shifted slightly right of the logo
+		// Logo in title band (background stratum) so it is not covered by blur/widgets
 		int logoY = Math.max(0, (TITLE_BAND - LOGO_SIZE) / 2);
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
@@ -1290,9 +1308,16 @@ public class ExampleMenuScreen extends Screen {
 				LOGO_SIZE,
 				LOGO_SIZE,
 				128,
-				128,
-				0xFFFFFFFF
+				128
 		);
+	}
+
+	@Override
+	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		super.extractRenderState(graphics, mouseX, mouseY, delta);
+		MenuTheme theme = MenuTheme.get();
+
+		// Title shifted right of the logo (logo drawn in extractBackground)
 		var pose = graphics.pose();
 		pose.pushMatrix();
 		float titleY = (TITLE_BAND - this.font.lineHeight * TITLE_SCALE) / 2.0F;

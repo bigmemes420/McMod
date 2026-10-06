@@ -24,6 +24,7 @@ import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.MobEspModule;
 import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
+import com.example.client.module.RadarModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.SneakModule;
@@ -33,7 +34,6 @@ import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
 import com.example.client.module.TowerModule;
 import com.example.client.module.VelocityModule;
-import com.example.client.module.XRayModule;
 
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -111,9 +111,10 @@ public final class ModConfig {
 		MobEspModule.loadSelectedMobs(props.getProperty("mobEspMobs", ""));
 		MobEspModule.loadMobColors(props.getProperty("mobEspColors", ""));
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
-		XRayModule.loadEnabled(bool(props, "xray", false));
-		XRayModule.loadOpacity(floatVal(props, "xrayOpacity", XRayModule.DEFAULT_OPACITY));
-		XRayModule.loadFullOpacityBlocks(loadBlockList(props, "xrayBlocks", "xrayBlock"));
+		RadarModule.loadEnabled(bool(props, "radar", false));
+		RadarModule.loadMode(props.getProperty("radarMode", "BOTH"));
+		RadarModule.loadShowHeight(bool(props, "radarShowHeight", true));
+		RadarModule.loadRange(floatVal(props, "radarRange", RadarModule.DEFAULT_RANGE));
 		FinderModule.loadEnabled(bool(props, "finder", false));
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
 		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
@@ -193,9 +194,10 @@ public final class ModConfig {
 			props.setProperty("mobEspMobs", MobEspModule.selectedMobsCsv());
 			props.setProperty("mobEspColors", MobEspModule.mobColorsCsv());
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
-			props.setProperty("xray", String.valueOf(XRayModule.isEnabled()));
-			props.setProperty("xrayOpacity", Float.toString(XRayModule.getOpacity()));
-			writeBlockList(props, "xrayBlocks", "xrayBlock", XRayModule.fullOpacityBlocksCsv());
+			props.setProperty("radar", String.valueOf(RadarModule.isEnabled()));
+			props.setProperty("radarMode", RadarModule.getMode().name());
+			props.setProperty("radarShowHeight", String.valueOf(RadarModule.isShowHeight()));
+			props.setProperty("radarRange", Float.toString(RadarModule.getRange()));
 			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
 			props.setProperty("finderMode", FinderModule.getMode().name());
 			props.setProperty("finderOpacity", Float.toString(FinderModule.getOpacity()));

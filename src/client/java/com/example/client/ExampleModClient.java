@@ -20,6 +20,7 @@ import com.example.client.module.MobEspModule;
 import com.example.client.module.ModuleKeybinds;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.PlayerEspModule;
+import com.example.client.module.RadarModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.ScaffoldModule;
@@ -28,7 +29,6 @@ import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
 import com.example.client.module.TowerModule;
 import com.example.client.module.VelocityModule;
-import com.example.client.module.XRayModule;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -49,6 +49,7 @@ public class ExampleModClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		ModConfig.loadAll();
 		NoFallModule.registerHooks();
+		RadarModule.registerHud();
 
 		openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.modid.open_menu",
@@ -89,7 +90,6 @@ public class ExampleModClient implements ClientModInitializer {
 			TowerModule.tick(client);
 			AirPlaceModule.tick(client);
 			InventoryMoveModule.tick(client);
-			XRayModule.tick(client);
 			FinderModule.tick(client);
 		});
 	}

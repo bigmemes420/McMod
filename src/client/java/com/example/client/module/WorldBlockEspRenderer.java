@@ -99,7 +99,7 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/** Fill-only for pre-merged AABBs (X-Ray ghost / cached Finder). */
+	/** Fill-only for pre-merged AABBs (cached Finder). */
 	public static void drawFilledAabbs(LevelRenderer levelRenderer, List<AABB> boxes, int fillArgb) {
 		if (boxes.isEmpty()) {
 			return;
