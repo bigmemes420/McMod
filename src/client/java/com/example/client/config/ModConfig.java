@@ -123,10 +123,12 @@ public final class ModConfig {
 				intVal(props, "radarHudSize", RadarModule.DEFAULT_HUD_SIZE)
 		);
 		CustomCrosshairModule.loadEnabled(bool(props, "customCrosshair", false));
+		CustomCrosshairModule.loadSource(props.getProperty("customCrosshairSource", "PIXELS"));
 		CustomCrosshairModule.loadPixelsBase64(props.getProperty("customCrosshairPixels", ""));
 		CustomCrosshairModule.loadColor(intVal(props, "customCrosshairColor", CustomCrosshairModule.DEFAULT_COLOR));
 		CustomCrosshairModule.loadRotate(bool(props, "customCrosshairRotate", false));
 		CustomCrosshairModule.loadSpinSpeed(floatVal(props, "customCrosshairSpinSpeed", CustomCrosshairModule.DEFAULT_SPIN_SPEED));
+		CustomCrosshairModule.afterConfigLoaded();
 		FinderModule.loadEnabled(bool(props, "finder", false));
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
 		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
@@ -215,6 +217,7 @@ public final class ModConfig {
 			props.setProperty("radarHudY", Integer.toString(RadarModule.getHudY()));
 			props.setProperty("radarHudSize", Integer.toString(RadarModule.getHudSize()));
 			props.setProperty("customCrosshair", String.valueOf(CustomCrosshairModule.isEnabled()));
+			props.setProperty("customCrosshairSource", CustomCrosshairModule.getSource().name());
 			props.setProperty("customCrosshairPixels", CustomCrosshairModule.pixelsToBase64());
 			props.setProperty("customCrosshairColor", Integer.toString(CustomCrosshairModule.getColor()));
 			props.setProperty("customCrosshairRotate", String.valueOf(CustomCrosshairModule.isRotate()));
