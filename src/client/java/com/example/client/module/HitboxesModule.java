@@ -3,6 +3,7 @@ package com.example.client.module;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,6 +12,7 @@ import net.minecraft.world.phys.AABB;
 /**
  * Combat module: inflates living-entity bounding boxes client-side for easier
  * targeting. Size slider is extra half-width in blocks (0–1).
+ * Never affects the local player (movement / own hitbox stay vanilla).
  */
 public final class HitboxesModule {
 	public static final float MIN_SIZE = 0.0F;
@@ -62,12 +64,19 @@ public final class HitboxesModule {
 
 	/** Called from {@link com.example.client.mixin.EntityMixin}. */
 	public static AABB modifyBoundingBox(Entity entity, AABB original) {
-		if (!enabled || size <= 0.0F) {
+		if (!enabled || size <= 0.0F || entity == null || original == null) {
+			return original;
+		}
+		// Local player must never be inflated (reference, type, or UUID).
+		if (entity instanceof LocalPlayer) {
 			return original;
 		}
 		Minecraft client = Minecraft.getInstance();
-		if (client.player == null || entity == client.player) {
-			return original;
+		if (client != null && client.player != null) {
+			LocalPlayer self = client.player;
+			if (entity == self || entity.getUUID().equals(self.getUUID())) {
+				return original;
+			}
 		}
 		if (!(entity instanceof LivingEntity)) {
 			return original;

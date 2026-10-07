@@ -126,6 +126,8 @@ public final class CustomCrosshairModule {
 	private static int pngWidth;
 	private static int pngHeight;
 	private static boolean pngReady;
+	/** False until first in-game ensure when texture manager is ready. */
+	private static boolean crosshairBootstrapped;
 
 	/** Decoded GIF animation (null when static PNG). */
 	private static int[][] gifFrames;
@@ -583,16 +585,46 @@ public final class CustomCrosshairModule {
 
 	/** Called after ModConfig finishes loading module fields. */
 	public static void afterConfigLoaded() {
+		crosshairBootstrapped = false;
 		ensureCrosshairsDir();
 		refreshPngList();
-		if (source == Source.PNG) {
-			if (selectedPng == null || selectedPng.isBlank()) {
-				if (!cachedPngList.isEmpty()) {
-					selectPng(cachedPngList.getFirst(), false);
-				}
-			} else {
-				selectPng(selectedPng, false);
+		// Try early load; may fail before texture manager is ready — HUD retries.
+		reloadSelectedImage(false);
+		markPixelsTextureDirty();
+	}
+
+	/** Re-decode the configured PNG/GIF when source is image mode. */
+	private static void reloadSelectedImage(boolean save) {
+		if (source != Source.PNG) {
+			return;
+		}
+		if (selectedPng == null || selectedPng.isBlank()) {
+			if (!cachedPngList.isEmpty()) {
+				selectPng(cachedPngList.getFirst(), save);
 			}
+			return;
+		}
+		selectPng(selectedPng, save);
+	}
+
+	/**
+	 * Ensures PNG/GIF textures (and pixel bake) after the client texture manager
+	 * exists — config load often runs too early for DynamicTexture registration.
+	 */
+	private static void ensureCrosshairAssets(Minecraft client) {
+		if (client == null || client.getTextureManager() == null) {
+			return;
+		}
+		if (!crosshairBootstrapped) {
+			ensureCrosshairsDir();
+			refreshPngList();
+			reloadSelectedImage(false);
+			markPixelsTextureDirty();
+			crosshairBootstrapped = true;
+			return;
+		}
+		if (source == Source.PNG && !pngReady && selectedPng != null && !selectedPng.isBlank()) {
+			reloadSelectedImage(false);
 		}
 	}
 
@@ -825,6 +857,7 @@ public final class CustomCrosshairModule {
 		if (client.gui.screen() != null) {
 			return;
 		}
+		ensureCrosshairAssets(client);
 		float dt = delta.getRealtimeDeltaTicks() / 20.0F;
 		tick(dt);
 

@@ -124,15 +124,16 @@ public final class ModConfig {
 				intVal(props, "radarHudY", RadarModule.DEFAULT_HUD_Y),
 				intVal(props, "radarHudSize", RadarModule.DEFAULT_HUD_SIZE)
 		);
+		// Crosshair: resolution before pixels (grid size); source/png last then afterConfigLoaded.
 		CustomCrosshairModule.loadEnabled(bool(props, "customCrosshair", false));
-		CustomCrosshairModule.loadSource(props.getProperty("customCrosshairSource", "PIXELS"));
-		CustomCrosshairModule.loadSelectedPng(props.getProperty("customCrosshairPng", ""));
 		CustomCrosshairModule.loadResolution(props.getProperty("customCrosshairResolution", "X64"));
 		CustomCrosshairModule.loadPixelsBase64(props.getProperty("customCrosshairPixels", ""));
 		CustomCrosshairModule.loadColor(intVal(props, "customCrosshairColor", CustomCrosshairModule.DEFAULT_COLOR));
 		CustomCrosshairModule.loadColorMode(props.getProperty("customCrosshairColorMode", "TINT"));
 		CustomCrosshairModule.loadRotate(bool(props, "customCrosshairRotate", false));
 		CustomCrosshairModule.loadSpinSpeed(floatVal(props, "customCrosshairSpinSpeed", CustomCrosshairModule.DEFAULT_SPIN_SPEED));
+		CustomCrosshairModule.loadSelectedPng(props.getProperty("customCrosshairPng", ""));
+		CustomCrosshairModule.loadSource(props.getProperty("customCrosshairSource", "PIXELS"));
 		CustomCrosshairModule.afterConfigLoaded();
 		FinderModule.loadEnabled(bool(props, "finder", false));
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
@@ -230,7 +231,7 @@ public final class ModConfig {
 			props.setProperty("customCrosshairPng", CustomCrosshairModule.getSelectedPng());
 			props.setProperty("customCrosshairResolution", CustomCrosshairModule.getResolution().name());
 			props.setProperty("customCrosshairPixels", CustomCrosshairModule.pixelsToBase64());
-			props.setProperty("customCrosshairColor", Integer.toString(CustomCrosshairModule.getColor()));
+			props.setProperty("customCrosshairColor", MenuTheme.toHex(CustomCrosshairModule.getColor()));
 			props.setProperty("customCrosshairColorMode", CustomCrosshairModule.getColorMode().name());
 			props.setProperty("customCrosshairRotate", String.valueOf(CustomCrosshairModule.isRotate()));
 			props.setProperty("customCrosshairSpinSpeed", Float.toString(CustomCrosshairModule.getSpinSpeed()));
@@ -360,9 +361,13 @@ public final class ModConfig {
 		}
 		try {
 			String s = raw.trim();
-			if (s.startsWith("#") || s.startsWith("0x") || s.startsWith("0X") || s.length() == 8) {
+			boolean hexish = s.startsWith("#") || s.startsWith("0x") || s.startsWith("0X")
+					|| (s.length() == 6 || s.length() == 8) && s.matches("(?i)[0-9a-f]+");
+			if (hexish) {
 				Integer parsed = MenuTheme.parseHex(s);
-				return parsed != null ? parsed : def;
+				if (parsed != null) {
+					return parsed;
+				}
 			}
 			return (int) Long.parseLong(s);
 		} catch (NumberFormatException e) {
