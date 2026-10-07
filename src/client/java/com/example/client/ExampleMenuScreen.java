@@ -1564,6 +1564,17 @@ public class ExampleMenuScreen extends Screen {
 		return super.mouseClicked(event, doubleClick);
 	}
 
+	/**
+	 * While an inline value editor is capturing input, Esc must cancel the field
+	 * (not close the menu). Screen.keyPressed handles Esc before forwarding to the
+	 * focused child, so gate shouldCloseOnEsc on capturesInput().
+	 */
+	@Override
+	public boolean shouldCloseOnEsc() {
+		var focused = this.getFocused();
+		return focused == null || !focused.capturesInput();
+	}
+
 	/** Keybind capture, then Insert closes the menu while it is open. */
 	@Override
 	public boolean keyPressed(KeyEvent event) {

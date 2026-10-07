@@ -139,7 +139,11 @@ public class LevelCapsuleButton extends AbstractWidget {
 	}
 
 	private void commitEditor() {
+		boolean wasActive = this.editor.isActive();
 		this.editor.commit(this.minLevel, this.maxLevel, this::applyLevel);
+		if (wasActive) {
+			syncTextInput(false);
+		}
 	}
 
 	private void updateLevelFromMouse(double mouseX) {
@@ -229,8 +233,7 @@ public class LevelCapsuleButton extends AbstractWidget {
 			this.pressedCircle = false;
 			this.draggingSlider = false;
 			if (!this.editor.isActive()) {
-				this.editor.begin(this.level);
-				this.setFocused(true);
+				beginEditing();
 			}
 			return;
 		}
@@ -262,20 +265,51 @@ public class LevelCapsuleButton extends AbstractWidget {
 		this.draggingSlider = false;
 	}
 
+	private void beginEditing() {
+		this.editor.begin(this.level);
+		var screen = Minecraft.getInstance().gui.screen();
+		if (screen != null) {
+			screen.setFocused(this);
+		} else {
+			this.setFocused(true);
+		}
+		syncTextInput(true);
+	}
+
+	private void syncTextInput(boolean active) {
+		Minecraft.getInstance().onTextInputFocusChange(this, active);
+	}
+
+	private void endEditingTextInput() {
+		if (!this.editor.isActive()) {
+			syncTextInput(false);
+		}
+	}
+
+	@Override
+	public boolean capturesInput() {
+		return this.editor.isActive();
+	}
+
 	@Override
 	public void setFocused(boolean focused) {
 		super.setFocused(focused);
 		if (!focused && this.editor.isActive()) {
+			syncTextInput(false);
 			commitEditor();
+		} else {
+			syncTextInput(focused && this.editor.isActive());
 		}
 	}
 
 	@Override
 	public boolean keyPressed(KeyEvent event) {
-		if (this.editor.keyPressed(event, this.minLevel, this.maxLevel, this::applyLevel)) {
-			return true;
+		if (!this.editor.isActive()) {
+			return super.keyPressed(event);
 		}
-		return super.keyPressed(event);
+		boolean handled = this.editor.keyPressed(event, this.minLevel, this.maxLevel, this::applyLevel);
+		endEditingTextInput();
+		return handled || super.keyPressed(event);
 	}
 
 	@Override
