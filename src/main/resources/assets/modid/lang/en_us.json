@@ -195,7 +195,7 @@
   "screen.modid.menu.visuals.custom_crosshair.disabled": "Custom Crosshair disabled",
   "screen.modid.menu.visuals.custom_crosshair.edit": "Edit",
   "screen.modid.menu.visuals.custom_crosshair.mode.pixels": "Pixels",
-  "screen.modid.menu.visuals.custom_crosshair.mode.png": "PNG",
+  "screen.modid.menu.visuals.custom_crosshair.mode.png": "PNG/GIF",
   "screen.modid.menu.visuals.custom_crosshair.rotate": "Rotate",
   "screen.modid.menu.visuals.custom_crosshair.spin_speed": "Spin Speed",
   "screen.modid.menu.visuals.custom_crosshair.color_mode.tint": "Tint Color",

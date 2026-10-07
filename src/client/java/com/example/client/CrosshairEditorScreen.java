@@ -393,6 +393,8 @@ public class CrosshairEditorScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
+		// HUD tick is skipped while a screen is open — keep GIF preview animating.
+		CustomCrosshairModule.tickGif(delta / 20.0F);
 		MenuTheme theme = MenuTheme.get();
 		graphics.centeredText(this.font, this.title, this.width / 2, gridTop - PANEL_PAD - 24, theme.title);
 		graphics.centeredText(this.font, modeLabel, this.width / 2, gridTop - 12, theme.panelHint);

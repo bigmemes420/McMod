@@ -2,6 +2,7 @@ package com.example.client.module;
 
 import com.example.ExampleMod;
 import com.example.client.config.ModConfig;
+import com.example.client.util.GifDecoder;
 
 import com.mojang.blaze3d.platform.NativeImage;
 
@@ -26,7 +27,7 @@ import java.util.Locale;
 
 /**
  * Visuals: replaces the vanilla crosshair with either a pixel pattern (16–512) or a
- * PNG from {@code <gameDir>/crosshairs/} (full ARGB alpha). Both modes bake to a
+ * PNG/GIF from {@code <gameDir>/crosshairs/} (full ARGB alpha; GIFs animate). Both modes bake to a
  * DynamicTexture and blit once per frame; spin uses pose translate→rotate→translate
  * (no per-pixel fills). Rotate / spin apply to both sources; PNG can use
  * custom tint or direct file colors ({@link ColorMode}).
@@ -120,9 +121,18 @@ public final class CustomCrosshairModule {
 	private static String selectedPng = "";
 
 	private static DynamicTexture pngTexture;
+	/** Backing pixels for {@link #pngTexture} (PNG or current GIF frame). */
+	private static NativeImage imagePixels;
 	private static int pngWidth;
 	private static int pngHeight;
 	private static boolean pngReady;
+
+	/** Decoded GIF animation (null when static PNG). */
+	private static int[][] gifFrames;
+	private static int[] gifDelaysMs;
+	private static int gifFrameIndex;
+	private static float gifAccumSec;
+	private static boolean gifAnimated;
 
 	private static DynamicTexture pixelsTexture;
 	private static boolean pixelsTextureDirty = true;
@@ -227,7 +237,7 @@ public final class CustomCrosshairModule {
 	}
 
 	/**
-	 * Rescan {@link #crosshairsDir()} for readable {@code .png} files.
+	 * Rescan {@link #crosshairsDir()} for {@code .png} / {@code .gif} files.
 	 * Creates the folder if missing. Updates the cached list.
 	 */
 	public static List<String> refreshPngList() {
@@ -235,10 +245,10 @@ public final class CustomCrosshairModule {
 		Path dir = crosshairsDir();
 		List<String> found = new ArrayList<>();
 		try (var stream = Files.list(dir)) {
-			// Extension-only scan (no NativeImage decode) — validate on select.
+			// Extension-only scan (no decode) — validate on select.
 			stream.filter(Files::isRegularFile)
 					.map(p -> p.getFileName().toString())
-					.filter(n -> n.toLowerCase(Locale.ROOT).endsWith(".png"))
+					.filter(CustomCrosshairModule::isImageFilename)
 					.sorted(String.CASE_INSENSITIVE_ORDER)
 					.forEach(found::add);
 		} catch (Exception e) {
@@ -246,9 +256,21 @@ public final class CustomCrosshairModule {
 		}
 		cachedPngList = Collections.unmodifiableList(found);
 		statusMessage = found.isEmpty()
-				? "No PNGs in " + dir
-				: found.size() + " PNG(s) in crosshairs/";
+				? "No PNG/GIF in " + dir
+				: found.size() + " image(s) in crosshairs/";
 		return cachedPngList;
+	}
+
+	public static boolean isImageFilename(String name) {
+		if (name == null) {
+			return false;
+		}
+		String n = name.toLowerCase(Locale.ROOT);
+		return n.endsWith(".png") || n.endsWith(".gif");
+	}
+
+	public static boolean isGifFilename(String name) {
+		return name != null && name.toLowerCase(Locale.ROOT).endsWith(".gif");
 	}
 
 	public static List<String> getPngList() {
@@ -409,7 +431,7 @@ public final class CustomCrosshairModule {
 				selectPng(list.getFirst(), true);
 				return;
 			}
-			statusMessage = "No PNGs in crosshairs/ — drop files then Refresh";
+			statusMessage = "No PNG/GIF in crosshairs/ — drop files then Refresh";
 			ModConfig.save();
 			return;
 		}
@@ -417,8 +439,8 @@ public final class CustomCrosshairModule {
 	}
 
 	/**
-	 * Select a PNG by filename inside {@link #crosshairsDir()}, load it, switch to
-	 * PNG mode, and persist.
+	 * Select a PNG/GIF by filename inside {@link #crosshairsDir()}, load it, switch
+	 * to image mode, and persist ({@code customCrosshairPng}).
 	 */
 	public static boolean selectPng(String filename) {
 		return selectPng(filename, true);
@@ -427,13 +449,13 @@ public final class CustomCrosshairModule {
 	public static boolean selectPng(String filename, boolean save) {
 		if (filename == null || filename.isBlank()) {
 			pngReady = false;
-			statusMessage = "No PNG selected";
+			statusMessage = "No image selected";
 			return false;
 		}
 		// Normalize to basename only
 		String name = Path.of(filename).getFileName().toString();
-		if (!name.toLowerCase(Locale.ROOT).endsWith(".png")) {
-			statusMessage = "Not a PNG: " + name;
+		if (!isImageFilename(name)) {
+			statusMessage = "Not a PNG/GIF: " + name;
 			return false;
 		}
 		selectedPng = name;
@@ -446,10 +468,10 @@ public final class CustomCrosshairModule {
 			}
 			return false;
 		}
-		boolean ok = loadPngTexture(path);
+		boolean ok = loadImageTexture(path);
 		if (ok) {
 			source = Source.PNG;
-			statusMessage = "Using " + name;
+			statusMessage = "Using " + name + (gifAnimated ? " (" + gifFrames.length + " frames)" : "");
 		} else {
 			statusMessage = "Failed to decode " + name;
 		}
@@ -575,24 +597,56 @@ public final class CustomCrosshairModule {
 	}
 
 	public static void tick(float deltaSeconds) {
-		if (!enabled || !rotate) {
+		if (rotate && enabled) {
+			angleDeg = (angleDeg + spinSpeed * deltaSeconds) % 360.0F;
+			if (angleDeg < 0.0F) {
+				angleDeg += 360.0F;
+			}
+		}
+		tickGif(deltaSeconds);
+	}
+
+	/** Advance GIF frame clock (safe to call from editor while menu is open). */
+	public static void tickGif(float deltaSeconds) {
+		if (!gifAnimated || !pngReady || gifFrames == null || gifFrames.length <= 1) {
 			return;
 		}
-		angleDeg = (angleDeg + spinSpeed * deltaSeconds) % 360.0F;
-		if (angleDeg < 0.0F) {
-			angleDeg += 360.0F;
+		if (deltaSeconds <= 0.0F) {
+			return;
+		}
+		gifAccumSec += deltaSeconds;
+		// Cap catch-up to avoid spiral after hitch
+		int guard = 0;
+		while (guard++ < 64) {
+			float delaySec = gifDelaysMs[gifFrameIndex] / 1000.0F;
+			if (gifAccumSec < delaySec) {
+				break;
+			}
+			gifAccumSec -= delaySec;
+			gifFrameIndex = (gifFrameIndex + 1) % gifFrames.length;
+			uploadGifFrame(gifFrameIndex);
 		}
 	}
 
-	private static boolean loadPngTexture(Path path) {
+	public static boolean isGifAnimated() {
+		return gifAnimated && gifFrames != null && gifFrames.length > 1;
+	}
+
+	private static boolean loadImageTexture(Path path) {
 		Minecraft client = Minecraft.getInstance();
 		if (client == null) {
 			return false;
 		}
+		String name = path.getFileName().toString();
+		if (isGifFilename(name)) {
+			return loadGifTexture(path);
+		}
 		try (InputStream in = Files.newInputStream(path)) {
 			NativeImage image = NativeImage.read(in);
+			clearGifState();
 			seedPixelsFromImage(image);
 			releasePngTexture();
+			imagePixels = image;
 			pngTexture = new DynamicTexture(() -> "rooty_crosshair_png", image);
 			client.getTextureManager().register(PNG_TEXTURE_ID, pngTexture);
 			pngWidth = image.getWidth();
@@ -604,6 +658,70 @@ public final class CustomCrosshairModule {
 			pngReady = false;
 			return false;
 		}
+	}
+
+	private static boolean loadGifTexture(Path path) {
+		Minecraft client = Minecraft.getInstance();
+		if (client == null) {
+			return false;
+		}
+		try {
+			GifDecoder.Result decoded = GifDecoder.decode(path);
+			if (decoded.frameCount() <= 0 || decoded.width <= 0 || decoded.height <= 0) {
+				pngReady = false;
+				return false;
+			}
+			releasePngTexture();
+			clearGifState();
+			gifFrames = decoded.frames;
+			gifDelaysMs = decoded.delaysMs;
+			gifFrameIndex = 0;
+			gifAccumSec = 0.0F;
+			gifAnimated = decoded.frameCount() > 1;
+			pngWidth = decoded.width;
+			pngHeight = decoded.height;
+			NativeImage image = new NativeImage(pngWidth, pngHeight, true);
+			writeArgbToNative(image, gifFrames[0], pngWidth, pngHeight);
+			seedPixelsFromImage(image);
+			imagePixels = image;
+			pngTexture = new DynamicTexture(() -> "rooty_crosshair_gif", image);
+			client.getTextureManager().register(PNG_TEXTURE_ID, pngTexture);
+			pngReady = true;
+			return true;
+		} catch (Exception e) {
+			ExampleMod.LOGGER.warn("Failed to load crosshair GIF {}: {}", path, e.toString());
+			clearGifState();
+			pngReady = false;
+			return false;
+		}
+	}
+
+	private static void uploadGifFrame(int index) {
+		if (imagePixels == null || pngTexture == null || gifFrames == null) {
+			return;
+		}
+		if (index < 0 || index >= gifFrames.length) {
+			return;
+		}
+		writeArgbToNative(imagePixels, gifFrames[index], pngWidth, pngHeight);
+		pngTexture.upload();
+	}
+
+	private static void writeArgbToNative(NativeImage image, int[] argb, int w, int h) {
+		int len = Math.min(argb.length, w * h);
+		for (int i = 0; i < len; i++) {
+			int x = i % w;
+			int y = i / w;
+			image.setPixel(x, y, argb[i]);
+		}
+	}
+
+	private static void clearGifState() {
+		gifFrames = null;
+		gifDelaysMs = null;
+		gifFrameIndex = 0;
+		gifAccumSec = 0.0F;
+		gifAnimated = false;
 	}
 
 	private static void seedPixelsFromImage(NativeImage image) {
@@ -644,7 +762,9 @@ public final class CustomCrosshairModule {
 			}
 			pngTexture = null;
 		}
+		imagePixels = null;
 		pngReady = false;
+		clearGifState();
 	}
 
 	private static void markPixelsTextureDirty() {
