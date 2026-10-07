@@ -93,7 +93,7 @@ public final class SpeedModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-			enabled ? "screen.modid.menu.movement.speed.enabled" : "screen.modid.menu.movement.speed.disabled"
+			enabled ? "screen.rootymenu.menu.movement.speed.enabled" : "screen.rootymenu.menu.movement.speed.disabled"
 		);
 		ModConfig.save();
 	}

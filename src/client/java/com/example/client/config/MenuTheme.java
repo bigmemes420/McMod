@@ -15,7 +15,7 @@ import java.util.Properties;
 
 /**
  * Persistent Rooty Menu color preferences. Saved under
- * {@code <gameDir>/config/modid-menu-theme.properties}.
+ * {@code <gameDir>/config/rootymenu-menu-theme.properties}.
  */
 public final class MenuTheme {
 	private static MenuTheme instance;

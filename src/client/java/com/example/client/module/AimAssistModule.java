@@ -73,8 +73,8 @@ public final class AimAssistModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.aimassist.enabled"
-						: "screen.modid.menu.combat.aimassist.disabled"
+				enabled ? "screen.rootymenu.menu.combat.aimassist.enabled"
+						: "screen.rootymenu.menu.combat.aimassist.disabled"
 		);
 		ModConfig.save();
 	}

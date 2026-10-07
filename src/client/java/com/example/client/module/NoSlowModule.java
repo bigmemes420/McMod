@@ -26,8 +26,8 @@ public final class NoSlowModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.player.noslow.enabled"
-						: "screen.modid.menu.player.noslow.disabled"
+				enabled ? "screen.rootymenu.menu.player.noslow.enabled"
+						: "screen.rootymenu.menu.player.noslow.disabled"
 		);
 		ModConfig.save();
 	}

@@ -154,8 +154,8 @@ public final class MobEspModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.mob_esp.enabled"
-						: "screen.modid.menu.visuals.mob_esp.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.mob_esp.enabled"
+						: "screen.rootymenu.menu.visuals.mob_esp.disabled"
 		);
 		ModConfig.save();
 	}

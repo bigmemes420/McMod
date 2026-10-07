@@ -53,8 +53,8 @@ public class ColorPickerScreen extends Screen {
 	/** Custom apply callback (e.g. per-block Finder color); skips MenuTheme when non-null. */
 	public ColorPickerScreen(Screen parent, String titleKeyOrThemeKey, int argb, Consumer<Integer> onApply) {
 		super(onApply == null
-				? Component.translatable("screen.modid.menu.colors.picker", MenuTheme.displayName(titleKeyOrThemeKey))
-				: Component.translatable("screen.modid.menu.colors.picker", titleKeyOrThemeKey));
+				? Component.translatable("screen.rootymenu.menu.colors.picker", MenuTheme.displayName(titleKeyOrThemeKey))
+				: Component.translatable("screen.rootymenu.menu.colors.picker", titleKeyOrThemeKey));
 		this.parent = parent;
 		this.themeKey = titleKeyOrThemeKey;
 		this.onApply = onApply;
@@ -169,7 +169,7 @@ public class ColorPickerScreen extends Screen {
 				btnY,
 				btnW,
 				btnH,
-				Component.translatable("screen.modid.menu.colors.apply"),
+				Component.translatable("screen.rootymenu.menu.colors.apply"),
 				button -> applyAndClose()
 		));
 		this.addRenderableWidget(new CapsuleButton(
@@ -177,7 +177,7 @@ public class ColorPickerScreen extends Screen {
 				btnY,
 				btnW,
 				btnH,
-				Component.translatable("screen.modid.menu.colors.cancel"),
+				Component.translatable("screen.rootymenu.menu.colors.cancel"),
 				button -> this.onClose()
 		));
 	}
@@ -269,12 +269,12 @@ public class ColorPickerScreen extends Screen {
 		int swatchW = 48;
 		int swatchH = 32;
 
-		graphics.text(this.font, Component.translatable("screen.modid.menu.colors.original"), previewX, previewY, 0xFFAAAAAA, false);
+		graphics.text(this.font, Component.translatable("screen.rootymenu.menu.colors.original"), previewX, previewY, 0xFFAAAAAA, false);
 		graphics.fill(previewX, previewY + 12, previewX + swatchW, previewY + 12 + swatchH, this.originalArgb | 0xFF000000);
 		graphics.outline(previewX, previewY + 12, swatchW, swatchH, 0xFFFFFFFF);
 
 		int newX = previewX + swatchW + 16;
-		graphics.text(this.font, Component.translatable("screen.modid.menu.colors.preview"), newX, previewY, 0xFFAAAAAA, false);
+		graphics.text(this.font, Component.translatable("screen.rootymenu.menu.colors.preview"), newX, previewY, 0xFFAAAAAA, false);
 		int current = currentArgb();
 		graphics.fill(newX, previewY + 12, newX + swatchW, previewY + 12 + swatchH, current | 0xFF000000);
 		graphics.outline(newX, previewY + 12, swatchW, swatchH, 0xFFFFFFFF);

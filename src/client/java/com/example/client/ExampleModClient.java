@@ -57,14 +57,14 @@ public class ExampleModClient implements ClientModInitializer {
 		ViewerRetentionModule.registerHud();
 
 		openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-				"key.modid.open_menu",
+				"key.rootymenu.open_menu",
 				InputConstants.Type.KEYBOARD,
 				InputConstants.KEY_INSERT,
 				CATEGORY
 		));
 		// Toggle HUD layout edit mode (move/resize Radar). Ignored while other screens are open.
 		hudEditKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-				"key.modid.hud_edit",
+				"key.rootymenu.hud_edit",
 				InputConstants.Type.KEYBOARD,
 				InputConstants.KEY_DELETE,
 				CATEGORY

@@ -56,8 +56,8 @@ public final class StepModule {
 			apply(client.player, enabled);
 		}
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.movement.step.enabled"
-						: "screen.modid.menu.movement.step.disabled"
+				enabled ? "screen.rootymenu.menu.movement.step.enabled"
+						: "screen.rootymenu.menu.movement.step.disabled"
 		);
 		ModConfig.save();
 	}

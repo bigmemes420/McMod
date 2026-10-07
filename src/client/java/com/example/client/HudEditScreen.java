@@ -48,7 +48,7 @@ public class HudEditScreen extends Screen {
 	private int startY;
 
 	public HudEditScreen() {
-		super(Component.translatable("screen.modid.hud_edit.title"));
+		super(Component.translatable("screen.rootymenu.hud_edit.title"));
 	}
 
 	@Override
@@ -74,7 +74,7 @@ public class HudEditScreen extends Screen {
 		ViewerRetentionModule.drawEditFrames(graphics, VIEWER_BORDER, HANDLE_FILL);
 
 		String hint = this.font.plainSubstrByWidth(
-				Component.translatable("screen.modid.hud_edit.hint").getString(),
+				Component.translatable("screen.rootymenu.hud_edit.hint").getString(),
 				Math.max(40, this.width - 16)
 		);
 		graphics.text(this.font, hint, 8, this.height - 14, 0xFFE8E8E8, true);

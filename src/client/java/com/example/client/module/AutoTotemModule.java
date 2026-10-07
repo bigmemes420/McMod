@@ -32,8 +32,8 @@ public final class AutoTotemModule {
 		enabled = value;
 		cooldownTicks = 0;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.autototem.enabled"
-						: "screen.modid.menu.combat.autototem.disabled"
+				enabled ? "screen.rootymenu.menu.combat.autototem.enabled"
+						: "screen.rootymenu.menu.combat.autototem.disabled"
 		);
 		ModConfig.save();
 	}

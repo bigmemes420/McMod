@@ -73,7 +73,7 @@ public final class NoFallModule {
 			}
 		}
 		NotificationsModule.notifyToggle(
-			enabled ? "screen.modid.menu.movement.nofall.enabled" : "screen.modid.menu.movement.nofall.disabled"
+			enabled ? "screen.rootymenu.menu.movement.nofall.enabled" : "screen.rootymenu.menu.movement.nofall.disabled"
 		);
 		syncIntegratedServer(client, enabled);
 		ModConfig.save();

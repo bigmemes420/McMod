@@ -22,8 +22,8 @@ public final class FullbrightModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.fullbright.enabled"
-						: "screen.modid.menu.visuals.fullbright.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.fullbright.enabled"
+						: "screen.rootymenu.menu.visuals.fullbright.disabled"
 		);
 		ModConfig.save();
 	}

@@ -119,7 +119,7 @@ public final class FlightModule {
 			}
 		}
 		NotificationsModule.notifyToggle(
-			enabled ? "screen.modid.menu.movement.flight.enabled" : "screen.modid.menu.movement.flight.disabled"
+			enabled ? "screen.rootymenu.menu.movement.flight.enabled" : "screen.rootymenu.menu.movement.flight.disabled"
 		);
 		ModConfig.save();
 	}

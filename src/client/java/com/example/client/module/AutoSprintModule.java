@@ -54,8 +54,8 @@ public final class AutoSprintModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.movement.autosprint.enabled"
-						: "screen.modid.menu.movement.autosprint.disabled"
+				enabled ? "screen.rootymenu.menu.movement.autosprint.enabled"
+						: "screen.rootymenu.menu.movement.autosprint.disabled"
 		);
 		ModConfig.save();
 	}

@@ -26,8 +26,8 @@ public final class CriticalsModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.criticals.enabled"
-						: "screen.modid.menu.combat.criticals.disabled"
+				enabled ? "screen.rootymenu.menu.combat.criticals.enabled"
+						: "screen.rootymenu.menu.combat.criticals.disabled"
 		);
 		ModConfig.save();
 	}

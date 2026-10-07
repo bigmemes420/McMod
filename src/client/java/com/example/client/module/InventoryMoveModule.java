@@ -50,8 +50,8 @@ public final class InventoryMoveModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.player.inventory_move.enabled"
-						: "screen.modid.menu.player.inventory_move.disabled"
+				enabled ? "screen.rootymenu.menu.player.inventory_move.enabled"
+						: "screen.rootymenu.menu.player.inventory_move.disabled"
 		);
 		ModConfig.save();
 	}

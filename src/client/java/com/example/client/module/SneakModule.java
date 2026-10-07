@@ -62,8 +62,8 @@ public final class SneakModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.player.sneak.enabled"
-						: "screen.modid.menu.player.sneak.disabled"
+				enabled ? "screen.rootymenu.menu.player.sneak.enabled"
+						: "screen.rootymenu.menu.player.sneak.disabled"
 		);
 		ModConfig.save();
 	}

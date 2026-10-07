@@ -46,8 +46,8 @@ public final class SpiderModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.movement.spider.enabled"
-						: "screen.modid.menu.movement.spider.disabled"
+				enabled ? "screen.rootymenu.menu.movement.spider.enabled"
+						: "screen.rootymenu.menu.movement.spider.disabled"
 		);
 		ModConfig.save();
 	}

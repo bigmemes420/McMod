@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "rootymenu",
 	"version": "${version}",
 	"name": "Rooty Menu",
 	"description": "Rooty Menu \u2014 custom Fabric client menu (Insert to open).",
@@ -12,7 +12,7 @@
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"icon": "assets/rootymenu/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
@@ -23,9 +23,9 @@
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+		"rootymenu.mixins.json",
 		{
-			"config": "modid.client.mixins.json",
+			"config": "rootymenu.client.mixins.json",
 			"environment": "client"
 		}
 	],

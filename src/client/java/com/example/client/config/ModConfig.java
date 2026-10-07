@@ -48,7 +48,7 @@ import java.util.Properties;
 
 /**
  * Persists module toggles, sliders, keybinds, last menu tab, and notifications to
- * {@code <gameDir>/config/modid-modules.properties}. Theme colors live in
+ * {@code <gameDir>/config/rootymenu-modules.properties}. Theme colors live in
  * {@link MenuTheme}'s own file.
  */
 public final class ModConfig {

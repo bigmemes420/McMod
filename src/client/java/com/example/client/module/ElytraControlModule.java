@@ -53,8 +53,8 @@ public final class ElytraControlModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.movement.elytra_control.enabled"
-						: "screen.modid.menu.movement.elytra_control.disabled"
+				enabled ? "screen.rootymenu.menu.movement.elytra_control.enabled"
+						: "screen.rootymenu.menu.movement.elytra_control.disabled"
 		);
 		ModConfig.save();
 	}

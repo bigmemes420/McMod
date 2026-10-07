@@ -31,8 +31,8 @@ public final class TowerModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.world.tower.enabled"
-						: "screen.modid.menu.world.tower.disabled"
+				enabled ? "screen.rootymenu.menu.world.tower.enabled"
+						: "screen.rootymenu.menu.world.tower.disabled"
 		);
 		ModConfig.save();
 	}

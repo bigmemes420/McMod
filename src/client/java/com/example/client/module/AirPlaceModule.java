@@ -58,8 +58,8 @@ public final class AirPlaceModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.world.airplace.enabled"
-						: "screen.modid.menu.world.airplace.disabled"
+				enabled ? "screen.rootymenu.menu.world.airplace.enabled"
+						: "screen.rootymenu.menu.world.airplace.disabled"
 		);
 		ModConfig.save();
 	}

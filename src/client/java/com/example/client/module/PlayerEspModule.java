@@ -98,8 +98,8 @@ public final class PlayerEspModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.player_esp.enabled"
-						: "screen.modid.menu.visuals.player_esp.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.player_esp.enabled"
+						: "screen.rootymenu.menu.visuals.player_esp.disabled"
 		);
 		ModConfig.save();
 	}

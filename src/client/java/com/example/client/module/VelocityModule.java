@@ -49,8 +49,8 @@ public final class VelocityModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.velocity.enabled"
-						: "screen.modid.menu.combat.velocity.disabled"
+				enabled ? "screen.rootymenu.menu.combat.velocity.enabled"
+						: "screen.rootymenu.menu.combat.velocity.disabled"
 		);
 		ModConfig.save();
 	}

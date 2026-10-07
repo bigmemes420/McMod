@@ -64,8 +64,8 @@ public final class ScaffoldModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.world.scaffold.enabled"
-						: "screen.modid.menu.world.scaffold.disabled"
+				enabled ? "screen.rootymenu.menu.world.scaffold.enabled"
+						: "screen.rootymenu.menu.world.scaffold.disabled"
 		);
 		ModConfig.save();
 	}

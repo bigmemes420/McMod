@@ -142,8 +142,8 @@ public final class RadarModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.radar.enabled"
-						: "screen.modid.menu.visuals.radar.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.radar.enabled"
+						: "screen.rootymenu.menu.visuals.radar.disabled"
 		);
 		ModConfig.save();
 	}

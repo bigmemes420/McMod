@@ -40,39 +40,39 @@ public final class ModuleKeybinds {
 
 	public static void registerAll() {
 		MODULES.clear();
-		register("nametags", Component.translatable("screen.modid.menu.visuals.nametags"), NametagsModule::isEnabled, NametagsModule::setEnabled);
-		register("player_esp", Component.translatable("screen.modid.menu.visuals.player_esp"), PlayerEspModule::isEnabled, PlayerEspModule::setEnabled);
-		register("mob_esp", Component.translatable("screen.modid.menu.visuals.mob_esp"), MobEspModule::isEnabled, MobEspModule::setEnabled);
-		register("fullbright", Component.translatable("screen.modid.menu.visuals.fullbright"), FullbrightModule::isEnabled, FullbrightModule::setEnabled);
-		register("finder", Component.translatable("screen.modid.menu.visuals.finder"), FinderModule::isEnabled, FinderModule::setEnabled);
-		register("radar", Component.translatable("screen.modid.menu.visuals.radar"), RadarModule::isEnabled, RadarModule::setEnabled);
-		register("custom_crosshair", Component.translatable("screen.modid.menu.visuals.custom_crosshair"), CustomCrosshairModule::isEnabled, CustomCrosshairModule::setEnabled);
-		register("autoclicker", Component.translatable("screen.modid.menu.combat.autoclicker"), AutoClickerModule::isEnabled, AutoClickerModule::setEnabled);
-		register("velocity", Component.translatable("screen.modid.menu.combat.velocity"), VelocityModule::isEnabled, VelocityModule::setEnabled);
-		register("reach", Component.translatable("screen.modid.menu.combat.reach"), ReachModule::isEnabled, ReachModule::setEnabled);
-		register("criticals", Component.translatable("screen.modid.menu.combat.criticals"), CriticalsModule::isEnabled, CriticalsModule::setEnabled);
-		register("triggerbot", Component.translatable("screen.modid.menu.combat.triggerbot"), TriggerBotModule::isEnabled, TriggerBotModule::setEnabled);
-		register("aimassist", Component.translatable("screen.modid.menu.combat.aimassist"), AimAssistModule::isEnabled, AimAssistModule::setEnabled);
-		register("hitboxes", Component.translatable("screen.modid.menu.combat.hitboxes"), HitboxesModule::isEnabled, HitboxesModule::setEnabled);
-		register("autototem", Component.translatable("screen.modid.menu.combat.autototem"), AutoTotemModule::isEnabled, AutoTotemModule::setEnabled);
-		register("scaffold", Component.translatable("screen.modid.menu.world.scaffold"), ScaffoldModule::isEnabled, ScaffoldModule::setEnabled);
-		register("fastplace", Component.translatable("screen.modid.menu.world.fastplace"), FastPlaceModule::isEnabled, FastPlaceModule::setEnabled);
-		register("tower", Component.translatable("screen.modid.menu.world.tower"), TowerModule::isEnabled, TowerModule::setEnabled);
-		register("airplace", Component.translatable("screen.modid.menu.world.airplace"), AirPlaceModule::isEnabled, AirPlaceModule::setEnabled);
-		register("inventory_move", Component.translatable("screen.modid.menu.player.inventory_move"), InventoryMoveModule::isEnabled, InventoryMoveModule::setEnabled);
-		register("noslow", Component.translatable("screen.modid.menu.player.noslow"), NoSlowModule::isEnabled, NoSlowModule::setEnabled);
-		register("sneak", Component.translatable("screen.modid.menu.player.sneak"), SneakModule::isEnabled, SneakModule::setEnabled);
-		register("flight", Component.translatable("screen.modid.menu.movement.flight"), FlightModule::isEnabled, FlightModule::setEnabled);
-		register("elytra_control", Component.translatable("screen.modid.menu.movement.elytra_control"), ElytraControlModule::isEnabled, ElytraControlModule::setEnabled);
-		register("speed", Component.translatable("screen.modid.menu.movement.speed"), SpeedModule::isEnabled, SpeedModule::setEnabled);
-		register("nofall", Component.translatable("screen.modid.menu.movement.nofall"), NoFallModule::isEnabled, NoFallModule::setEnabled);
-		register("autosprint", Component.translatable("screen.modid.menu.movement.autosprint"), AutoSprintModule::isEnabled, AutoSprintModule::setEnabled);
-		register("step", Component.translatable("screen.modid.menu.movement.step"), StepModule::isEnabled, StepModule::setEnabled);
-		register("spider", Component.translatable("screen.modid.menu.movement.spider"), SpiderModule::isEnabled, SpiderModule::setEnabled);
-		register("safewalk", Component.translatable("screen.modid.menu.movement.safewalk"), SafeWalkModule::isEnabled, SafeWalkModule::setEnabled);
-		register("jesus", Component.translatable("screen.modid.menu.movement.jesus"), JesusModule::isEnabled, JesusModule::setEnabled);
-		register("notifications", Component.translatable("screen.modid.menu.misc.notifications"), NotificationsModule::isEnabled, NotificationsModule::setEnabled);
-		register("viewer_retention", Component.translatable("screen.modid.menu.misc.viewer_retention"), ViewerRetentionModule::isEnabled, ViewerRetentionModule::setEnabled);
+		register("nametags", Component.translatable("screen.rootymenu.menu.visuals.nametags"), NametagsModule::isEnabled, NametagsModule::setEnabled);
+		register("player_esp", Component.translatable("screen.rootymenu.menu.visuals.player_esp"), PlayerEspModule::isEnabled, PlayerEspModule::setEnabled);
+		register("mob_esp", Component.translatable("screen.rootymenu.menu.visuals.mob_esp"), MobEspModule::isEnabled, MobEspModule::setEnabled);
+		register("fullbright", Component.translatable("screen.rootymenu.menu.visuals.fullbright"), FullbrightModule::isEnabled, FullbrightModule::setEnabled);
+		register("finder", Component.translatable("screen.rootymenu.menu.visuals.finder"), FinderModule::isEnabled, FinderModule::setEnabled);
+		register("radar", Component.translatable("screen.rootymenu.menu.visuals.radar"), RadarModule::isEnabled, RadarModule::setEnabled);
+		register("custom_crosshair", Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair"), CustomCrosshairModule::isEnabled, CustomCrosshairModule::setEnabled);
+		register("autoclicker", Component.translatable("screen.rootymenu.menu.combat.autoclicker"), AutoClickerModule::isEnabled, AutoClickerModule::setEnabled);
+		register("velocity", Component.translatable("screen.rootymenu.menu.combat.velocity"), VelocityModule::isEnabled, VelocityModule::setEnabled);
+		register("reach", Component.translatable("screen.rootymenu.menu.combat.reach"), ReachModule::isEnabled, ReachModule::setEnabled);
+		register("criticals", Component.translatable("screen.rootymenu.menu.combat.criticals"), CriticalsModule::isEnabled, CriticalsModule::setEnabled);
+		register("triggerbot", Component.translatable("screen.rootymenu.menu.combat.triggerbot"), TriggerBotModule::isEnabled, TriggerBotModule::setEnabled);
+		register("aimassist", Component.translatable("screen.rootymenu.menu.combat.aimassist"), AimAssistModule::isEnabled, AimAssistModule::setEnabled);
+		register("hitboxes", Component.translatable("screen.rootymenu.menu.combat.hitboxes"), HitboxesModule::isEnabled, HitboxesModule::setEnabled);
+		register("autototem", Component.translatable("screen.rootymenu.menu.combat.autototem"), AutoTotemModule::isEnabled, AutoTotemModule::setEnabled);
+		register("scaffold", Component.translatable("screen.rootymenu.menu.world.scaffold"), ScaffoldModule::isEnabled, ScaffoldModule::setEnabled);
+		register("fastplace", Component.translatable("screen.rootymenu.menu.world.fastplace"), FastPlaceModule::isEnabled, FastPlaceModule::setEnabled);
+		register("tower", Component.translatable("screen.rootymenu.menu.world.tower"), TowerModule::isEnabled, TowerModule::setEnabled);
+		register("airplace", Component.translatable("screen.rootymenu.menu.world.airplace"), AirPlaceModule::isEnabled, AirPlaceModule::setEnabled);
+		register("inventory_move", Component.translatable("screen.rootymenu.menu.player.inventory_move"), InventoryMoveModule::isEnabled, InventoryMoveModule::setEnabled);
+		register("noslow", Component.translatable("screen.rootymenu.menu.player.noslow"), NoSlowModule::isEnabled, NoSlowModule::setEnabled);
+		register("sneak", Component.translatable("screen.rootymenu.menu.player.sneak"), SneakModule::isEnabled, SneakModule::setEnabled);
+		register("flight", Component.translatable("screen.rootymenu.menu.movement.flight"), FlightModule::isEnabled, FlightModule::setEnabled);
+		register("elytra_control", Component.translatable("screen.rootymenu.menu.movement.elytra_control"), ElytraControlModule::isEnabled, ElytraControlModule::setEnabled);
+		register("speed", Component.translatable("screen.rootymenu.menu.movement.speed"), SpeedModule::isEnabled, SpeedModule::setEnabled);
+		register("nofall", Component.translatable("screen.rootymenu.menu.movement.nofall"), NoFallModule::isEnabled, NoFallModule::setEnabled);
+		register("autosprint", Component.translatable("screen.rootymenu.menu.movement.autosprint"), AutoSprintModule::isEnabled, AutoSprintModule::setEnabled);
+		register("step", Component.translatable("screen.rootymenu.menu.movement.step"), StepModule::isEnabled, StepModule::setEnabled);
+		register("spider", Component.translatable("screen.rootymenu.menu.movement.spider"), SpiderModule::isEnabled, SpiderModule::setEnabled);
+		register("safewalk", Component.translatable("screen.rootymenu.menu.movement.safewalk"), SafeWalkModule::isEnabled, SafeWalkModule::setEnabled);
+		register("jesus", Component.translatable("screen.rootymenu.menu.movement.jesus"), JesusModule::isEnabled, JesusModule::setEnabled);
+		register("notifications", Component.translatable("screen.rootymenu.menu.misc.notifications"), NotificationsModule::isEnabled, NotificationsModule::setEnabled);
+		register("viewer_retention", Component.translatable("screen.rootymenu.menu.misc.viewer_retention"), ViewerRetentionModule::isEnabled, ViewerRetentionModule::setEnabled);
 	}
 
 	public static Map<String, ModuleEntry> modules() {
@@ -109,7 +109,7 @@ public final class ModuleKeybinds {
 	public static Component getBindDisplay(String moduleId) {
 		String name = getBindName(moduleId);
 		if (name == null || name.isBlank() || InputConstants.UNKNOWN.getName().equals(name)) {
-			return Component.translatable("screen.modid.menu.keybind.none");
+			return Component.translatable("screen.rootymenu.menu.keybind.none");
 		}
 		try {
 			return InputConstants.getKey(name).getDisplayName();
@@ -165,13 +165,13 @@ public final class ModuleKeybinds {
 		listeningId = null;
 		if (event.key() == InputConstants.KEY_ESCAPE) {
 			clearBind(id);
-			NotificationsModule.notifyMessage(Component.translatable("screen.modid.menu.keybind.cleared"));
+			NotificationsModule.notifyMessage(Component.translatable("screen.rootymenu.menu.keybind.cleared"));
 			return true;
 		}
 		InputConstants.Key key = InputConstants.getKey(event);
 		setBind(id, key);
 		NotificationsModule.notifyMessage(Component.translatable(
-				"screen.modid.menu.keybind.set",
+				"screen.rootymenu.menu.keybind.set",
 				MODULES.get(id).label(),
 				key.getDisplayName()
 		));

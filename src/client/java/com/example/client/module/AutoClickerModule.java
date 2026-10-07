@@ -80,8 +80,8 @@ public final class AutoClickerModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.autoclicker.enabled"
-						: "screen.modid.menu.combat.autoclicker.disabled"
+				enabled ? "screen.rootymenu.menu.combat.autoclicker.enabled"
+						: "screen.rootymenu.menu.combat.autoclicker.disabled"
 		);
 		ModConfig.save();
 	}

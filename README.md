@@ -19,8 +19,8 @@ Build: `./gradlew build` → jar under `build/libs/`.
 
 | Key | Action |
 |-----|--------|
-| **Insert** | Open / close Rooty Menu (`key.modid.open_menu`; rebindable in Controls) |
-| **Delete** | Toggle **HUD Edit** mode (`key.modid.hud_edit`) — drag/resize HUD widgets |
+| **Insert** | Open / close Rooty Menu (`key.rootymenu.open_menu`; rebindable in Controls) |
+| **Delete** | Toggle **HUD Edit** mode (`key.rootymenu.hud_edit`) — drag/resize HUD widgets |
 | Esc | Close menu / exit HUD Edit |
 | Right-click module capsule | Bind / clear a **per-module** toggle key (`ModuleKeybinds`) |
 
@@ -91,12 +91,12 @@ Press **Delete** in-game (no other screen open):
 
 | Path | Purpose |
 |------|---------|
-| `<gameDir>/config/modid-modules.properties` | Module toggles, sliders, keybinds, last tab, crosshair pixels/source/color/resolution, radar HUD layout, viewer instances, etc. |
-| `<gameDir>/config/modid-menu-theme.properties` | Menu theme colors |
+| `<gameDir>/config/rootymenu-modules.properties` | Module toggles, sliders, keybinds, last tab, crosshair pixels/source/color/resolution, radar HUD layout, viewer instances, etc. |
+| `<gameDir>/config/rootymenu-menu-theme.properties` | Menu theme colors |
 | `<gameDir>/crosshairs/` | Custom Crosshair PNG/GIF files |
 | `<gameDir>/Media/` | Viewer Retention stills/GIFs |
 
-Namespace / mod id in fabric metadata is still `modid` (template id).
+Fabric mod id / asset namespace: **`rootymenu`**.
 
 ## Development
 

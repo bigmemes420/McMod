@@ -88,8 +88,8 @@ public final class ViewerRetentionModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.misc.viewer_retention.enabled"
-						: "screen.modid.menu.misc.viewer_retention.disabled"
+				enabled ? "screen.rootymenu.menu.misc.viewer_retention.enabled"
+						: "screen.rootymenu.menu.misc.viewer_retention.disabled"
 		);
 		if (enabled) {
 			ensureAllLoaded();

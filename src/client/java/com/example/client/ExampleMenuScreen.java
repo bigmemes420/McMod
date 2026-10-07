@@ -118,7 +118,7 @@ public class ExampleMenuScreen extends Screen {
 	private boolean colorMenuOpen;
 
 	public ExampleMenuScreen() {
-		super(Component.translatable("screen.modid.menu.title"));
+		super(Component.translatable("screen.rootymenu.menu.title"));
 	}
 
 	@Override
@@ -131,19 +131,19 @@ public class ExampleMenuScreen extends Screen {
 
 		int tabY = TITLE_BAND + (TOP_BAR_HEIGHT - TAB_HEIGHT) / 2;
 		int tabX = 8;
-		addTab(tabX, tabY, Tab.GENERAL, "screen.modid.menu.tab.general");
+		addTab(tabX, tabY, Tab.GENERAL, "screen.rootymenu.menu.tab.general");
 		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.PLAYER, "screen.modid.menu.tab.player");
+		addTab(tabX, tabY, Tab.PLAYER, "screen.rootymenu.menu.tab.player");
 		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.VISUALS, "screen.modid.menu.tab.visuals");
+		addTab(tabX, tabY, Tab.VISUALS, "screen.rootymenu.menu.tab.visuals");
 		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.COMBAT, "screen.modid.menu.tab.combat");
+		addTab(tabX, tabY, Tab.COMBAT, "screen.rootymenu.menu.tab.combat");
 		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.WORLD, "screen.modid.menu.tab.world");
+		addTab(tabX, tabY, Tab.WORLD, "screen.rootymenu.menu.tab.world");
 		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.MOVEMENT, "screen.modid.menu.tab.movement");
+		addTab(tabX, tabY, Tab.MOVEMENT, "screen.rootymenu.menu.tab.movement");
 		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.MISC, "screen.modid.menu.tab.misc");
+		addTab(tabX, tabY, Tab.MISC, "screen.rootymenu.menu.tab.misc");
 
 		int closeX = this.width - CLOSE_WIDTH - 8;
 		int menuX = closeX - MENU_WIDTH - 6;
@@ -154,7 +154,7 @@ public class ExampleMenuScreen extends Screen {
 				btnY,
 				MENU_WIDTH,
 				CLOSE_HEIGHT,
-				Component.translatable("screen.modid.menu.colors"),
+				Component.translatable("screen.rootymenu.menu.colors"),
 				this.colorMenuOpen,
 				button -> {
 					this.colorMenuOpen = !this.colorMenuOpen;
@@ -167,7 +167,7 @@ public class ExampleMenuScreen extends Screen {
 				btnY,
 				CLOSE_WIDTH,
 				CLOSE_HEIGHT,
-				Component.translatable("screen.modid.menu.close"),
+				Component.translatable("screen.rootymenu.menu.close"),
 				button -> this.onClose()
 		));
 
@@ -312,9 +312,9 @@ public class ExampleMenuScreen extends Screen {
 
 	private void addGeneralContent() {
 		String[] keys = {
-				"screen.modid.menu.general.option1",
-				"screen.modid.menu.general.option2",
-				"screen.modid.menu.general.option3"
+				"screen.rootymenu.menu.general.option1",
+				"screen.rootymenu.menu.general.option2",
+				"screen.rootymenu.menu.general.option3"
 		};
 		int y = CONTENT_TOP;
 		for (String key : keys) {
@@ -338,14 +338,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"nametags",
 				"nametags",
-				Component.translatable("screen.modid.menu.visuals.nametags"),
+				Component.translatable("screen.rootymenu.menu.visuals.nametags"),
 				NametagsModule.isEnabled(),
 				(button, enabled) -> NametagsModule.setEnabled(enabled)
 		);
 		if (settingsOpen("nametags")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.visuals.nametags.scale"),
+					Component.translatable("screen.rootymenu.menu.visuals.nametags.scale"),
 					NametagsModule.getScale(),
 					NametagsModule.MIN_SCALE,
 					NametagsModule.MAX_SCALE,
@@ -360,7 +360,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.player_esp"),
+				Component.translatable("screen.rootymenu.menu.visuals.player_esp"),
 				PlayerEspModule.isEnabled(),
 				"player_esp",
 				(button, enabled) -> PlayerEspModule.setEnabled(enabled)
@@ -383,9 +383,9 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.visuals.player_esp.mode.outline"),
-					Component.translatable("screen.modid.menu.visuals.player_esp.mode.box_2d"),
-					Component.translatable("screen.modid.menu.visuals.player_esp.mode.box_3d")
+					Component.translatable("screen.rootymenu.menu.visuals.player_esp.mode.outline"),
+					Component.translatable("screen.rootymenu.menu.visuals.player_esp.mode.box_2d"),
+					Component.translatable("screen.rootymenu.menu.visuals.player_esp.mode.box_3d")
 				},
 				playerModeIndex,
 				index -> {
@@ -410,7 +410,7 @@ public class ExampleMenuScreen extends Screen {
 					y,
 					SETTINGS_WIDTH,
 					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.visuals.player_esp.outline_boxes"),
+					Component.translatable("screen.rootymenu.menu.visuals.player_esp.outline_boxes"),
 					PlayerEspModule.isOutlineBoxes(),
 					(button, enabled) -> PlayerEspModule.setOutlineBoxes(enabled)
 			));
@@ -423,7 +423,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.mob_esp"),
+				Component.translatable("screen.rootymenu.menu.visuals.mob_esp"),
 				MobEspModule.isEnabled(),
 				"mob_esp",
 				(button, enabled) -> MobEspModule.setEnabled(enabled)
@@ -434,7 +434,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.mob_esp.edit"),
+				Component.translatable("screen.rootymenu.menu.visuals.mob_esp.edit"),
 				button -> {
 					if (this.minecraft != null) {
 						this.minecraft.gui.setScreen(new MobEspMobsScreen(this));
@@ -452,9 +452,9 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.visuals.mob_esp.mode.outline"),
-					Component.translatable("screen.modid.menu.visuals.mob_esp.mode.box_2d"),
-					Component.translatable("screen.modid.menu.visuals.mob_esp.mode.box_3d")
+					Component.translatable("screen.rootymenu.menu.visuals.mob_esp.mode.outline"),
+					Component.translatable("screen.rootymenu.menu.visuals.mob_esp.mode.box_2d"),
+					Component.translatable("screen.rootymenu.menu.visuals.mob_esp.mode.box_3d")
 				},
 				mobModeIndex,
 				index -> {
@@ -473,7 +473,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"fullbright",
-				Component.translatable("screen.modid.menu.visuals.fullbright"),
+				Component.translatable("screen.rootymenu.menu.visuals.fullbright"),
 				FullbrightModule.isEnabled(),
 				(button, enabled) -> FullbrightModule.setEnabled(enabled)
 		);
@@ -485,7 +485,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.finder"),
+				Component.translatable("screen.rootymenu.menu.visuals.finder"),
 				FinderModule.isEnabled(),
 				"finder",
 				(button, enabled) -> FinderModule.setEnabled(enabled)
@@ -505,7 +505,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.finder.edit"),
+				Component.translatable("screen.rootymenu.menu.visuals.finder.edit"),
 				button -> {
 					if (this.minecraft != null) {
 						this.minecraft.gui.setScreen(new FinderBlocksScreen(this));
@@ -523,9 +523,9 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.visuals.finder.mode.outline"),
-					Component.translatable("screen.modid.menu.visuals.finder.mode.filled"),
-					Component.translatable("screen.modid.menu.visuals.finder.mode.combined_fill")
+					Component.translatable("screen.rootymenu.menu.visuals.finder.mode.outline"),
+					Component.translatable("screen.rootymenu.menu.visuals.finder.mode.filled"),
+					Component.translatable("screen.rootymenu.menu.visuals.finder.mode.combined_fill")
 				},
 				finderModeIndex,
 				index -> {
@@ -542,7 +542,7 @@ public class ExampleMenuScreen extends Screen {
 		if (settingsOpen("finder")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.visuals.finder.opacity"),
+					Component.translatable("screen.rootymenu.menu.visuals.finder.opacity"),
 					FinderModule.getOpacity(),
 					FinderModule.MIN_OPACITY,
 					FinderModule.MAX_OPACITY,
@@ -551,7 +551,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.visuals.finder.thickness"),
+					Component.translatable("screen.rootymenu.menu.visuals.finder.thickness"),
 					FinderModule.getOutlineThickness(),
 					FinderModule.MIN_OUTLINE_THICKNESS,
 					FinderModule.MAX_OUTLINE_THICKNESS,
@@ -560,7 +560,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.visuals.finder.distance"),
+					Component.translatable("screen.rootymenu.menu.visuals.finder.distance"),
 					FinderModule.getDistance(),
 					FinderModule.MIN_DISTANCE,
 					FinderModule.MAX_DISTANCE,
@@ -575,7 +575,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.radar"),
+				Component.translatable("screen.rootymenu.menu.visuals.radar"),
 				RadarModule.isEnabled(),
 				"radar",
 				(button, enabled) -> RadarModule.setEnabled(enabled)
@@ -598,9 +598,9 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.visuals.radar.mode.mobs"),
-					Component.translatable("screen.modid.menu.visuals.radar.mode.players"),
-					Component.translatable("screen.modid.menu.visuals.radar.mode.both")
+					Component.translatable("screen.rootymenu.menu.visuals.radar.mode.mobs"),
+					Component.translatable("screen.rootymenu.menu.visuals.radar.mode.players"),
+					Component.translatable("screen.rootymenu.menu.visuals.radar.mode.both")
 				},
 				radarModeIndex,
 				index -> {
@@ -627,10 +627,10 @@ public class ExampleMenuScreen extends Screen {
 					SETTINGS_WIDTH,
 					CAPSULE_HEIGHT,
 					new Component[] {
-						Component.translatable("screen.modid.menu.visuals.radar.shape.square"),
-						Component.translatable("screen.modid.menu.visuals.radar.shape.circle"),
-						Component.translatable("screen.modid.menu.visuals.radar.shape.triangle"),
-						Component.translatable("screen.modid.menu.visuals.radar.shape.star")
+						Component.translatable("screen.rootymenu.menu.visuals.radar.shape.square"),
+						Component.translatable("screen.rootymenu.menu.visuals.radar.shape.circle"),
+						Component.translatable("screen.rootymenu.menu.visuals.radar.shape.triangle"),
+						Component.translatable("screen.rootymenu.menu.visuals.radar.shape.star")
 					},
 					radarShapeIndex,
 					index -> {
@@ -650,14 +650,14 @@ public class ExampleMenuScreen extends Screen {
 					y,
 					SETTINGS_WIDTH,
 					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.visuals.radar.show_height"),
+					Component.translatable("screen.rootymenu.menu.visuals.radar.show_height"),
 					RadarModule.isShowHeight(),
 					(button, enabled) -> RadarModule.setShowHeight(enabled)
 			));
 			y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.visuals.radar.range"),
+					Component.translatable("screen.rootymenu.menu.visuals.radar.range"),
 					RadarModule.getRange(),
 					RadarModule.MIN_RANGE,
 					RadarModule.MAX_RANGE,
@@ -672,7 +672,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.custom_crosshair"),
+				Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair"),
 				CustomCrosshairModule.isEnabled(),
 				"custom_crosshair",
 				(button, enabled) -> CustomCrosshairModule.setEnabled(enabled)
@@ -685,7 +685,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				EDIT_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.custom_crosshair.edit"),
+				Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.edit"),
 				button -> {
 					if (this.minecraft != null) {
 						this.minecraft.gui.setScreen(new CrosshairEditorScreen(this));
@@ -706,8 +706,8 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.visuals.custom_crosshair.mode.pixels"),
-					Component.translatable("screen.modid.menu.visuals.custom_crosshair.mode.png")
+					Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.mode.pixels"),
+					Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.mode.png")
 				},
 				crossSourceIndex,
 				index -> {
@@ -751,7 +751,7 @@ public class ExampleMenuScreen extends Screen {
 				int pngIndex = 0;
 				if (pngNames.isEmpty()) {
 					pngLabels = new Component[] {
-							Component.translatable("screen.modid.crosshair_editor.no_pngs")
+							Component.translatable("screen.rootymenu.crosshair_editor.no_pngs")
 					};
 				} else {
 					pngLabels = new Component[pngNames.size()];
@@ -784,7 +784,7 @@ public class ExampleMenuScreen extends Screen {
 						y,
 						EDIT_WIDTH,
 						CAPSULE_HEIGHT,
-						Component.translatable("screen.modid.crosshair_editor.refresh"),
+						Component.translatable("screen.rootymenu.crosshair_editor.refresh"),
 						button -> {
 							CustomCrosshairModule.refreshPngList();
 							rebuildMenu();
@@ -799,8 +799,8 @@ public class ExampleMenuScreen extends Screen {
 						SETTINGS_WIDTH,
 						CAPSULE_HEIGHT,
 						new Component[] {
-								Component.translatable("screen.modid.menu.visuals.custom_crosshair.color_mode.tint"),
-								Component.translatable("screen.modid.menu.visuals.custom_crosshair.color_mode.direct")
+								Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.color_mode.tint"),
+								Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.color_mode.direct")
 						},
 						colorModeIndex,
 						index -> {
@@ -828,7 +828,7 @@ public class ExampleMenuScreen extends Screen {
 					y,
 					SETTINGS_WIDTH,
 					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.visuals.custom_crosshair.rotate"),
+					Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.rotate"),
 					CustomCrosshairModule.isRotate(),
 					(button, enabled) -> {
 						CustomCrosshairModule.setRotate(enabled);
@@ -839,7 +839,7 @@ public class ExampleMenuScreen extends Screen {
 			if (CustomCrosshairModule.isRotate()) {
 				addLabeledSlider(
 						CONTENT_LEFT, y, SETTINGS_WIDTH,
-						Component.translatable("screen.modid.menu.visuals.custom_crosshair.spin_speed"),
+						Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.spin_speed"),
 						CustomCrosshairModule.getSpinSpeed(),
 						CustomCrosshairModule.MIN_SPIN_SPEED,
 						CustomCrosshairModule.MAX_SPIN_SPEED,
@@ -859,14 +859,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"autoclicker",
 				"autoclicker",
-				Component.translatable("screen.modid.menu.combat.autoclicker"),
+				Component.translatable("screen.rootymenu.menu.combat.autoclicker"),
 				AutoClickerModule.isEnabled(),
 				(button, enabled) -> AutoClickerModule.setEnabled(enabled)
 		);
 		if (settingsOpen("autoclicker")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.autoclicker.cps"),
+					Component.translatable("screen.rootymenu.menu.combat.autoclicker.cps"),
 					AutoClickerModule.getCps(),
 					AutoClickerModule.MIN_CPS,
 					AutoClickerModule.MAX_CPS,
@@ -875,7 +875,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.autoclicker.randomize"),
+					Component.translatable("screen.rootymenu.menu.combat.autoclicker.randomize"),
 					AutoClickerModule.getRandomizeMs(),
 					AutoClickerModule.MIN_RANDOMIZE,
 					AutoClickerModule.MAX_RANDOMIZE,
@@ -888,14 +888,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"velocity",
 				"velocity",
-				Component.translatable("screen.modid.menu.combat.velocity"),
+				Component.translatable("screen.rootymenu.menu.combat.velocity"),
 				VelocityModule.isEnabled(),
 				(button, enabled) -> VelocityModule.setEnabled(enabled)
 		);
 		if (settingsOpen("velocity")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.velocity.percent"),
+					Component.translatable("screen.rootymenu.menu.combat.velocity.percent"),
 					VelocityModule.getPercent(),
 					VelocityModule.MIN_PERCENT,
 					VelocityModule.MAX_PERCENT,
@@ -908,14 +908,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"reach",
 				"reach",
-				Component.translatable("screen.modid.menu.combat.reach"),
+				Component.translatable("screen.rootymenu.menu.combat.reach"),
 				ReachModule.isEnabled(),
 				(button, enabled) -> ReachModule.setEnabled(enabled)
 		);
 		if (settingsOpen("reach")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.reach.bonus"),
+					Component.translatable("screen.rootymenu.menu.combat.reach.bonus"),
 					ReachModule.getBonus(),
 					ReachModule.MIN_BONUS,
 					ReachModule.MAX_BONUS,
@@ -928,7 +928,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"criticals",
-				Component.translatable("screen.modid.menu.combat.criticals"),
+				Component.translatable("screen.rootymenu.menu.combat.criticals"),
 				CriticalsModule.isEnabled(),
 				(button, enabled) -> CriticalsModule.setEnabled(enabled)
 		);
@@ -937,14 +937,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"triggerbot",
 				"triggerbot",
-				Component.translatable("screen.modid.menu.combat.triggerbot"),
+				Component.translatable("screen.rootymenu.menu.combat.triggerbot"),
 				TriggerBotModule.isEnabled(),
 				(button, enabled) -> TriggerBotModule.setEnabled(enabled)
 		);
 		if (settingsOpen("triggerbot")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.triggerbot.delay"),
+					Component.translatable("screen.rootymenu.menu.combat.triggerbot.delay"),
 					TriggerBotModule.getDelay(),
 					TriggerBotModule.MIN_DELAY,
 					TriggerBotModule.MAX_DELAY,
@@ -957,14 +957,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"aimassist",
 				"aimassist",
-				Component.translatable("screen.modid.menu.combat.aimassist"),
+				Component.translatable("screen.rootymenu.menu.combat.aimassist"),
 				AimAssistModule.isEnabled(),
 				(button, enabled) -> AimAssistModule.setEnabled(enabled)
 		);
 		if (settingsOpen("aimassist")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.aimassist.strength"),
+					Component.translatable("screen.rootymenu.menu.combat.aimassist.strength"),
 					AimAssistModule.getStrength(),
 					AimAssistModule.MIN_STRENGTH,
 					AimAssistModule.MAX_STRENGTH,
@@ -973,7 +973,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.aimassist.range"),
+					Component.translatable("screen.rootymenu.menu.combat.aimassist.range"),
 					AimAssistModule.getRange(),
 					AimAssistModule.MIN_RANGE,
 					AimAssistModule.MAX_RANGE,
@@ -986,14 +986,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"hitboxes",
 				"hitboxes",
-				Component.translatable("screen.modid.menu.combat.hitboxes"),
+				Component.translatable("screen.rootymenu.menu.combat.hitboxes"),
 				HitboxesModule.isEnabled(),
 				(button, enabled) -> HitboxesModule.setEnabled(enabled)
 		);
 		if (settingsOpen("hitboxes")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.combat.hitboxes.size"),
+					Component.translatable("screen.rootymenu.menu.combat.hitboxes.size"),
 					HitboxesModule.getSize(),
 					HitboxesModule.MIN_SIZE,
 					HitboxesModule.MAX_SIZE,
@@ -1006,7 +1006,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"autototem",
-				Component.translatable("screen.modid.menu.combat.autototem"),
+				Component.translatable("screen.rootymenu.menu.combat.autototem"),
 				AutoTotemModule.isEnabled(),
 				(button, enabled) -> AutoTotemModule.setEnabled(enabled)
 		);
@@ -1020,7 +1020,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.world.scaffold"),
+				Component.translatable("screen.rootymenu.menu.world.scaffold"),
 				ScaffoldModule.isEnabled(),
 				"scaffold",
 				(button, enabled) -> ScaffoldModule.setEnabled(enabled)
@@ -1036,9 +1036,9 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH + 24,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.world.scaffold.mode.hand"),
-					Component.translatable("screen.modid.menu.world.scaffold.mode.offhand"),
-					Component.translatable("screen.modid.menu.world.scaffold.mode.inventory")
+					Component.translatable("screen.rootymenu.menu.world.scaffold.mode.hand"),
+					Component.translatable("screen.rootymenu.menu.world.scaffold.mode.offhand"),
+					Component.translatable("screen.rootymenu.menu.world.scaffold.mode.inventory")
 				},
 				scaffoldModeIndex,
 				index -> {
@@ -1057,14 +1057,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"fastplace",
 				"fastplace",
-				Component.translatable("screen.modid.menu.world.fastplace"),
+				Component.translatable("screen.rootymenu.menu.world.fastplace"),
 				FastPlaceModule.isEnabled(),
 				(button, enabled) -> FastPlaceModule.setEnabled(enabled)
 		);
 		if (settingsOpen("fastplace")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.world.fastplace.speed"),
+					Component.translatable("screen.rootymenu.menu.world.fastplace.speed"),
 					FastPlaceModule.getSpeed(),
 					FastPlaceModule.MIN_SPEED,
 					FastPlaceModule.MAX_SPEED,
@@ -1077,7 +1077,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"tower",
-				Component.translatable("screen.modid.menu.world.tower"),
+				Component.translatable("screen.rootymenu.menu.world.tower"),
 				TowerModule.isEnabled(),
 				(button, enabled) -> TowerModule.setEnabled(enabled)
 		);
@@ -1086,14 +1086,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"airplace",
 				"airplace",
-				Component.translatable("screen.modid.menu.world.airplace"),
+				Component.translatable("screen.rootymenu.menu.world.airplace"),
 				AirPlaceModule.isEnabled(),
 				(button, enabled) -> AirPlaceModule.setEnabled(enabled)
 		);
 		if (settingsOpen("airplace")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.world.airplace.distance"),
+					Component.translatable("screen.rootymenu.menu.world.airplace.distance"),
 					AirPlaceModule.getDistance(),
 					AirPlaceModule.MIN_DISTANCE,
 					AirPlaceModule.MAX_DISTANCE,
@@ -1108,14 +1108,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"inventory_move",
 				"inventory_move",
-				Component.translatable("screen.modid.menu.player.inventory_move"),
+				Component.translatable("screen.rootymenu.menu.player.inventory_move"),
 				InventoryMoveModule.isEnabled(),
 				(button, enabled) -> InventoryMoveModule.setEnabled(enabled)
 		);
 		if (settingsOpen("inventory_move")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.player.inventory_move.rotate_speed"),
+					Component.translatable("screen.rootymenu.menu.player.inventory_move.rotate_speed"),
 					InventoryMoveModule.getRotateSpeed(),
 					InventoryMoveModule.MIN_ROTATE_SPEED,
 					InventoryMoveModule.MAX_ROTATE_SPEED,
@@ -1127,7 +1127,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"noslow",
-				Component.translatable("screen.modid.menu.player.noslow"),
+				Component.translatable("screen.rootymenu.menu.player.noslow"),
 				NoSlowModule.isEnabled(),
 				(button, enabled) -> NoSlowModule.setEnabled(enabled)
 		);
@@ -1137,7 +1137,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.player.sneak"),
+				Component.translatable("screen.rootymenu.menu.player.sneak"),
 				SneakModule.isEnabled(),
 				"sneak",
 				(button, enabled) -> SneakModule.setEnabled(enabled)
@@ -1148,8 +1148,8 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.player.sneak.mode.legit"),
-					Component.translatable("screen.modid.menu.player.sneak.mode.cheat")
+					Component.translatable("screen.rootymenu.menu.player.sneak.mode.legit"),
+					Component.translatable("screen.rootymenu.menu.player.sneak.mode.cheat")
 				},
 				SneakModule.getMode() == SneakModule.Mode.CHEAT ? 1 : 0,
 				index -> SneakModule.setMode(index == 1 ? SneakModule.Mode.CHEAT : SneakModule.Mode.LEGIT)
@@ -1162,7 +1162,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"notifications",
-				Component.translatable("screen.modid.menu.misc.notifications"),
+				Component.translatable("screen.rootymenu.menu.misc.notifications"),
 				NotificationsModule.isEnabled(),
 				(button, enabled) -> NotificationsModule.setEnabled(enabled)
 		);
@@ -1172,7 +1172,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.misc.viewer_retention"),
+				Component.translatable("screen.rootymenu.menu.misc.viewer_retention"),
 				ViewerRetentionModule.isEnabled(),
 				"viewer_retention",
 				(button, enabled) -> ViewerRetentionModule.setEnabled(enabled)
@@ -1191,7 +1191,7 @@ public class ExampleMenuScreen extends Screen {
 			int mediaIndex = 0;
 			if (mediaNames.isEmpty()) {
 				mediaLabels = new Component[] {
-						Component.translatable("screen.modid.menu.misc.viewer_retention.no_media")
+						Component.translatable("screen.rootymenu.menu.misc.viewer_retention.no_media")
 				};
 			} else {
 				mediaLabels = new Component[mediaNames.size()];
@@ -1223,7 +1223,7 @@ public class ExampleMenuScreen extends Screen {
 					y,
 					EDIT_WIDTH,
 					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.misc.viewer_retention.refresh"),
+					Component.translatable("screen.rootymenu.menu.misc.viewer_retention.refresh"),
 					button -> {
 						ViewerRetentionModule.refreshMediaList();
 						rebuildMenu();
@@ -1234,7 +1234,7 @@ public class ExampleMenuScreen extends Screen {
 					y,
 					EDIT_WIDTH,
 					CAPSULE_HEIGHT,
-					Component.translatable("screen.modid.menu.misc.viewer_retention.add"),
+					Component.translatable("screen.rootymenu.menu.misc.viewer_retention.add"),
 					button -> {
 						ViewerRetentionModule.addSelectedInstance();
 						rebuildMenu();
@@ -1253,7 +1253,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.movement.flight"),
+				Component.translatable("screen.rootymenu.menu.movement.flight"),
 				FlightModule.isEnabled(),
 				"flight",
 				(button, enabled) -> FlightModule.setEnabled(enabled)
@@ -1277,10 +1277,10 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.movement.flight.mode.vanilla"),
-					Component.translatable("screen.modid.menu.movement.flight.mode.velocity"),
-					Component.translatable("screen.modid.menu.movement.flight.mode.hover"),
-					Component.translatable("screen.modid.menu.movement.flight.mode.jetpack")
+					Component.translatable("screen.rootymenu.menu.movement.flight.mode.vanilla"),
+					Component.translatable("screen.rootymenu.menu.movement.flight.mode.velocity"),
+					Component.translatable("screen.rootymenu.menu.movement.flight.mode.hover"),
+					Component.translatable("screen.rootymenu.menu.movement.flight.mode.jetpack")
 				},
 				flightModeIndex,
 				index -> {
@@ -1298,7 +1298,7 @@ public class ExampleMenuScreen extends Screen {
 		if (settingsOpen("flight")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.movement.flight.speed"),
+					Component.translatable("screen.rootymenu.menu.movement.flight.speed"),
 					FlightModule.getSpeed(),
 					FlightModule.MIN_SPEED,
 					FlightModule.MAX_SPEED,
@@ -1312,7 +1312,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.movement.elytra_control"),
+				Component.translatable("screen.rootymenu.menu.movement.elytra_control"),
 				ElytraControlModule.isEnabled(),
 				"elytra_control",
 				(button, enabled) -> ElytraControlModule.setEnabled(enabled)
@@ -1328,7 +1328,7 @@ public class ExampleMenuScreen extends Screen {
 		if (settingsOpen("elytra_control")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.movement.elytra_control.speed"),
+					Component.translatable("screen.rootymenu.menu.movement.elytra_control.speed"),
 					ElytraControlModule.getSpeed(),
 					ElytraControlModule.MIN_SPEED,
 					ElytraControlModule.MAX_SPEED,
@@ -1342,7 +1342,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.movement.speed"),
+				Component.translatable("screen.rootymenu.menu.movement.speed"),
 				SpeedModule.isEnabled(),
 				"speed",
 				(button, enabled) -> SpeedModule.setEnabled(enabled)
@@ -1360,8 +1360,8 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.movement.speed.mode.normal"),
-					Component.translatable("screen.modid.menu.movement.speed.mode.strafe")
+					Component.translatable("screen.rootymenu.menu.movement.speed.mode.normal"),
+					Component.translatable("screen.rootymenu.menu.movement.speed.mode.strafe")
 				},
 				SpeedModule.getMode() == SpeedModule.Mode.STRAFE ? 1 : 0,
 				index -> SpeedModule.setMode(index == 1 ? SpeedModule.Mode.STRAFE : SpeedModule.Mode.NORMAL)
@@ -1370,7 +1370,7 @@ public class ExampleMenuScreen extends Screen {
 		if (settingsOpen("speed")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.movement.speed.level"),
+					Component.translatable("screen.rootymenu.menu.movement.speed.level"),
 					SpeedModule.getSpeedLevel(),
 					SpeedModule.MIN_LEVEL,
 					SpeedModule.MAX_LEVEL,
@@ -1383,7 +1383,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"nofall",
-				Component.translatable("screen.modid.menu.movement.nofall"),
+				Component.translatable("screen.rootymenu.menu.movement.nofall"),
 				NoFallModule.isEnabled(),
 				(button, enabled) -> NoFallModule.setEnabled(enabled)
 		);
@@ -1393,7 +1393,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.movement.autosprint"),
+				Component.translatable("screen.rootymenu.menu.movement.autosprint"),
 				AutoSprintModule.isEnabled(),
 				"autosprint",
 				(button, enabled) -> AutoSprintModule.setEnabled(enabled)
@@ -1404,8 +1404,8 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.movement.autosprint.mode.legit"),
-					Component.translatable("screen.modid.menu.movement.autosprint.mode.rage")
+					Component.translatable("screen.rootymenu.menu.movement.autosprint.mode.legit"),
+					Component.translatable("screen.rootymenu.menu.movement.autosprint.mode.rage")
 				},
 				AutoSprintModule.getMode() == AutoSprintModule.Mode.RAGE ? 1 : 0,
 				index -> AutoSprintModule.setMode(index == 1 ? AutoSprintModule.Mode.RAGE : AutoSprintModule.Mode.LEGIT)
@@ -1416,14 +1416,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"step",
 				"step",
-				Component.translatable("screen.modid.menu.movement.step"),
+				Component.translatable("screen.rootymenu.menu.movement.step"),
 				StepModule.isEnabled(),
 				(button, enabled) -> StepModule.setEnabled(enabled)
 		);
 		if (settingsOpen("step")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.movement.step.height"),
+					Component.translatable("screen.rootymenu.menu.movement.step.height"),
 					StepModule.getHeight(),
 					StepModule.MIN_HEIGHT,
 					StepModule.MAX_HEIGHT,
@@ -1436,14 +1436,14 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				"spider",
 				"spider",
-				Component.translatable("screen.modid.menu.movement.spider"),
+				Component.translatable("screen.rootymenu.menu.movement.spider"),
 				SpiderModule.isEnabled(),
 				(button, enabled) -> SpiderModule.setEnabled(enabled)
 		);
 		if (settingsOpen("spider")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
-					Component.translatable("screen.modid.menu.movement.spider.speed"),
+					Component.translatable("screen.rootymenu.menu.movement.spider.speed"),
 					SpiderModule.getClimbSpeed(),
 					SpiderModule.MIN_SPEED,
 					SpiderModule.MAX_SPEED,
@@ -1456,7 +1456,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				null,
 				"safewalk",
-				Component.translatable("screen.modid.menu.movement.safewalk"),
+				Component.translatable("screen.rootymenu.menu.movement.safewalk"),
 				SafeWalkModule.isEnabled(),
 				(button, enabled) -> SafeWalkModule.setEnabled(enabled)
 		);
@@ -1466,7 +1466,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.movement.jesus"),
+				Component.translatable("screen.rootymenu.menu.movement.jesus"),
 				JesusModule.isEnabled(),
 				"jesus",
 				(button, enabled) -> JesusModule.setEnabled(enabled)
@@ -1482,9 +1482,9 @@ public class ExampleMenuScreen extends Screen {
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
 				new Component[] {
-					Component.translatable("screen.modid.menu.movement.jesus.mode.water"),
-					Component.translatable("screen.modid.menu.movement.jesus.mode.lava"),
-					Component.translatable("screen.modid.menu.movement.jesus.mode.both")
+					Component.translatable("screen.rootymenu.menu.movement.jesus.mode.water"),
+					Component.translatable("screen.rootymenu.menu.movement.jesus.mode.lava"),
+					Component.translatable("screen.rootymenu.menu.movement.jesus.mode.both")
 				},
 				jesusModeIndex,
 				index -> {
@@ -1536,7 +1536,7 @@ public class ExampleMenuScreen extends Screen {
 				y,
 				CAPSULE_WIDTH,
 				CAPSULE_HEIGHT,
-				Component.translatable("screen.modid.menu.colors.reset"),
+				Component.translatable("screen.rootymenu.menu.colors.reset"),
 				button -> {
 					MenuTheme.get().resetDefaults();
 					rebuildMenu();
@@ -1628,18 +1628,18 @@ public class ExampleMenuScreen extends Screen {
 
 		Component panel;
 		if (this.colorMenuOpen) {
-			panel = Component.translatable("screen.modid.menu.colors.panel");
+			panel = Component.translatable("screen.rootymenu.menu.colors.panel");
 		} else {
 			String panelKey = switch (this.selectedTab) {
-				case GENERAL -> "screen.modid.menu.tab.general";
-				case PLAYER -> "screen.modid.menu.tab.player";
-				case VISUALS -> "screen.modid.menu.tab.visuals";
-				case COMBAT -> "screen.modid.menu.tab.combat";
-				case WORLD -> "screen.modid.menu.tab.world";
-				case MOVEMENT -> "screen.modid.menu.tab.movement";
-				case MISC -> "screen.modid.menu.tab.misc";
+				case GENERAL -> "screen.rootymenu.menu.tab.general";
+				case PLAYER -> "screen.rootymenu.menu.tab.player";
+				case VISUALS -> "screen.rootymenu.menu.tab.visuals";
+				case COMBAT -> "screen.rootymenu.menu.tab.combat";
+				case WORLD -> "screen.rootymenu.menu.tab.world";
+				case MOVEMENT -> "screen.rootymenu.menu.tab.movement";
+				case MISC -> "screen.rootymenu.menu.tab.misc";
 			};
-			panel = Component.translatable("screen.modid.menu.panel", Component.translatable(panelKey));
+			panel = Component.translatable("screen.rootymenu.menu.panel", Component.translatable(panelKey));
 		}
 		graphics.text(this.font, panel, CONTENT_LEFT, CONTENT_TOP - 14, theme.panelHint, false);
 

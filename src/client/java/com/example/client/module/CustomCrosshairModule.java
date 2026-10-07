@@ -341,8 +341,8 @@ public final class CustomCrosshairModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.custom_crosshair.enabled"
-						: "screen.modid.menu.visuals.custom_crosshair.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.custom_crosshair.enabled"
+						: "screen.rootymenu.menu.visuals.custom_crosshair.disabled"
 		);
 		ModConfig.save();
 	}

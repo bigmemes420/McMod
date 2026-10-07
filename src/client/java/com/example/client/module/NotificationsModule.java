@@ -27,8 +27,8 @@ public final class NotificationsModule {
 		enabled = value;
 		// Only announce when turning ON (when OFF, notifications are suppressed).
 		notifyToggle(
-				enabled ? "screen.modid.menu.misc.notifications.enabled"
-						: "screen.modid.menu.misc.notifications.disabled"
+				enabled ? "screen.rootymenu.menu.misc.notifications.enabled"
+						: "screen.rootymenu.menu.misc.notifications.disabled"
 		);
 		ModConfig.save();
 	}

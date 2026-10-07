@@ -53,8 +53,8 @@ public final class TriggerBotModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.triggerbot.enabled"
-						: "screen.modid.menu.combat.triggerbot.disabled"
+				enabled ? "screen.rootymenu.menu.combat.triggerbot.enabled"
+						: "screen.rootymenu.menu.combat.triggerbot.disabled"
 		);
 		ModConfig.save();
 	}

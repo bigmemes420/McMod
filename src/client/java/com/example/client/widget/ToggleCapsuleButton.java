@@ -150,7 +150,7 @@ public class ToggleCapsuleButton extends AbstractWidget {
 
 		Component label = this.getMessage();
 		if (listening) {
-			label = Component.translatable("screen.modid.menu.keybind.listening");
+			label = Component.translatable("screen.rootymenu.menu.keybind.listening");
 		} else if (this.moduleId != null) {
 			String bind = ModuleKeybinds.getBindName(this.moduleId);
 			if (bind != null && !bind.isBlank()) {

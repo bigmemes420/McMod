@@ -74,10 +74,10 @@ public class CrosshairEditorScreen extends Screen {
 	private Component modeLabel = Component.empty();
 	private Component pathLabel = Component.empty();
 	private Component statusLabel = Component.empty();
-	private final Component previewTitle = Component.translatable("screen.modid.crosshair_editor.preview");
+	private final Component previewTitle = Component.translatable("screen.rootymenu.crosshair_editor.preview");
 
 	public CrosshairEditorScreen(Screen parent) {
-		super(Component.translatable("screen.modid.crosshair_editor.title"));
+		super(Component.translatable("screen.rootymenu.crosshair_editor.title"));
 		this.parent = parent;
 	}
 
@@ -135,7 +135,7 @@ public class CrosshairEditorScreen extends Screen {
 		int startX = this.width / 2 - total / 2;
 		this.addRenderableWidget(new FlatMenuButton(
 				startX, btnY, BTN_W, BTN_H,
-				Component.translatable("screen.modid.crosshair_editor.save"),
+				Component.translatable("screen.rootymenu.crosshair_editor.save"),
 				button -> {
 					CustomCrosshairModule.setPixelsAndSave(working);
 					localStatus = "Saved pixel pattern · Mode: Pixels";
@@ -144,7 +144,7 @@ public class CrosshairEditorScreen extends Screen {
 		));
 		this.addRenderableWidget(new FlatMenuButton(
 				startX + BTN_W + BTN_GAP, btnY, BTN_W, BTN_H,
-				Component.translatable("screen.modid.crosshair_editor.clear"),
+				Component.translatable("screen.rootymenu.crosshair_editor.clear"),
 				button -> {
 					Arrays.fill(working, false);
 					markWorkingDirty();
@@ -154,7 +154,7 @@ public class CrosshairEditorScreen extends Screen {
 		));
 		this.addRenderableWidget(new FlatMenuButton(
 				startX + (BTN_W + BTN_GAP) * 2, btnY, BTN_W, BTN_H,
-				Component.translatable("screen.modid.crosshair_editor.reset"),
+				Component.translatable("screen.rootymenu.crosshair_editor.reset"),
 				button -> {
 					CustomCrosshairModule.applyDefaultPattern(working);
 					markWorkingDirty();
@@ -194,8 +194,8 @@ public class CrosshairEditorScreen extends Screen {
 		this.addRenderableWidget(new ModeDropdownButton(
 				modeX + RES_W + BTN_GAP, rowMode, MODE_W, BTN_H,
 				new Component[] {
-						Component.translatable("screen.modid.menu.visuals.custom_crosshair.mode.pixels"),
-						Component.translatable("screen.modid.menu.visuals.custom_crosshair.mode.png")
+						Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.mode.pixels"),
+						Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.mode.png")
 				},
 				sourceIndex,
 				index -> {
@@ -212,7 +212,7 @@ public class CrosshairEditorScreen extends Screen {
 		int selectedIndex = 0;
 		if (pngNames.isEmpty()) {
 			labels = new Component[] {
-					Component.translatable("screen.modid.crosshair_editor.no_pngs")
+					Component.translatable("screen.rootymenu.crosshair_editor.no_pngs")
 			};
 		} else {
 			labels = new Component[pngNames.size()];
@@ -243,7 +243,7 @@ public class CrosshairEditorScreen extends Screen {
 		));
 		this.addRenderableWidget(new FlatMenuButton(
 				modeX + RES_W + BTN_GAP + MODE_W + BTN_GAP + DROP_W + BTN_GAP, rowMode, BTN_W, BTN_H,
-				Component.translatable("screen.modid.crosshair_editor.refresh"),
+				Component.translatable("screen.rootymenu.crosshair_editor.refresh"),
 				button -> {
 					this.init();
 					localStatus = CustomCrosshairModule.getStatusMessage();

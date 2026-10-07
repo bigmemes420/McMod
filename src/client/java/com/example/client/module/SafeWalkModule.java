@@ -28,8 +28,8 @@ public final class SafeWalkModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.movement.safewalk.enabled"
-						: "screen.modid.menu.movement.safewalk.disabled"
+				enabled ? "screen.rootymenu.menu.movement.safewalk.enabled"
+						: "screen.rootymenu.menu.movement.safewalk.disabled"
 		);
 		ModConfig.save();
 	}

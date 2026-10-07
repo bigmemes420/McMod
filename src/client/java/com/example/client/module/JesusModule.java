@@ -61,8 +61,8 @@ public final class JesusModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.movement.jesus.enabled"
-						: "screen.modid.menu.movement.jesus.disabled"
+				enabled ? "screen.rootymenu.menu.movement.jesus.enabled"
+						: "screen.rootymenu.menu.movement.jesus.disabled"
 		);
 		ModConfig.save();
 	}

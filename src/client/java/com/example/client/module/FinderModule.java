@@ -269,8 +269,8 @@ public final class FinderModule {
 			invalidateRenderCache();
 		}
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.finder.enabled"
-						: "screen.modid.menu.visuals.finder.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.finder.enabled"
+						: "screen.rootymenu.menu.visuals.finder.disabled"
 		);
 		ModConfig.save();
 	}

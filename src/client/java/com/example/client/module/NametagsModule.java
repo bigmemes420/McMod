@@ -47,8 +47,8 @@ public final class NametagsModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.visuals.nametags.enabled"
-						: "screen.modid.menu.visuals.nametags.disabled"
+				enabled ? "screen.rootymenu.menu.visuals.nametags.enabled"
+						: "screen.rootymenu.menu.visuals.nametags.disabled"
 		);
 		ModConfig.save();
 	}

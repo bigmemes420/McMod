@@ -57,8 +57,8 @@ public final class ReachModule {
 		enabled = value;
 		apply(Minecraft.getInstance().player);
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.reach.enabled"
-						: "screen.modid.menu.combat.reach.disabled"
+				enabled ? "screen.rootymenu.menu.combat.reach.enabled"
+						: "screen.rootymenu.menu.combat.reach.disabled"
 		);
 		ModConfig.save();
 	}

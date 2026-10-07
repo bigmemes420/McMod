@@ -50,8 +50,8 @@ public final class HitboxesModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.combat.hitboxes.enabled"
-						: "screen.modid.menu.combat.hitboxes.disabled"
+				enabled ? "screen.rootymenu.menu.combat.hitboxes.enabled"
+						: "screen.rootymenu.menu.combat.hitboxes.disabled"
 		);
 		ModConfig.save();
 	}

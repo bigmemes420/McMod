@@ -44,7 +44,7 @@ public class FinderBlocksScreen extends Screen {
 	private List<Identifier> filtered = List.of();
 
 	public FinderBlocksScreen(Screen parent) {
-		super(Component.translatable("screen.modid.menu.visuals.finder.edit.title"));
+		super(Component.translatable("screen.rootymenu.menu.visuals.finder.edit.title"));
 		this.parent = parent;
 	}
 
@@ -62,7 +62,7 @@ public class FinderBlocksScreen extends Screen {
 				6,
 				closeW,
 				20,
-				Component.translatable("screen.modid.menu.close"),
+				Component.translatable("screen.rootymenu.menu.close"),
 				button -> this.onClose()
 		));
 
@@ -72,11 +72,11 @@ public class FinderBlocksScreen extends Screen {
 				TOP_PAD,
 				Math.min(CAPSULE_WIDTH, this.width - 48),
 				SEARCH_HEIGHT,
-				Component.translatable("screen.modid.menu.visuals.finder.search")
+				Component.translatable("screen.rootymenu.menu.visuals.finder.search")
 		);
 		this.searchBox.setMaxLength(64);
 		this.searchBox.setValue(this.filter);
-		this.searchBox.setHint(Component.translatable("screen.modid.menu.visuals.finder.search.hint"));
+		this.searchBox.setHint(Component.translatable("screen.rootymenu.menu.visuals.finder.search.hint"));
 		this.searchBox.setResponder(value -> {
 			this.filter = value == null ? "" : value;
 			this.scrollOffset = 0;
@@ -213,7 +213,7 @@ public class FinderBlocksScreen extends Screen {
 		MenuTheme theme = MenuTheme.get();
 		graphics.text(this.font, this.title, 24, 8, theme.title, true);
 		String hint = Component.translatable(
-				"screen.modid.menu.visuals.finder.edit.hint",
+				"screen.rootymenu.menu.visuals.finder.edit.hint",
 				this.filtered.size(),
 				FinderModule.getSelectedBlocks().size()
 		).getString();

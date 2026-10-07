@@ -56,8 +56,8 @@ public final class FastPlaceModule {
 		}
 		enabled = value;
 		NotificationsModule.notifyToggle(
-				enabled ? "screen.modid.menu.world.fastplace.enabled"
-						: "screen.modid.menu.world.fastplace.disabled"
+				enabled ? "screen.rootymenu.menu.world.fastplace.enabled"
+						: "screen.rootymenu.menu.world.fastplace.disabled"
 		);
 		ModConfig.save();
 	}
