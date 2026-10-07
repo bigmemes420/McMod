@@ -2,36 +2,53 @@ package com.example.client.module;
 
 import com.example.ExampleMod;
 import com.example.client.config.ModConfig;
+import com.example.client.widget.MenuShapes;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.QuadrupedModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Visuals: top-left HUD radar showing nearby players and/or mobs with heads,
+ * Visuals: HUD radar showing nearby players and/or mobs with heads,
  * names, and optional height arrows relative to the local player.
+ * Panel can be square, circle, triangle, or a 6-pointed star.
  */
 public final class RadarModule {
 	public enum TargetMode {
 		MOBS,
 		PLAYERS,
 		BOTH
+	}
+
+	public enum Shape {
+		SQUARE,
+		CIRCLE,
+		TRIANGLE,
+		STAR
 	}
 
 	public static final float MIN_RANGE = 16.0F;
@@ -54,6 +71,7 @@ public final class RadarModule {
 
 	private static boolean enabled;
 	private static TargetMode mode = TargetMode.BOTH;
+	private static Shape shape = Shape.SQUARE;
 	private static boolean showHeight = true;
 	private static float range = DEFAULT_RANGE;
 	private static int hudX = DEFAULT_HUD_X;
@@ -69,6 +87,10 @@ public final class RadarModule {
 
 	public static TargetMode getMode() {
 		return mode;
+	}
+
+	public static Shape getShape() {
+		return shape;
 	}
 
 	public static boolean isShowHeight() {
@@ -109,6 +131,7 @@ public final class RadarModule {
 		hudSize = Mth.clamp(size, MIN_HUD_SIZE, MAX_HUD_SIZE);
 	}
 
+	/** Bounding-box hit test used by HUD edit (resize handle stays on the box). */
 	public static boolean containsPoint(double mx, double my) {
 		return mx >= hudX && my >= hudY && mx < hudX + hudSize && my < hudY + hudSize;
 	}
@@ -130,6 +153,14 @@ public final class RadarModule {
 			return;
 		}
 		mode = value;
+		ModConfig.save();
+	}
+
+	public static void setShape(Shape value) {
+		if (value == null || shape == value) {
+			return;
+		}
+		shape = value;
 		ModConfig.save();
 	}
 
@@ -165,6 +196,17 @@ public final class RadarModule {
 		}
 	}
 
+	public static void loadShape(String raw) {
+		if (raw == null || raw.isBlank()) {
+			return;
+		}
+		try {
+			shape = Shape.valueOf(raw.trim());
+		} catch (IllegalArgumentException ignored) {
+			shape = Shape.SQUARE;
+		}
+	}
+
 	public static void loadShowHeight(boolean value) {
 		showHeight = value;
 	}
@@ -173,7 +215,7 @@ public final class RadarModule {
 		range = Mth.clamp(value, MIN_RANGE, MAX_RANGE);
 	}
 
-	/** Fabric HUD element — draws in the top-left of the game HUD. */
+	/** Fabric HUD element — draws the radar panel on the game HUD. */
 	public static void extractHud(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker delta) {
 		if (!enabled) {
 			return;
@@ -200,17 +242,13 @@ public final class RadarModule {
 		int size = hudSize;
 		int left = hudX;
 		int top = hudY;
-		graphics.fill(left, top, left + size, top + size, PANEL_BG);
-		graphics.outline(left, top, size, size, PANEL_OUTLINE);
+		drawPanel(graphics, left, top, size, PANEL_BG, PANEL_OUTLINE);
 
 		int cx = left + size / 2;
 		int cy = top + size / 2;
-		graphics.fill(cx - 1, top + 4, cx, top + size - 4, CROSSHAIR);
-		graphics.fill(left + 4, cy - 1, left + size - 4, cy, CROSSHAIR);
-		// Local player center pip
-		graphics.fill(cx - 2, cy - 2, cx + 2, cy + 2, 0xFF8EC8FF);
+		drawCrosshair(graphics, left, top, size, cx, cy);
 
-		float radius = (size / 2.0F) - HEAD_SIZE - 4;
+		float radius = plotRadius(size);
 		int drawn = 0;
 		for (LivingEntity entity : targets) {
 			if (drawn >= MAX_ENTRIES) {
@@ -222,7 +260,7 @@ public final class RadarModule {
 			if (dist < 0.05) {
 				continue;
 			}
-			// Rotate so +Z (south) aligns with player look; radar "up" = look direction.
+			// Rotate so radar "up" = look direction.
 			float cos = Mth.cos(-yawRad);
 			float sin = Mth.sin(-yawRad);
 			double rx = dx * cos - dz * sin;
@@ -256,8 +294,160 @@ public final class RadarModule {
 			drawn++;
 		}
 
-		String label = "Radar";
-		graphics.text(client.font, label, left + 4, top + 2, 0xFFAAAAAA, false);
+		graphics.text(client.font, "Radar", left + 4, top + 2, 0xFFAAAAAA, false);
+	}
+
+	/** Used by HudEditScreen to match the live panel silhouette. */
+	public static void drawEditFrame(GuiGraphicsExtractor graphics, int borderColor, int handleFill) {
+		drawPanel(graphics, hudX, hudY, hudSize, 0x00000000, borderColor);
+		int handle = 14;
+		int hx = hudX + hudSize - handle / 2;
+		int hy = hudY + hudSize - handle / 2;
+		graphics.fill(hx, hy, hx + handle, hy + handle, handleFill);
+		graphics.outline(hx, hy, handle, handle, 0xFFFFFFFF);
+	}
+
+	private static float plotRadius(int size) {
+		// Inscribe plot area so blips stay inside non-square shapes.
+		float half = size / 2.0F;
+		return switch (shape) {
+			case SQUARE -> half - HEAD_SIZE - 4;
+			case CIRCLE, STAR -> half * 0.72F - HEAD_SIZE / 2.0F;
+			case TRIANGLE -> half * 0.55F - HEAD_SIZE / 2.0F;
+		};
+	}
+
+	private static void drawCrosshair(GuiGraphicsExtractor graphics, int left, int top, int size, int cx, int cy) {
+		int pad = switch (shape) {
+			case SQUARE -> 4;
+			case CIRCLE, STAR -> Math.max(8, size / 8);
+			case TRIANGLE -> Math.max(10, size / 6);
+		};
+		graphics.fill(cx - 1, top + pad, cx, top + size - pad, CROSSHAIR);
+		graphics.fill(left + pad, cy - 1, left + size - pad, cy, CROSSHAIR);
+		graphics.fill(cx - 2, cy - 2, cx + 2, cy + 2, 0xFF8EC8FF);
+	}
+
+	static void drawPanel(GuiGraphicsExtractor graphics, int left, int top, int size, int fill, int outline) {
+		int cx = left + size / 2;
+		int cy = top + size / 2;
+		switch (shape) {
+			case SQUARE -> {
+				if ((fill >>> 24) != 0) {
+					graphics.fill(left, top, left + size, top + size, fill);
+				}
+				graphics.outline(left, top, size, size, outline);
+			}
+			case CIRCLE -> {
+				int r = size / 2 - 1;
+				if ((fill >>> 24) != 0) {
+					MenuShapes.fillCircle(graphics, cx, cy, r, fill);
+				}
+				MenuShapes.outlineCircle(graphics, cx, cy, r, outline);
+			}
+			case TRIANGLE -> drawTrianglePanel(graphics, left, top, size, fill, outline);
+			case STAR -> drawStarPanel(graphics, left, top, size, fill, outline);
+		}
+	}
+
+	private static void drawTrianglePanel(GuiGraphicsExtractor graphics, int left, int top, int size, int fill, int outline) {
+		int x0 = left + size / 2;
+		int y0 = top + 2;
+		int x1 = left + 2;
+		int y1 = top + size - 2;
+		int x2 = left + size - 2;
+		int y2 = top + size - 2;
+		if ((fill >>> 24) != 0) {
+			fillTriangle(graphics, x0, y0, x1, y1, x2, y2, fill);
+		}
+		drawLine(graphics, x0, y0, x1, y1, outline);
+		drawLine(graphics, x1, y1, x2, y2, outline);
+		drawLine(graphics, x2, y2, x0, y0, outline);
+	}
+
+	/** Six-pointed star (hexagram): upright + inverted triangle. */
+	private static void drawStarPanel(GuiGraphicsExtractor graphics, int left, int top, int size, int fill, int outline) {
+		int cx = left + size / 2;
+		int cy = top + size / 2;
+		int r = size / 2 - 2;
+		// Upright
+		int u0x = cx;
+		int u0y = cy - r;
+		int u1x = cx - (int) Math.round(r * 0.866);
+		int u1y = cy + r / 2;
+		int u2x = cx + (int) Math.round(r * 0.866);
+		int u2y = cy + r / 2;
+		// Inverted
+		int d0x = cx;
+		int d0y = cy + r;
+		int d1x = cx - (int) Math.round(r * 0.866);
+		int d1y = cy - r / 2;
+		int d2x = cx + (int) Math.round(r * 0.866);
+		int d2y = cy - r / 2;
+		if ((fill >>> 24) != 0) {
+			fillTriangle(graphics, u0x, u0y, u1x, u1y, u2x, u2y, fill);
+			fillTriangle(graphics, d0x, d0y, d1x, d1y, d2x, d2y, fill);
+		}
+		drawLine(graphics, u0x, u0y, u1x, u1y, outline);
+		drawLine(graphics, u1x, u1y, u2x, u2y, outline);
+		drawLine(graphics, u2x, u2y, u0x, u0y, outline);
+		drawLine(graphics, d0x, d0y, d1x, d1y, outline);
+		drawLine(graphics, d1x, d1y, d2x, d2y, outline);
+		drawLine(graphics, d2x, d2y, d0x, d0y, outline);
+	}
+
+	private static void fillTriangle(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, int x2, int y2, int color) {
+		int minX = Math.min(x0, Math.min(x1, x2));
+		int maxX = Math.max(x0, Math.max(x1, x2));
+		int minY = Math.min(y0, Math.min(y1, y2));
+		int maxY = Math.max(y0, Math.max(y1, y2));
+		for (int y = minY; y <= maxY; y++) {
+			int rowMin = maxX + 1;
+			int rowMax = minX - 1;
+			for (int x = minX; x <= maxX; x++) {
+				if (pointInTriangle(x, y, x0, y0, x1, y1, x2, y2)) {
+					rowMin = Math.min(rowMin, x);
+					rowMax = Math.max(rowMax, x);
+				}
+			}
+			if (rowMin <= rowMax) {
+				graphics.fill(rowMin, y, rowMax + 1, y + 1, color);
+			}
+		}
+	}
+
+	private static boolean pointInTriangle(int px, int py, int x0, int y0, int x1, int y1, int x2, int y2) {
+		long d0 = (long) (px - x1) * (y0 - y1) - (long) (x0 - x1) * (py - y1);
+		long d1 = (long) (px - x2) * (y1 - y2) - (long) (x1 - x2) * (py - y2);
+		long d2 = (long) (px - x0) * (y2 - y0) - (long) (x2 - x0) * (py - y0);
+		boolean hasNeg = d0 < 0 || d1 < 0 || d2 < 0;
+		boolean hasPos = d0 > 0 || d1 > 0 || d2 > 0;
+		return !(hasNeg && hasPos);
+	}
+
+	private static void drawLine(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, int color) {
+		int dx = Math.abs(x1 - x0);
+		int dy = Math.abs(y1 - y0);
+		int sx = x0 < x1 ? 1 : -1;
+		int sy = y0 < y1 ? 1 : -1;
+		int err = dx - dy;
+		int x = x0;
+		int y = y0;
+		while (true) {
+			graphics.fill(x, y, x + 1, y + 1, color);
+			if (x == x1 && y == y1) {
+				break;
+			}
+			int e2 = 2 * err;
+			if (e2 > -dy) {
+				err -= dy;
+				x += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y += sy;
+			}
+		}
 	}
 
 	private static List<LivingEntity> collectTargets(Minecraft client, Player self) {
@@ -288,18 +478,47 @@ public final class RadarModule {
 				return;
 			}
 			EntityRenderer renderer = client.getEntityRenderDispatcher().getRenderer(entity);
-			if (renderer instanceof LivingEntityRenderer) {
-				LivingEntityRenderer living = (LivingEntityRenderer) renderer;
+			if (renderer instanceof LivingEntityRenderer living) {
+				boolean humanoid = renderer instanceof HumanoidMobRenderer
+						|| living.getModel() instanceof HumanoidModel;
+				boolean quadruped = living.getModel() instanceof QuadrupedModel;
 				LivingEntityRenderState state = (LivingEntityRenderState) living.createRenderState(entity, 0.0F);
 				Identifier tex = living.getTextureLocation(state);
+				if (humanoid && tex != null) {
+					// Same UV path as player skins: 8×8 face + hat, scaled to size.
+					PlayerFaceExtractor.extractRenderState(graphics, tex, x, y, size, true, false, 0xFFFFFFFF);
+					return;
+				}
+				// Quadruped skins do not use the steve head atlas — spawn-egg icon instead.
+				if (quadruped && drawSpawnEggIcon(graphics, entity, x, y)) {
+					return;
+				}
 				if (tex != null) {
-					// Standard entity texture head UV (works for most bipeds / animals with 64x layout).
-					graphics.blit(RenderPipelines.GUI_TEXTURED, tex, x, y, 8.0F, 8.0F, size, size, 64, 64, 0xFFFFFFFF);
+					// Creeper / cube-head mobs: sample exactly 8×8 at UV 8,8 scaled to size.
+					// (10/11-arg blit sets region=drawSize and showed the wrong texels.)
+					graphics.blit(
+							RenderPipelines.GUI_TEXTURED,
+							tex,
+							x,
+							y,
+							8.0F,
+							8.0F,
+							size,
+							size,
+							8,
+							8,
+							64,
+							64,
+							0xFFFFFFFF
+					);
 					return;
 				}
 			}
 		} catch (Throwable ignored) {
-			// Fall through to placeholder
+			// Fall through
+		}
+		if (drawSpawnEggIcon(graphics, entity, x, y)) {
+			return;
 		}
 		int color = 0xFF000000 | (entity.getType().toString().hashCode() & 0x00FFFFFF);
 		graphics.fill(x, y, x + size, y + size, color);
@@ -315,8 +534,21 @@ public final class RadarModule {
 		}
 	}
 
+	private static boolean drawSpawnEggIcon(GuiGraphicsExtractor graphics, LivingEntity entity, int x, int y) {
+		try {
+			Optional<Holder<Item>> egg = SpawnEggItem.byId(entity.getType());
+			if (egg.isEmpty()) {
+				return false;
+			}
+			// Item icons are 16×16; nudge so they sit roughly in the 12×12 head slot.
+			graphics.item(new ItemStack(egg.get().value()), x - 2, y - 2);
+			return true;
+		} catch (Throwable ignored) {
+			return false;
+		}
+	}
+
 	private static void drawArrowUp(GuiGraphicsExtractor graphics, int cx, int tipY, int color) {
-		// Small filled triangle pointing up
 		for (int i = 0; i < 4; i++) {
 			graphics.fill(cx - i, tipY + i, cx + i + 1, tipY + i + 1, color);
 		}

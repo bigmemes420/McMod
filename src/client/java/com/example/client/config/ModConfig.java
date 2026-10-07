@@ -113,6 +113,7 @@ public final class ModConfig {
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
 		RadarModule.loadEnabled(bool(props, "radar", false));
 		RadarModule.loadMode(props.getProperty("radarMode", "BOTH"));
+		RadarModule.loadShape(props.getProperty("radarShape", "SQUARE"));
 		RadarModule.loadShowHeight(bool(props, "radarShowHeight", true));
 		RadarModule.loadRange(floatVal(props, "radarRange", RadarModule.DEFAULT_RANGE));
 		RadarModule.loadHudLayout(
@@ -201,6 +202,7 @@ public final class ModConfig {
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
 			props.setProperty("radar", String.valueOf(RadarModule.isEnabled()));
 			props.setProperty("radarMode", RadarModule.getMode().name());
+			props.setProperty("radarShape", RadarModule.getShape().name());
 			props.setProperty("radarShowHeight", String.valueOf(RadarModule.isShowHeight()));
 			props.setProperty("radarRange", Float.toString(RadarModule.getRange()));
 			props.setProperty("radarHudX", Integer.toString(RadarModule.getHudX()));

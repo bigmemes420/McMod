@@ -63,14 +63,7 @@ public class HudEditScreen extends Screen {
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
 
 		// Radar frame always editable here (even if module toggled off).
-		int x = RadarModule.getHudX();
-		int y = RadarModule.getHudY();
-		int s = RadarModule.getHudSize();
-		graphics.outline(x - 1, y - 1, s + 2, s + 2, BORDER);
-		int hx = handleX(x, s);
-		int hy = handleY(y, s);
-		graphics.fill(hx, hy, hx + HANDLE, hy + HANDLE, HANDLE_FILL);
-		graphics.outline(hx, hy, HANDLE, HANDLE, 0xFFFFFFFF);
+		RadarModule.drawEditFrame(graphics, BORDER, HANDLE_FILL);
 
 		String hint = this.font.plainSubstrByWidth(
 				Component.translatable("screen.modid.hud_edit.hint").getString(),

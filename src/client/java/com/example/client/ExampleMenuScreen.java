@@ -613,6 +613,36 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 		if (settingsOpen("radar")) {
+			int radarShapeIndex = switch (RadarModule.getShape()) {
+				case CIRCLE -> 1;
+				case TRIANGLE -> 2;
+				case STAR -> 3;
+				default -> 0;
+			};
+			this.addRenderableWidget(new ModeDropdownButton(
+					CONTENT_LEFT,
+					y,
+					SETTINGS_WIDTH,
+					CAPSULE_HEIGHT,
+					new Component[] {
+						Component.translatable("screen.modid.menu.visuals.radar.shape.square"),
+						Component.translatable("screen.modid.menu.visuals.radar.shape.circle"),
+						Component.translatable("screen.modid.menu.visuals.radar.shape.triangle"),
+						Component.translatable("screen.modid.menu.visuals.radar.shape.star")
+					},
+					radarShapeIndex,
+					index -> {
+						RadarModule.Shape shape = switch (index) {
+							case 1 -> RadarModule.Shape.CIRCLE;
+							case 2 -> RadarModule.Shape.TRIANGLE;
+							case 3 -> RadarModule.Shape.STAR;
+							default -> RadarModule.Shape.SQUARE;
+						};
+						RadarModule.setShape(shape);
+						rebuildMenu();
+					}
+			));
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			this.addRenderableWidget(new ToggleCapsuleButton(
 					CONTENT_LEFT,
 					y,
