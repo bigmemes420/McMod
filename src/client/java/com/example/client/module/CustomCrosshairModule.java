@@ -14,20 +14,20 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 
-import java.awt.FileDialog;
-import java.awt.Frame;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.function.Consumer;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Visuals: replaces the vanilla crosshair with either a 64×64 pixel pattern or a
- * custom PNG (full ARGB alpha). Color tint, rotate, and spin apply to both.
+ * PNG from {@code <gameDir>/crosshairs/} (full ARGB alpha). Color / rotate / spin
+ * apply to both sources.
  */
 public final class CustomCrosshairModule {
 	public enum Source {
@@ -41,9 +41,9 @@ public final class CustomCrosshairModule {
 	public static final float MAX_SPIN_SPEED = 720.0F;
 	public static final float DEFAULT_SPIN_SPEED = 90.0F;
 	public static final int MAX_PNG_DRAW = 64;
+	public static final String CROSSHAIRS_FOLDER = "crosshairs";
 
 	private static final Identifier TEXTURE_ID = ExampleMod.id("dynamic/crosshair");
-	private static final String PNG_FILE_NAME = "crosshair.png";
 
 	private static boolean enabled;
 	private static Source source = Source.PIXELS;
@@ -52,12 +52,15 @@ public final class CustomCrosshairModule {
 	private static boolean rotate;
 	private static float spinSpeed = DEFAULT_SPIN_SPEED;
 	private static float angleDeg;
+	/** Filename only (e.g. {@code dot.png}) inside {@link #crosshairsDir()}. */
+	private static String selectedPng = "";
 
 	private static DynamicTexture pngTexture;
 	private static int pngWidth;
 	private static int pngHeight;
 	private static boolean pngReady;
 	private static String statusMessage = "";
+	private static List<String> cachedPngList = List.of();
 
 	static {
 		applyDefaultPattern(pixels);
@@ -94,6 +97,10 @@ public final class CustomCrosshairModule {
 		return statusMessage;
 	}
 
+	public static String getSelectedPng() {
+		return selectedPng == null ? "" : selectedPng;
+	}
+
 	public static int getPngWidth() {
 		return pngWidth;
 	}
@@ -102,13 +109,81 @@ public final class CustomCrosshairModule {
 		return pngHeight;
 	}
 
-	public static Identifier getTextureId() {
-		return TEXTURE_ID;
+	/**
+	 * {@code <gameDir>/crosshairs/} — uses {@link Minecraft#gameDirectory} when
+	 * available, otherwise Fabric's game dir.
+	 */
+	public static Path crosshairsDir() {
+		Minecraft client = Minecraft.getInstance();
+		if (client != null && client.gameDirectory != null) {
+			return client.gameDirectory.toPath().resolve(CROSSHAIRS_FOLDER);
+		}
+		return FabricLoader.getInstance().getGameDir().resolve(CROSSHAIRS_FOLDER);
 	}
 
-	/** Canonical on-disk PNG: {@code <config>/modid/crosshair.png}. */
-	public static Path pngPath() {
-		return FabricLoader.getInstance().getConfigDir().resolve(ExampleMod.MOD_ID).resolve(PNG_FILE_NAME);
+	public static Path selectedPngPath() {
+		if (selectedPng == null || selectedPng.isBlank()) {
+			return null;
+		}
+		Path path = crosshairsDir().resolve(selectedPng).normalize();
+		if (!path.startsWith(crosshairsDir().normalize())) {
+			return null; // path traversal guard
+		}
+		return path;
+	}
+
+	public static void ensureCrosshairsDir() {
+		try {
+			Files.createDirectories(crosshairsDir());
+		} catch (Exception e) {
+			ExampleMod.LOGGER.warn("Failed to create crosshairs dir: {}", e.toString());
+		}
+	}
+
+	/**
+	 * Rescan {@link #crosshairsDir()} for readable {@code .png} files.
+	 * Creates the folder if missing. Updates the cached list.
+	 */
+	public static List<String> refreshPngList() {
+		ensureCrosshairsDir();
+		Path dir = crosshairsDir();
+		List<String> found = new ArrayList<>();
+		try (var stream = Files.list(dir)) {
+			stream.filter(Files::isRegularFile)
+					.map(p -> p.getFileName().toString())
+					.filter(n -> n.toLowerCase(Locale.ROOT).endsWith(".png"))
+					.sorted(String.CASE_INSENSITIVE_ORDER)
+					.forEach(name -> {
+						if (isCompatiblePng(dir.resolve(name))) {
+							found.add(name);
+						}
+					});
+		} catch (Exception e) {
+			ExampleMod.LOGGER.warn("Failed to list crosshairs: {}", e.toString());
+		}
+		cachedPngList = Collections.unmodifiableList(found);
+		statusMessage = found.isEmpty()
+				? "No PNGs in " + dir
+				: found.size() + " PNG(s) in crosshairs/";
+		return cachedPngList;
+	}
+
+	public static List<String> getPngList() {
+		if (cachedPngList.isEmpty()) {
+			return refreshPngList();
+		}
+		return cachedPngList;
+	}
+
+	private static boolean isCompatiblePng(Path path) {
+		try (InputStream in = Files.newInputStream(path)) {
+			NativeImage img = NativeImage.read(in);
+			boolean ok = img.getWidth() > 0 && img.getHeight() > 0;
+			img.close();
+			return ok;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	public static boolean getPixel(int x, int y) {
@@ -125,7 +200,7 @@ public final class CustomCrosshairModule {
 		}
 		System.arraycopy(src, 0, pixels, 0, pixels.length);
 		source = Source.PIXELS;
-		statusMessage = "";
+		statusMessage = "Using pixel grid";
 		ModConfig.save();
 	}
 
@@ -189,14 +264,60 @@ public final class CustomCrosshairModule {
 	}
 
 	public static void setSource(Source value) {
-		if (value == null || source == value) {
+		if (value == null) {
 			return;
 		}
-		source = value;
-		if (source == Source.PNG) {
-			reloadPngFromDisk();
+		if (value == Source.PIXELS) {
+			source = Source.PIXELS;
+			statusMessage = "Using pixel grid";
+			ModConfig.save();
+			return;
 		}
-		ModConfig.save();
+		source = Source.PNG;
+		selectPng(selectedPng, true);
+	}
+
+	/**
+	 * Select a PNG by filename inside {@link #crosshairsDir()}, load it, switch to
+	 * PNG mode, and persist.
+	 */
+	public static boolean selectPng(String filename) {
+		return selectPng(filename, true);
+	}
+
+	public static boolean selectPng(String filename, boolean save) {
+		if (filename == null || filename.isBlank()) {
+			pngReady = false;
+			statusMessage = "No PNG selected";
+			return false;
+		}
+		// Normalize to basename only
+		String name = Path.of(filename).getFileName().toString();
+		if (!name.toLowerCase(Locale.ROOT).endsWith(".png")) {
+			statusMessage = "Not a PNG: " + name;
+			return false;
+		}
+		selectedPng = name;
+		Path path = selectedPngPath();
+		if (path == null || !Files.isRegularFile(path)) {
+			pngReady = false;
+			statusMessage = "Missing " + name + " in crosshairs/";
+			if (save) {
+				ModConfig.save();
+			}
+			return false;
+		}
+		boolean ok = loadPngTexture(path);
+		if (ok) {
+			source = Source.PNG;
+			statusMessage = "Using " + name;
+		} else {
+			statusMessage = "Failed to decode " + name;
+		}
+		if (save) {
+			ModConfig.save();
+		}
+		return ok;
 	}
 
 	public static void loadEnabled(boolean value) {
@@ -225,6 +346,10 @@ public final class CustomCrosshairModule {
 		} catch (IllegalArgumentException ignored) {
 			source = Source.PIXELS;
 		}
+	}
+
+	public static void loadSelectedPng(String raw) {
+		selectedPng = raw == null ? "" : raw.trim();
 	}
 
 	public static void loadPixelsBase64(String raw) {
@@ -260,8 +385,16 @@ public final class CustomCrosshairModule {
 
 	/** Called after ModConfig finishes loading module fields. */
 	public static void afterConfigLoaded() {
+		ensureCrosshairsDir();
+		refreshPngList();
 		if (source == Source.PNG) {
-			reloadPngFromDisk();
+			if (selectedPng == null || selectedPng.isBlank()) {
+				if (!cachedPngList.isEmpty()) {
+					selectPng(cachedPngList.getFirst(), false);
+				}
+			} else {
+				selectPng(selectedPng, false);
+			}
 		}
 	}
 
@@ -273,84 +406,6 @@ public final class CustomCrosshairModule {
 		if (angleDeg < 0.0F) {
 			angleDeg += 360.0F;
 		}
-	}
-
-	/**
-	 * Opens an OS file picker (AWT), copies the PNG into {@link #pngPath()},
-	 * uploads a DynamicTexture, switches to PNG mode, and seeds the pixel grid
-	 * from non-transparent texels.
-	 */
-	public static void openLoadPngDialog(Consumer<Boolean> onDone) {
-		Thread t = new Thread(() -> {
-			Path picked = null;
-			try {
-				FileDialog dialog = new FileDialog((Frame) null, "Select Crosshair PNG", FileDialog.LOAD);
-				dialog.setFile("*.png");
-				dialog.setFilenameFilter((dir, name) -> name.toLowerCase(java.util.Locale.ROOT).endsWith(".png"));
-				dialog.setVisible(true);
-				String file = dialog.getFile();
-				String dir = dialog.getDirectory();
-				if (file != null && dir != null) {
-					picked = Path.of(dir, file);
-				}
-			} catch (Throwable ignored) {
-				// Fall through to config-dir file
-			}
-			Path finalPicked = picked;
-			Minecraft.getInstance().execute(() -> {
-				boolean ok;
-				if (finalPicked != null && Files.isRegularFile(finalPicked)) {
-					ok = importPngFile(finalPicked);
-				} else {
-					ok = reloadPngFromDisk();
-					if (!ok) {
-						statusMessage = "Place a PNG at " + pngPath() + " or pick a file";
-					}
-				}
-				if (onDone != null) {
-					onDone.accept(ok);
-				}
-			});
-		}, "rooty-crosshair-png-picker");
-		t.setDaemon(true);
-		t.start();
-	}
-
-	/** Copy {@code file} → config PNG and activate PNG mode. */
-	public static boolean importPngFile(Path file) {
-		try {
-			Path dest = pngPath();
-			Files.createDirectories(dest.getParent());
-			Files.copy(file, dest, StandardCopyOption.REPLACE_EXISTING);
-			boolean ok = loadPngTexture(dest);
-			if (ok) {
-				source = Source.PNG;
-				statusMessage = "Loaded " + file.getFileName();
-				ModConfig.save();
-			} else {
-				statusMessage = "Failed to decode PNG";
-			}
-			return ok;
-		} catch (IOException e) {
-			ExampleMod.LOGGER.warn("Crosshair PNG import failed: {}", e.toString());
-			statusMessage = "Import failed: " + e.getMessage();
-			return false;
-		}
-	}
-
-	public static boolean reloadPngFromDisk() {
-		Path path = pngPath();
-		if (!Files.isRegularFile(path)) {
-			pngReady = false;
-			statusMessage = "No PNG at " + path;
-			return false;
-		}
-		boolean ok = loadPngTexture(path);
-		if (ok) {
-			source = Source.PNG;
-			statusMessage = "Using " + PNG_FILE_NAME;
-		}
-		return ok;
 	}
 
 	private static boolean loadPngTexture(Path path) {
@@ -411,7 +466,6 @@ public final class CustomCrosshairModule {
 		pngReady = false;
 	}
 
-	/** Fabric HUD element — draws the custom crosshair centered on screen. */
 	public static void extractHud(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker delta) {
 		if (!enabled) {
 			return;
@@ -455,7 +509,6 @@ public final class CustomCrosshairModule {
 			pose.rotate(angle);
 		}
 		pose.translate(-drawW / 2.0F, -drawH / 2.0F);
-		// GUI_TEXTURED respects texture alpha; tint keeps caller's ARGB (incl. alpha).
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
 				TEXTURE_ID,
@@ -479,7 +532,6 @@ public final class CustomCrosshairModule {
 		float cos = Mth.cos(angle);
 		float sin = Mth.sin(angle);
 		float mid = (GRID - 1) / 2.0F;
-		// Preserve alpha from the color picker (do not OR with 0xFF000000).
 		int argb = color;
 		if (ARGB.alpha(argb) == 0) {
 			return;
@@ -500,7 +552,6 @@ public final class CustomCrosshairModule {
 		}
 	}
 
-	/** Preview helper for the editor (unrotated, top-left at x,y). Fits into maxSide. */
 	public static void drawPngPreview(GuiGraphicsExtractor graphics, int x, int y, int maxSide) {
 		if (!pngReady) {
 			return;

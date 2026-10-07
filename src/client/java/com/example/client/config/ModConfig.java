@@ -124,6 +124,7 @@ public final class ModConfig {
 		);
 		CustomCrosshairModule.loadEnabled(bool(props, "customCrosshair", false));
 		CustomCrosshairModule.loadSource(props.getProperty("customCrosshairSource", "PIXELS"));
+		CustomCrosshairModule.loadSelectedPng(props.getProperty("customCrosshairPng", ""));
 		CustomCrosshairModule.loadPixelsBase64(props.getProperty("customCrosshairPixels", ""));
 		CustomCrosshairModule.loadColor(intVal(props, "customCrosshairColor", CustomCrosshairModule.DEFAULT_COLOR));
 		CustomCrosshairModule.loadRotate(bool(props, "customCrosshairRotate", false));
@@ -218,6 +219,7 @@ public final class ModConfig {
 			props.setProperty("radarHudSize", Integer.toString(RadarModule.getHudSize()));
 			props.setProperty("customCrosshair", String.valueOf(CustomCrosshairModule.isEnabled()));
 			props.setProperty("customCrosshairSource", CustomCrosshairModule.getSource().name());
+			props.setProperty("customCrosshairPng", CustomCrosshairModule.getSelectedPng());
 			props.setProperty("customCrosshairPixels", CustomCrosshairModule.pixelsToBase64());
 			props.setProperty("customCrosshairColor", Integer.toString(CustomCrosshairModule.getColor()));
 			props.setProperty("customCrosshairRotate", String.valueOf(CustomCrosshairModule.isRotate()));

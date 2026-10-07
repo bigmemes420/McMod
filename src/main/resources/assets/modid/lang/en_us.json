@@ -200,8 +200,8 @@
   "screen.modid.crosshair_editor.save": "Save",
   "screen.modid.crosshair_editor.clear": "Clear",
   "screen.modid.crosshair_editor.reset": "Reset",
-  "screen.modid.crosshair_editor.load_png": "Load PNG",
-  "screen.modid.crosshair_editor.reload_png": "Reload PNG",
+  "screen.modid.crosshair_editor.refresh": "Refresh",
   "screen.modid.crosshair_editor.use_pixels": "Use Pixels",
+  "screen.modid.crosshair_editor.no_pngs": "(no PNGs in crosshairs/)",
   "screen.modid.crosshair_editor.preview": "Preview"
 }

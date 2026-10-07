@@ -3,6 +3,7 @@ package com.example.client;
 import com.example.client.config.MenuTheme;
 import com.example.client.module.CustomCrosshairModule;
 import com.example.client.widget.FlatMenuButton;
+import com.example.client.widget.ModeDropdownButton;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
@@ -13,10 +14,11 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 
+import java.util.List;
+
 /**
- * 64×64 pixel grid editor + PNG loader for {@link CustomCrosshairModule}.
- * Load PNG copies into {@code config/modid/crosshair.png} and switches to PNG mode
- * (full alpha via textured blit). Pixel Save switches back to grid mode.
+ * 64×64 pixel grid editor + PNG picker for {@link CustomCrosshairModule}.
+ * PNGs are listed from {@code <gameDir>/crosshairs/}; Refresh rescans the folder.
  */
 public class CrosshairEditorScreen extends Screen {
 	private static final int CELL = 6;
@@ -26,6 +28,7 @@ public class CrosshairEditorScreen extends Screen {
 	private static final int BTN_W = 78;
 	private static final int BTN_H = 22;
 	private static final int BTN_GAP = 6;
+	private static final int DROP_W = 180;
 
 	private final Screen parent;
 	private final boolean[] working = CustomCrosshairModule.copyPixels();
@@ -35,6 +38,7 @@ public class CrosshairEditorScreen extends Screen {
 
 	private int gridLeft;
 	private int gridTop;
+	private List<String> pngNames = List.of();
 
 	public CrosshairEditorScreen(Screen parent) {
 		super(Component.translatable("screen.modid.crosshair_editor.title"));
@@ -43,12 +47,16 @@ public class CrosshairEditorScreen extends Screen {
 
 	@Override
 	protected void init() {
+		ModeDropdownButton.closeOpen();
 		this.clearWidgets();
 		gridLeft = (this.width - GRID_PX) / 2;
-		gridTop = Math.max(40, (this.height - GRID_PX - 56) / 2);
+		gridTop = Math.max(48, (this.height - GRID_PX - 64) / 2);
 
-		int btnY = Math.min(this.height - 56, gridTop + GRID_PX + 10);
-		int row2 = Math.min(this.height - 30, btnY + BTN_H + 4);
+		pngNames = CustomCrosshairModule.refreshPngList();
+		localStatus = CustomCrosshairModule.getStatusMessage();
+
+		int btnY = Math.min(this.height - 60, gridTop + GRID_PX + 8);
+		int row2 = Math.min(this.height - 32, btnY + BTN_H + 4);
 		int total = BTN_W * 3 + BTN_GAP * 2;
 		int startX = this.width / 2 - total / 2;
 
@@ -87,43 +95,58 @@ public class CrosshairEditorScreen extends Screen {
 				}
 		));
 
-		int total2 = BTN_W * 3 + BTN_GAP * 2;
-		int startX2 = this.width / 2 - total2 / 2;
-		this.addRenderableWidget(new FlatMenuButton(
-				startX2,
-				row2,
-				BTN_W,
-				BTN_H,
-				Component.translatable("screen.modid.crosshair_editor.load_png"),
-				button -> {
-					localStatus = "Opening file picker…";
-					CustomCrosshairModule.openLoadPngDialog(ok -> {
-						if (ok) {
-							System.arraycopy(CustomCrosshairModule.copyPixels(), 0, working, 0, working.length);
-							localStatus = CustomCrosshairModule.getStatusMessage();
-						} else {
-							localStatus = CustomCrosshairModule.getStatusMessage();
-						}
-					});
+		// PNG dropdown + Refresh + Use Pixels
+		Component[] labels;
+		int selectedIndex = 0;
+		if (pngNames.isEmpty()) {
+			labels = new Component[] {
+					Component.translatable("screen.modid.crosshair_editor.no_pngs")
+			};
+		} else {
+			labels = new Component[pngNames.size()];
+			String selected = CustomCrosshairModule.getSelectedPng();
+			for (int i = 0; i < pngNames.size(); i++) {
+				labels[i] = Component.literal(pngNames.get(i));
+				if (pngNames.get(i).equalsIgnoreCase(selected)) {
+					selectedIndex = i;
 				}
-		));
-		this.addRenderableWidget(new FlatMenuButton(
-				startX2 + BTN_W + BTN_GAP,
+			}
+		}
+
+		int dropX = this.width / 2 - (DROP_W + BTN_GAP + BTN_W + BTN_GAP + BTN_W) / 2;
+		this.addRenderableWidget(new ModeDropdownButton(
+				dropX,
 				row2,
-				BTN_W,
+				DROP_W,
 				BTN_H,
-				Component.translatable("screen.modid.crosshair_editor.reload_png"),
-				button -> {
-					boolean ok = CustomCrosshairModule.reloadPngFromDisk();
+				labels,
+				selectedIndex,
+				index -> {
+					if (pngNames.isEmpty() || index < 0 || index >= pngNames.size()) {
+						localStatus = CustomCrosshairModule.getStatusMessage();
+						return;
+					}
+					String name = pngNames.get(index);
+					boolean ok = CustomCrosshairModule.selectPng(name);
 					if (ok) {
 						System.arraycopy(CustomCrosshairModule.copyPixels(), 0, working, 0, working.length);
-						com.example.client.config.ModConfig.save();
 					}
 					localStatus = CustomCrosshairModule.getStatusMessage();
 				}
 		));
 		this.addRenderableWidget(new FlatMenuButton(
-				startX2 + (BTN_W + BTN_GAP) * 2,
+				dropX + DROP_W + BTN_GAP,
+				row2,
+				BTN_W,
+				BTN_H,
+				Component.translatable("screen.modid.crosshair_editor.refresh"),
+				button -> {
+					this.init(); // rescan + rebuild dropdown
+					localStatus = CustomCrosshairModule.getStatusMessage();
+				}
+		));
+		this.addRenderableWidget(new FlatMenuButton(
+				dropX + DROP_W + BTN_GAP + BTN_W + BTN_GAP,
 				row2,
 				BTN_W,
 				BTN_H,
@@ -140,9 +163,9 @@ public class CrosshairEditorScreen extends Screen {
 		MenuTheme theme = MenuTheme.get();
 		graphics.fill(0, 0, this.width, this.height, 0xFF0C0C12);
 		int panelL = gridLeft - PANEL_PAD;
-		int panelT = gridTop - PANEL_PAD - 22;
+		int panelT = gridTop - PANEL_PAD - 28;
 		int panelR = gridLeft + GRID_PX + PANEL_PAD;
-		int panelB = gridTop + GRID_PX + PANEL_PAD + 58;
+		int panelB = gridTop + GRID_PX + PANEL_PAD + 64;
 		graphics.fill(panelL, panelT, panelR, panelB, 0xFF181822);
 		graphics.outline(panelL, panelT, panelR - panelL, panelB - panelT, theme.outline);
 	}
@@ -151,22 +174,23 @@ public class CrosshairEditorScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
 		MenuTheme theme = MenuTheme.get();
-		graphics.centeredText(this.font, this.title, this.width / 2, gridTop - PANEL_PAD - 16, theme.title);
+		graphics.centeredText(this.font, this.title, this.width / 2, gridTop - PANEL_PAD - 22, theme.title);
 
 		boolean pngMode = CustomCrosshairModule.isPngMode();
 		String modeLabel = pngMode
-				? "Mode: PNG (" + CustomCrosshairModule.pngPath().getFileName() + ")"
+				? "Mode: PNG — " + CustomCrosshairModule.getSelectedPng()
 				: "Mode: Pixels";
-		graphics.centeredText(this.font, Component.literal(modeLabel), this.width / 2, gridTop - 6, theme.panelHint);
+		String pathHint = CustomCrosshairModule.crosshairsDir().toString();
+		graphics.centeredText(this.font, Component.literal(modeLabel), this.width / 2, gridTop - 10, theme.panelHint);
+		String pathClipped = this.font.plainSubstrByWidth(pathHint, Math.max(40, GRID_PX));
+		graphics.centeredText(this.font, Component.literal(pathClipped), this.width / 2, gridTop - 1, 0xFF707080);
 
 		int on = CustomCrosshairModule.getColor();
 		if (ARGB.alpha(on) == 0) {
 			on = 0xFFFFFFFF;
 		}
-		int off = 0xFF2A2A32;
 		int gridLine = 0xFF3A3A48;
 
-		// Checkerboard under grid so transparency is visible in PNG preview overlay
 		for (int y = 0; y < GRID; y++) {
 			for (int x = 0; x < GRID; x++) {
 				int px = gridLeft + x * CELL;
@@ -177,7 +201,6 @@ public class CrosshairEditorScreen extends Screen {
 		}
 
 		if (pngMode) {
-			// Draw PNG scaled to the grid area (alpha preserved).
 			CustomCrosshairModule.drawPngPreview(graphics, gridLeft, gridTop, GRID_PX);
 		} else {
 			for (int y = 0; y < GRID; y++) {
@@ -204,7 +227,6 @@ public class CrosshairEditorScreen extends Screen {
 		int previewY = gridTop;
 		if (previewX + GRID + 8 < this.width) {
 			graphics.text(this.font, Component.translatable("screen.modid.crosshair_editor.preview"), previewX, previewY - 12, theme.panelHint, false);
-			// Checkerboard preview bg
 			for (int y = 0; y < GRID; y++) {
 				for (int x = 0; x < GRID; x++) {
 					boolean checker = ((x / 4) + (y / 4)) % 2 == 0;
@@ -227,13 +249,18 @@ public class CrosshairEditorScreen extends Screen {
 		String status = !localStatus.isEmpty() ? localStatus : CustomCrosshairModule.getStatusMessage();
 		if (!status.isEmpty()) {
 			String clipped = this.font.plainSubstrByWidth(status, Math.max(40, this.width - 24));
-			graphics.centeredText(this.font, Component.literal(clipped), this.width / 2, this.height - 14, theme.panelHint);
+			graphics.centeredText(this.font, Component.literal(clipped), this.width / 2, this.height - 12, theme.panelHint);
+		}
+
+		ModeDropdownButton open = ModeDropdownButton.getOpen();
+		if (open != null) {
+			open.extractOverlay(graphics, mouseX, mouseY);
 		}
 	}
 
 	private boolean cellAt(double mx, double my, int[] out) {
 		if (CustomCrosshairModule.isPngMode()) {
-			return false; // PNG mode: grid is display-only
+			return false;
 		}
 		if (mx < gridLeft || my < gridTop || mx >= gridLeft + GRID_PX || my >= gridTop + GRID_PX) {
 			return false;
@@ -290,6 +317,7 @@ public class CrosshairEditorScreen extends Screen {
 
 	@Override
 	public void onClose() {
+		ModeDropdownButton.closeOpen();
 		if (this.minecraft != null) {
 			this.minecraft.gui.setScreen(this.parent);
 		}
