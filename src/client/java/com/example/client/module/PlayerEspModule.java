@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Player;
  * Visuals: Player ESP with Outline / 2D / 3D modes. "Outline Boxes" draws a
  * black outer stroke on the ESP boxes (not a vanilla player entity outline).
  * Color lives on this module's settings (not the central Menu theme).
+ * Default is thematic cyan; a saved playerEspColor is never overwritten.
  */
 public final class PlayerEspModule {
 	public enum Mode {
@@ -21,7 +22,8 @@ public final class PlayerEspModule {
 		BOX_3D
 	}
 
-	public static final int DEFAULT_COLOR = 0xFFFFFFFF;
+	/** Cyan — readable through most biomes; used only when config has no saved color. */
+	public static final int DEFAULT_COLOR = 0xFF55E5FF;
 
 	private static boolean enabled;
 	private static Mode mode = Mode.BOX_3D;

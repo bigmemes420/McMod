@@ -23,7 +23,8 @@ import java.util.Set;
 
 /**
  * Visuals: Mob ESP with Outline / 2D / 3D. Per-mob selection + colors (Finder-style).
- * Randomized defaults; only selected mobs are drawn.
+ * Thematic per-mob defaults; only selected mobs are drawn.
+ * Custom colors persist; unset ids use {@link EntityEspDefaults}.
  */
 public final class MobEspModule {
 	public enum Mode {
@@ -32,7 +33,7 @@ public final class MobEspModule {
 		BOX_3D
 	}
 
-	public static final int DEFAULT_COLOR = 0xFFFF5555;
+	public static final int DEFAULT_COLOR = EntityEspDefaults.FALLBACK_COLOR;
 
 	private static boolean enabled;
 	private static Mode mode = Mode.OUTLINE;
@@ -83,9 +84,8 @@ public final class MobEspModule {
 		boolean changed = selected ? selectedMobs.add(id) : selectedMobs.remove(id);
 		if (!selected) {
 			mobColors.remove(id);
-		} else if (!mobColors.containsKey(id)) {
-			mobColors.put(id, BlockEspDefaults.colorFor(id));
 		}
+		// Do not bake thematic defaults into mobColors — only user picks are saved.
 		if (changed) {
 			ModConfig.save();
 		}
@@ -100,7 +100,7 @@ public final class MobEspModule {
 			return custom;
 		}
 		if (selectedMobs.contains(id)) {
-			return BlockEspDefaults.colorFor(id);
+			return EntityEspDefaults.colorFor(id);
 		}
 		return color;
 	}

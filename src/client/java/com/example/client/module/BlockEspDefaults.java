@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Set;
 
-/** Shared default ore/chest block ids for Finder. */
+/** Shared default ore/chest block ids and thematic Finder colors. */
 public final class BlockEspDefaults {
 	/** Written when the user clears every block so load does not re-seed defaults. */
 	public static final String EMPTY_SENTINEL = "-";
@@ -50,15 +50,93 @@ public final class BlockEspDefaults {
 		}
 	}
 
+	/** Fallback when no thematic match (warm amber). */
+	public static final int FALLBACK_COLOR = 0xFFFFD54A;
+
+	// Thematic ore / storage colors (opaque ARGB) — stone + deepslate share via path.
+	public static final int COAL = 0xFF2F2F2F;
+	public static final int IRON = 0xFFD8D0C8;
+	public static final int GOLD = 0xFFFFC93C;
+	public static final int COPPER = 0xFFE77C56;
+	public static final int LAPIS = 0xFF1E5EFF;
+	public static final int REDSTONE = 0xFFFF3030;
+	public static final int DIAMOND = 0xFF4AEDED;
+	public static final int EMERALD = 0xFF17DD62;
+	public static final int NETHER_GOLD = 0xFFFFB040;
+	public static final int QUARTZ = 0xFFF2EDE4;
+	public static final int ANCIENT_DEBRIS = 0xFF6B4A3A;
+	public static final int SPAWNER = 0xFF9B59B6;
+	public static final int CHEST = 0xFFC4A35A;
+	public static final int TRAPPED_CHEST = 0xFFC4785A;
+	public static final int ENDER_CHEST = 0xFF1A8A7A;
+
 	/**
-	 * Stable per-block default color derived from the id hash (looks random,
-	 * stays the same across launches until the user picks a custom color).
+	 * Thematic default color for a block id (ores match their mineral tint).
+	 * Used only when the user has not saved a custom color for that block.
 	 */
 	public static int colorFor(Identifier id) {
 		if (id == null) {
-			return 0xFFFFD54A;
+			return FALLBACK_COLOR;
 		}
-		int h = id.hashCode();
+		return thematicBlockColor(id.getPath());
+	}
+
+	/** Path-based so deepslate_* and regular ores share the same tint. */
+	public static int thematicBlockColor(String path) {
+		if (path == null || path.isEmpty()) {
+			return FALLBACK_COLOR;
+		}
+		if (path.contains("ancient_debris")) {
+			return ANCIENT_DEBRIS;
+		}
+		if (path.contains("diamond")) {
+			return DIAMOND;
+		}
+		if (path.contains("emerald")) {
+			return EMERALD;
+		}
+		if (path.contains("lapis")) {
+			return LAPIS;
+		}
+		if (path.contains("redstone")) {
+			return REDSTONE;
+		}
+		if (path.contains("copper")) {
+			return COPPER;
+		}
+		if (path.contains("nether_gold") || path.contains("nether_gold_ore")) {
+			return NETHER_GOLD;
+		}
+		if (path.contains("gold")) {
+			return GOLD;
+		}
+		if (path.contains("iron")) {
+			return IRON;
+		}
+		if (path.contains("coal")) {
+			return COAL;
+		}
+		if (path.contains("quartz")) {
+			return QUARTZ;
+		}
+		if (path.contains("spawner")) {
+			return SPAWNER;
+		}
+		if (path.contains("ender_chest")) {
+			return ENDER_CHEST;
+		}
+		if (path.contains("trapped_chest")) {
+			return TRAPPED_CHEST;
+		}
+		if (path.equals("chest") || path.endsWith("_chest")) {
+			return CHEST;
+		}
+		return hashFallback(path);
+	}
+
+	/** Stable pseudo-random tint for unknown blocks (unchanged across launches). */
+	private static int hashFallback(String path) {
+		int h = path.hashCode();
 		int mixed = h ^ (h >>> 16) * 0x45D9F3B;
 		float hue = (mixed & 0xFFFF) / 65535.0F;
 		float sat = 0.55F + ((mixed >>> 16) & 0xFF) / 255.0F * 0.40F;
