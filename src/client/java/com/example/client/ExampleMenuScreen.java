@@ -665,7 +665,7 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		// Custom Crosshair: capsule + Edit + cog settings (color / rotate / spin)
+		// Custom Crosshair: capsule + Edit + cog + Mode (Pixels | PNG)
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
@@ -678,6 +678,7 @@ public class ExampleMenuScreen extends Screen {
 		));
 		int crossEditX = CONTENT_LEFT + CAPSULE_WIDTH + 6;
 		int crossCogX = crossEditX + EDIT_WIDTH + 6;
+		int crossModeX = crossCogX + COG_SIZE + 6;
 		this.addRenderableWidget(new FlatMenuButton(
 				crossEditX,
 				y,
@@ -697,8 +698,73 @@ public class ExampleMenuScreen extends Screen {
 				settingsOpen("custom_crosshair"),
 				button -> toggleSettings("custom_crosshair")
 		));
+		int crossSourceIndex = CustomCrosshairModule.getSource() == CustomCrosshairModule.Source.PNG ? 1 : 0;
+		this.addRenderableWidget(new ModeDropdownButton(
+				crossModeX,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.modid.menu.visuals.custom_crosshair.mode.pixels"),
+					Component.translatable("screen.modid.menu.visuals.custom_crosshair.mode.png")
+				},
+				crossSourceIndex,
+				index -> {
+					CustomCrosshairModule.setSource(
+							index == 1 ? CustomCrosshairModule.Source.PNG : CustomCrosshairModule.Source.PIXELS
+					);
+					rebuildMenu();
+				}
+		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 		if (settingsOpen("custom_crosshair")) {
+			if (CustomCrosshairModule.getSource() == CustomCrosshairModule.Source.PNG) {
+				java.util.List<String> pngNames = CustomCrosshairModule.getPngList();
+				Component[] pngLabels;
+				int pngIndex = 0;
+				if (pngNames.isEmpty()) {
+					pngLabels = new Component[] {
+							Component.translatable("screen.modid.crosshair_editor.no_pngs")
+					};
+				} else {
+					pngLabels = new Component[pngNames.size()];
+					String selected = CustomCrosshairModule.getSelectedPng();
+					for (int i = 0; i < pngNames.size(); i++) {
+						pngLabels[i] = Component.literal(pngNames.get(i));
+						if (pngNames.get(i).equalsIgnoreCase(selected)) {
+							pngIndex = i;
+						}
+					}
+				}
+				int pngDropW = SETTINGS_WIDTH - EDIT_WIDTH - 6;
+				this.addRenderableWidget(new ModeDropdownButton(
+						CONTENT_LEFT,
+						y,
+						pngDropW,
+						CAPSULE_HEIGHT,
+						pngLabels,
+						pngIndex,
+						index -> {
+							if (pngNames.isEmpty() || index < 0 || index >= pngNames.size()) {
+								return;
+							}
+							CustomCrosshairModule.selectPng(pngNames.get(index));
+							rebuildMenu();
+						}
+				));
+				this.addRenderableWidget(new FlatMenuButton(
+						CONTENT_LEFT + pngDropW + 6,
+						y,
+						EDIT_WIDTH,
+						CAPSULE_HEIGHT,
+						Component.translatable("screen.modid.crosshair_editor.refresh"),
+						button -> {
+							CustomCrosshairModule.refreshPngList();
+							rebuildMenu();
+						}
+				));
+				y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			}
 			addColorSettingRow(y, "Color", CustomCrosshairModule.getColor(), c -> {
 				CustomCrosshairModule.setColor(c);
 				rebuildMenu();

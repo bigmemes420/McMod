@@ -273,7 +273,18 @@ public final class CustomCrosshairModule {
 			ModConfig.save();
 			return;
 		}
+		// Switch to PNG: use selected file, or first available in crosshairs/.
 		source = Source.PNG;
+		if (selectedPng == null || selectedPng.isBlank()) {
+			List<String> list = getPngList();
+			if (!list.isEmpty()) {
+				selectPng(list.getFirst(), true);
+				return;
+			}
+			statusMessage = "No PNGs in crosshairs/ — drop files then Refresh";
+			ModConfig.save();
+			return;
+		}
 		selectPng(selectedPng, true);
 	}
 
