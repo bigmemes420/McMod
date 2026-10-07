@@ -2,10 +2,6 @@
 
 Fabric **client-side** mod for **Minecraft 26.3** (Java 25, Fabric Loader 0.19.5, Fabric API). Custom “Rooty Menu” UI with toggles, editable sliders, single- and multi-select dropdowns, theme colors, and HUD widgets.
 
-> Client-only cheat / QoL style modules. Use only where allowed.
-
-Mod id / asset namespace: **`rootymenu`** (renamed from the older `modid` template id).
-
 ## Requirements
 
 | Piece | Version |
