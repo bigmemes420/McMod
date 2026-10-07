@@ -37,9 +37,12 @@ public final class WorldBlockEspRenderer {
 
 	private static final Direction[] FACES = Direction.values();
 
-	/** Soft cap on exposed faces drawn per mesh (keeps FPS stable for huge veins). */
-	public static final int MAX_FACES = 12_000;
-	public static final int MAX_EDGES = 24_000;
+	/**
+	 * Soft cap on exposed faces per mesh (FPS). Edges are always emitted with each
+	 * face (up to 4), so {@link #MAX_EDGES} is 4× faces — never leave fill without outline.
+	 */
+	public static final int MAX_FACES = 16_000;
+	public static final int MAX_EDGES = MAX_FACES * 4;
 
 	private WorldBlockEspRenderer() {
 	}
@@ -94,12 +97,10 @@ public final class WorldBlockEspRenderer {
 		}
 
 		List<Face> faces = new ArrayList<>(Math.min(positions.size() * 3, MAX_FACES));
-		List<Edge> edges = new ArrayList<>(Math.min(positions.size() * 4, MAX_EDGES));
+		List<Edge> edges = new ArrayList<>(Math.min(positions.size() * 6, MAX_EDGES));
 
+		outer:
 		for (BlockPos pos : positions) {
-			if (faces.size() >= MAX_FACES && edges.size() >= MAX_EDGES) {
-				break;
-			}
 			int x = pos.getX();
 			int y = pos.getY();
 			int z = pos.getZ();
@@ -107,11 +108,18 @@ public final class WorldBlockEspRenderer {
 				if (set.contains(pos.relative(face).asLong())) {
 					continue; // internal — neighbor in selection
 				}
-				if (faces.size() < MAX_FACES) {
-					faces.add(new Face(x, y, z, face));
+				// Room for this face + up to 4 silhouette edges — never add fill alone.
+				if (faces.size() >= MAX_FACES || edges.size() + 4 > MAX_EDGES) {
+					break outer;
 				}
-				if (edges.size() < MAX_EDGES) {
-					collectExposedFaceEdges(pos, face, set, edges);
+				int edgeBefore = edges.size();
+				collectExposedFaceEdges(pos, face, set, edges);
+				faces.add(new Face(x, y, z, face));
+				// If somehow edges overflowed past budget, roll back the unpaired face.
+				if (edges.size() > MAX_EDGES) {
+					edges.subList(edgeBefore, edges.size()).clear();
+					faces.remove(faces.size() - 1);
+					break outer;
 				}
 			}
 		}

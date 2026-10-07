@@ -61,7 +61,7 @@ public final class FinderModule {
 	public static final float DEFAULT_OUTLINE_THICKNESS = 2.0F;
 
 	public static final float MIN_DISTANCE = 0.0F;
-	public static final float MAX_DISTANCE = 1000.0F;
+	public static final float MAX_DISTANCE = 128.0F;
 	public static final float DEFAULT_DISTANCE = (float) BlockEspScanner.DEFAULT_RANGE;
 
 	private static boolean enabled;
@@ -301,19 +301,21 @@ public final class FinderModule {
 		float thickness = getOutlineThickness();
 		float fillAlpha = Mth.clamp(getOpacityFraction(), 0.0F, 1.0F);
 		boolean drawFill = mode == RenderMode.FILLED || mode == RenderMode.COMBINED_FILL;
-		boolean drawEdges = mode == RenderMode.OUTLINE || mode == RenderMode.COMBINED_FILL
-				|| mode == RenderMode.FILLED;
+		// Outline / Combined / Filled always stroke silhouette when a mesh has faces.
+		boolean drawEdges = true;
 
 		for (MeshGroup group : renderCache) {
 			int fill = WorldBlockEspRenderer.fillWithAlpha(group.strokeRgb & 0xFFFFFF, fillAlpha);
+			boolean hasFill = drawFill && fillAlpha > 0.001F;
+			// If we draw any fill for this group, edges must draw too (paired mesh).
 			WorldBlockEspRenderer.drawMesh(
 					levelRenderer,
 					group.mesh,
 					fill,
 					group.strokeRgb,
 					thickness,
-					drawFill && fillAlpha > 0.001F,
-					drawEdges
+					hasFill,
+					drawEdges || hasFill
 			);
 		}
 	}
