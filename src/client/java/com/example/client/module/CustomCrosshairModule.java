@@ -155,15 +155,12 @@ public final class CustomCrosshairModule {
 		Path dir = crosshairsDir();
 		List<String> found = new ArrayList<>();
 		try (var stream = Files.list(dir)) {
+			// Extension-only scan (no NativeImage decode) — validate on select.
 			stream.filter(Files::isRegularFile)
 					.map(p -> p.getFileName().toString())
 					.filter(n -> n.toLowerCase(Locale.ROOT).endsWith(".png"))
 					.sorted(String.CASE_INSENSITIVE_ORDER)
-					.forEach(name -> {
-						if (isCompatiblePng(dir.resolve(name))) {
-							found.add(name);
-						}
-					});
+					.forEach(found::add);
 		} catch (Exception e) {
 			ExampleMod.LOGGER.warn("Failed to list crosshairs: {}", e.toString());
 		}
