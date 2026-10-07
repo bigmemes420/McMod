@@ -8,14 +8,17 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Visuals (Meteor Tracers): always-on-top lines from screen center (camera
- * origin, ignoring view bobbing) to nearby players and/or hostile mobs.
+ * Visuals (Meteor Tracers): always-on-top lines from unbobbed screen center
+ * to nearby players and/or hostile mobs. Rebuilt every frame so they stay
+ * visible while standing still.
  */
 public final class TracersModule {
 	public enum Mode {
@@ -23,6 +26,9 @@ public final class TracersModule {
 		HOSTILES,
 		BOTH
 	}
+
+	/** Push origin along look so the line clears the near plane when idle. */
+	private static final double SCREEN_CENTER_PUSH = 0.2D;
 
 	private static boolean enabled;
 	private static Mode mode = Mode.BOTH;
@@ -75,6 +81,21 @@ public final class TracersModule {
 		enabled = value;
 	}
 
+	/**
+	 * When tracers are on, skip {@code bobView} so the camera pose matches
+	 * {@link #screenCenterOrigin} (true screen-center, no view-bob wobble).
+	 */
+	public static boolean shouldIgnoreViewBobbing() {
+		return enabled;
+	}
+
+	/** Unbobbed screen-center world point, slightly in front of the near plane. */
+	public static Vec3 screenCenterOrigin(Camera camera) {
+		Vec3 pos = camera.position();
+		Vec3 look = Vec3.directionFromRotation(camera.xRot(), camera.yRot());
+		return pos.add(look.scale(SCREEN_CENTER_PUSH));
+	}
+
 	public static void render(LevelRenderer levelRenderer) {
 		if (!enabled) {
 			return;
@@ -84,17 +105,21 @@ public final class TracersModule {
 		if (self == null || client.level == null) {
 			return;
 		}
-		// Camera position is the view origin (screen center). bobView is pose-only,
-		// so this origin ignores view bobbing and stays locked to the crosshair ray.
 		Camera camera = client.gameRenderer.mainCamera();
-		Vec3 from = camera.position();
+		if (!camera.isInitialized()) {
+			return;
+		}
+		float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+		// Recompute every frame so standing-still frames still redraw.
+		Vec3 from = screenCenterOrigin(camera);
+
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
 			if (mode == Mode.PLAYERS || mode == Mode.BOTH) {
 				for (Player player : client.level.players()) {
 					if (player == self || player.isRemoved()) {
 						continue;
 					}
-					Gizmos.line(from, player.getBoundingBox().getCenter(), ARGB.opaque(PLAYER_COLOR), 1.5F)
+					Gizmos.line(from, interpolatedCenter(player, partialTick), ARGB.opaque(PLAYER_COLOR), 1.5F)
 							.setAlwaysOnTop();
 				}
 			}
@@ -103,10 +128,17 @@ public final class TracersModule {
 					if (mob.isRemoved() || mob.getType().getCategory() != MobCategory.MONSTER) {
 						continue;
 					}
-					Gizmos.line(from, mob.getBoundingBox().getCenter(), ARGB.opaque(MOB_COLOR), 1.5F)
+					Gizmos.line(from, interpolatedCenter(mob, partialTick), ARGB.opaque(MOB_COLOR), 1.5F)
 							.setAlwaysOnTop();
 				}
 			}
 		}
+	}
+
+	private static Vec3 interpolatedCenter(Entity entity, float partialTick) {
+		double x = Mth.lerp(partialTick, entity.xo, entity.getX());
+		double y = Mth.lerp(partialTick, entity.yo, entity.getY());
+		double z = Mth.lerp(partialTick, entity.zo, entity.getZ());
+		return new Vec3(x, y + entity.getBbHeight() * 0.5D, z);
 	}
 }
