@@ -10,7 +10,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,8 +22,8 @@ import java.util.Set;
 
 /**
  * Visuals module: through-world block ESP for a dedicated selection list.
- * Modes: Outline, Filled Boxes, Combined Fill. Render path caches merged
- * AABBs per color between scans to keep FPS high.
+ * Modes: Outline, Filled Boxes, Combined Fill. Render path caches exposed-face
+ * meshes (no internal double-fill) between scans for FPS.
  */
 public final class FinderModule {
 	public enum RenderMode {
@@ -74,14 +73,14 @@ public final class FinderModule {
 	private static final LinkedHashMap<Identifier, Integer> blockColors = new LinkedHashMap<>();
 	private static final BlockEspScanner scanner = new BlockEspScanner(FinderModule::getSelectedBlocks, BlockEspScanner.DEFAULT_RANGE);
 
-	/** Cached per-color merged AABBs — rebuilt when scanner generation changes. */
-	private static final List<ColorGroup> renderCache = new ArrayList<>();
+	/** Cached meshes — rebuilt when scanner generation / mode changes. */
+	private static final List<MeshGroup> renderCache = new ArrayList<>();
 	private static int cachedGen = -1;
 	private static RenderMode cachedMode = null;
 
 	static {
 		BlockEspDefaults.seedOresAndChests(selectedBlocks);
-		scanner.setScanPeriodTicks(10);
+		scanner.setScanPeriodTicks(12);
 	}
 
 	private FinderModule() {
@@ -301,27 +300,21 @@ public final class FinderModule {
 		ensureRenderCache(Minecraft.getInstance().level, hits);
 		float thickness = getOutlineThickness();
 		float fillAlpha = Mth.clamp(getOpacityFraction(), 0.0F, 1.0F);
+		boolean drawFill = mode == RenderMode.FILLED || mode == RenderMode.COMBINED_FILL;
+		boolean drawEdges = mode == RenderMode.OUTLINE || mode == RenderMode.COMBINED_FILL
+				|| mode == RenderMode.FILLED;
 
-		if (mode == RenderMode.COMBINED_FILL) {
-			// Combined still needs per-block ids for silhouette; reuse hit list once.
-			WorldBlockEspRenderer.drawCombinedFill(
+		for (MeshGroup group : renderCache) {
+			int fill = WorldBlockEspRenderer.fillWithAlpha(group.strokeRgb & 0xFFFFFF, fillAlpha);
+			WorldBlockEspRenderer.drawMesh(
 					levelRenderer,
-					hits,
-					pos -> idAt(Minecraft.getInstance().level, pos),
-					id -> WorldBlockEspRenderer.fillWithAlpha(getBlockColor(id) & 0xFFFFFF, fillAlpha),
-					FinderModule::getBlockColor,
-					thickness
+					group.mesh,
+					fill,
+					group.strokeRgb,
+					thickness,
+					drawFill && fillAlpha > 0.001F,
+					drawEdges
 			);
-			return;
-		}
-
-		for (ColorGroup group : renderCache) {
-			if (mode == RenderMode.OUTLINE) {
-				WorldBlockEspRenderer.drawOutlineAabbs(levelRenderer, group.boxes, group.stroke, thickness);
-			} else {
-				int fill = WorldBlockEspRenderer.fillWithAlpha(group.stroke & 0xFFFFFF, fillAlpha);
-				WorldBlockEspRenderer.drawFilledAabbs(levelRenderer, group.boxes, group.stroke, fill, thickness);
-			}
 		}
 	}
 
@@ -333,15 +326,37 @@ public final class FinderModule {
 		cachedGen = gen;
 		cachedMode = mode;
 		renderCache.clear();
+		if (level == null || hits.isEmpty()) {
+			return;
+		}
 
+		if (mode == RenderMode.COMBINED_FILL) {
+			// Per block-type so different ores never share a mesh / colors.
+			Map<Identifier, List<BlockPos>> byType = new LinkedHashMap<>();
+			for (BlockPos pos : hits) {
+				Identifier id = idAt(level, pos);
+				if (id == null) {
+					continue;
+				}
+				byType.computeIfAbsent(id, k -> new ArrayList<>()).add(pos);
+			}
+			for (Map.Entry<Identifier, List<BlockPos>> e : byType.entrySet()) {
+				renderCache.add(new MeshGroup(
+						getBlockColor(e.getKey()),
+						WorldBlockEspRenderer.buildMesh(e.getValue())
+				));
+			}
+			return;
+		}
+
+		// Outline / Filled: group by color.
 		Map<Integer, List<BlockPos>> byColor = new LinkedHashMap<>();
 		for (BlockPos pos : hits) {
 			Identifier id = idAt(level, pos);
 			byColor.computeIfAbsent(getBlockColor(id), k -> new ArrayList<>()).add(pos);
 		}
 		for (Map.Entry<Integer, List<BlockPos>> e : byColor.entrySet()) {
-			List<AABB> boxes = WorldBlockEspRenderer.mergeConnectedSolid(e.getValue());
-			renderCache.add(new ColorGroup(e.getKey(), boxes));
+			renderCache.add(new MeshGroup(e.getKey(), WorldBlockEspRenderer.buildMesh(e.getValue())));
 		}
 	}
 
@@ -358,6 +373,6 @@ public final class FinderModule {
 		return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock());
 	}
 
-	private record ColorGroup(int stroke, List<AABB> boxes) {
+	private record MeshGroup(int strokeRgb, WorldBlockEspRenderer.Mesh mesh) {
 	}
 }

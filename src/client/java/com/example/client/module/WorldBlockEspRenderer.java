@@ -20,9 +20,10 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Draws through-world block ESP using MC 26.3 always-on-top gizmos.
- * Prefer merged AABB draws ({@link #drawOutlinesMerged}, {@link #drawFilledMerged})
- * to keep gizmo count low for FPS.
+ * Through-world block ESP via MC 26.3 always-on-top gizmos.
+ * Fills use <em>exposed faces only</em> ({@link Gizmos#rect}) so shared faces
+ * between adjacent selected blocks never double-fill. Outlines use silhouette
+ * edges only. Meshes are meant to be cached across frames by the caller.
  */
 public final class WorldBlockEspRenderer {
 	private static final BlockPos[] FACE_OFFSETS = {
@@ -36,25 +37,205 @@ public final class WorldBlockEspRenderer {
 
 	private static final Direction[] FACES = Direction.values();
 
+	/** Soft cap on exposed faces drawn per mesh (keeps FPS stable for huge veins). */
+	public static final int MAX_FACES = 12_000;
+	public static final int MAX_EDGES = 24_000;
+
 	private WorldBlockEspRenderer() {
 	}
 
-	public static void drawOutlines(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
-		drawOutlinesMerged(levelRenderer, positions, strokeArgb, strokeWidth);
+	/** One outward face of a unit cube at block coords. */
+	public record Face(int x, int y, int z, Direction direction) {
+		public void draw(GizmoStyle style) {
+			Gizmos.rect(
+					new Vec3(x, y, z),
+					new Vec3(x + 1, y + 1, z + 1),
+					direction,
+					style
+			).setAlwaysOnTop();
+		}
 	}
 
-	/** Stroke merged solid AABBs (far fewer gizmos than per-block cuboids). */
-	public static void drawOutlinesMerged(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
+	/** Silhouette edge segment in world space. */
+	public record Edge(float x0, float y0, float z0, float x1, float y1, float z1) {
+		public void draw(int strokeArgb, float strokeWidth) {
+			Gizmos.line(
+					new Vec3(x0, y0, z0),
+					new Vec3(x1, y1, z1),
+					strokeArgb,
+					strokeWidth
+			).setAlwaysOnTop();
+		}
+	}
+
+	/** Cached exposed faces + silhouette edges for a connected selection. */
+	public static final class Mesh {
+		public final List<Face> faces;
+		public final List<Edge> edges;
+
+		public Mesh(List<Face> faces, List<Edge> edges) {
+			this.faces = faces;
+			this.edges = edges;
+		}
+
+		public boolean isEmpty() {
+			return faces.isEmpty() && edges.isEmpty();
+		}
+	}
+
+	/** Build exposed-face fill + silhouette edges. Skips internal shared faces. */
+	public static Mesh buildMesh(List<BlockPos> positions) {
 		if (positions.isEmpty()) {
+			return new Mesh(List.of(), List.of());
+		}
+		Set<Long> set = new HashSet<>(Math.max(16, positions.size() * 2));
+		for (BlockPos p : positions) {
+			set.add(p.asLong());
+		}
+
+		List<Face> faces = new ArrayList<>(Math.min(positions.size() * 3, MAX_FACES));
+		List<Edge> edges = new ArrayList<>(Math.min(positions.size() * 4, MAX_EDGES));
+
+		for (BlockPos pos : positions) {
+			if (faces.size() >= MAX_FACES && edges.size() >= MAX_EDGES) {
+				break;
+			}
+			int x = pos.getX();
+			int y = pos.getY();
+			int z = pos.getZ();
+			for (Direction face : FACES) {
+				if (set.contains(pos.relative(face).asLong())) {
+					continue; // internal — neighbor in selection
+				}
+				if (faces.size() < MAX_FACES) {
+					faces.add(new Face(x, y, z, face));
+				}
+				if (edges.size() < MAX_EDGES) {
+					collectExposedFaceEdges(pos, face, set, edges);
+				}
+			}
+		}
+		return new Mesh(faces, edges);
+	}
+
+	public static void drawMeshFill(LevelRenderer levelRenderer, Mesh mesh, int fillArgb) {
+		if (mesh == null || mesh.faces.isEmpty()) {
+			return;
+		}
+		GizmoStyle style = GizmoStyle.fill(fillArgb);
+		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
+			for (Face face : mesh.faces) {
+				face.draw(style);
+			}
+		}
+	}
+
+	public static void drawMeshEdges(LevelRenderer levelRenderer, Mesh mesh, int strokeArgb, float strokeWidth) {
+		if (mesh == null || mesh.edges.isEmpty()) {
 			return;
 		}
 		float width = Math.max(0.5F, strokeWidth);
-		GizmoStyle style = GizmoStyle.stroke(ARGB.opaque(strokeArgb), width);
+		int stroke = ARGB.opaque(strokeArgb);
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (AABB box : mergeConnectedSolid(positions)) {
-				Gizmos.cuboid(box, style).setAlwaysOnTop();
+			for (Edge edge : mesh.edges) {
+				edge.draw(stroke, width);
 			}
 		}
+	}
+
+	/** Fill exposed faces + silhouette edges in one gizmo pass. */
+	public static void drawMesh(
+			LevelRenderer levelRenderer,
+			Mesh mesh,
+			int fillArgb,
+			int strokeArgb,
+			float strokeWidth,
+			boolean drawFill,
+			boolean drawEdges
+	) {
+		if (mesh == null || mesh.isEmpty()) {
+			return;
+		}
+		float width = Math.max(0.5F, strokeWidth);
+		int stroke = ARGB.opaque(strokeArgb);
+		GizmoStyle fillStyle = drawFill ? GizmoStyle.fill(fillArgb) : null;
+		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
+			if (drawFill && fillStyle != null) {
+				for (Face face : mesh.faces) {
+					face.draw(fillStyle);
+				}
+			}
+			if (drawEdges) {
+				for (Edge edge : mesh.edges) {
+					edge.draw(stroke, width);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Combined Fill: per block-type mesh — exposed-face fill (no internal seams)
+	 * + silhouette edges. Prefer {@link #buildMesh} + cache via Finder.
+	 */
+	public static void drawCombinedFill(
+			LevelRenderer levelRenderer,
+			List<BlockPos> positions,
+			Function<BlockPos, Identifier> idAt,
+			Function<Identifier, Integer> fillColorFor,
+			Function<Identifier, Integer> strokeColorFor,
+			float strokeWidth
+	) {
+		if (positions.isEmpty()) {
+			return;
+		}
+		Map<Identifier, List<BlockPos>> byType = new HashMap<>();
+		for (BlockPos pos : positions) {
+			Identifier id = idAt.apply(pos);
+			if (id == null) {
+				continue;
+			}
+			byType.computeIfAbsent(id, k -> new ArrayList<>()).add(pos);
+		}
+		float width = Math.max(0.5F, strokeWidth);
+		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
+			for (Map.Entry<Identifier, List<BlockPos>> entry : byType.entrySet()) {
+				Mesh mesh = buildMesh(entry.getValue());
+				int fill = fillColorFor.apply(entry.getKey());
+				int stroke = ARGB.opaque(strokeColorFor.apply(entry.getKey()));
+				GizmoStyle fillStyle = GizmoStyle.fill(fill);
+				for (Face face : mesh.faces) {
+					face.draw(fillStyle);
+				}
+				for (Edge edge : mesh.edges) {
+					edge.draw(stroke, width);
+				}
+			}
+		}
+	}
+
+	/** Group positions by a key, build one mesh per group (for Finder cache). */
+	public static <K> Map<K, Mesh> buildMeshesByKey(List<BlockPos> positions, Function<BlockPos, K> keyAt) {
+		Map<K, List<BlockPos>> groups = new HashMap<>();
+		for (BlockPos pos : positions) {
+			K key = keyAt.apply(pos);
+			if (key == null) {
+				continue;
+			}
+			groups.computeIfAbsent(key, k -> new ArrayList<>()).add(pos);
+		}
+		Map<K, Mesh> out = new HashMap<>(groups.size() * 2);
+		for (Map.Entry<K, List<BlockPos>> e : groups.entrySet()) {
+			out.put(e.getKey(), buildMesh(e.getValue()));
+		}
+		return out;
+	}
+
+	public static void drawOutlines(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
+		drawMesh(levelRenderer, buildMesh(positions), 0, strokeArgb, strokeWidth, false, true);
+	}
+
+	public static void drawOutlinesMerged(LevelRenderer levelRenderer, List<BlockPos> positions, int strokeArgb, float strokeWidth) {
+		drawOutlines(levelRenderer, positions, strokeArgb, strokeWidth);
 	}
 
 	public static void drawFilled(
@@ -64,7 +245,7 @@ public final class WorldBlockEspRenderer {
 			int fillArgb,
 			float strokeWidth
 	) {
-		drawFilledMerged(levelRenderer, positions, strokeArgb, fillArgb, strokeWidth);
+		drawMesh(levelRenderer, buildMesh(positions), fillArgb, strokeArgb, strokeWidth, true, true);
 	}
 
 	public static void drawFilledMerged(
@@ -74,32 +255,14 @@ public final class WorldBlockEspRenderer {
 			int fillArgb,
 			float strokeWidth
 	) {
-		if (positions.isEmpty()) {
-			return;
-		}
-		float width = Math.max(0.5F, strokeWidth);
-		GizmoStyle style = GizmoStyle.strokeAndFill(ARGB.opaque(strokeArgb), width, fillArgb);
-		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (AABB box : mergeConnectedSolid(positions)) {
-				Gizmos.cuboid(box, style).setAlwaysOnTop();
-			}
-		}
+		drawFilled(levelRenderer, positions, strokeArgb, fillArgb, strokeWidth);
 	}
 
-	/** Fill-only (no outline stroke) per block position. */
 	public static void drawFilledOnly(LevelRenderer levelRenderer, List<BlockPos> positions, int fillArgb) {
-		if (positions.isEmpty()) {
-			return;
-		}
-		GizmoStyle style = GizmoStyle.fill(fillArgb);
-		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (AABB box : mergeConnectedSolid(positions)) {
-				Gizmos.cuboid(box, style).setAlwaysOnTop();
-			}
-		}
+		drawMesh(levelRenderer, buildMesh(positions), fillArgb, 0xFFFFFFFF, 1.0F, true, false);
 	}
 
-	/** Fill-only for pre-merged AABBs (cached Finder). */
+	/** Legacy AABB fill (may seam); Finder uses {@link Mesh}. */
 	public static void drawFilledAabbs(LevelRenderer levelRenderer, List<AABB> boxes, int fillArgb) {
 		if (boxes.isEmpty()) {
 			return;
@@ -112,7 +275,6 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/** Stroke-only for pre-merged AABBs. */
 	public static void drawOutlineAabbs(LevelRenderer levelRenderer, List<AABB> boxes, int strokeArgb, float strokeWidth) {
 		if (boxes.isEmpty()) {
 			return;
@@ -126,7 +288,6 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/** Stroke+fill for pre-merged AABBs. */
 	public static void drawFilledAabbs(
 			LevelRenderer levelRenderer,
 			List<AABB> boxes,
@@ -146,108 +307,46 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/**
-	 * Combined Fill: merge face-connected same-type blocks into solid AABBs for
-	 * the fill, then stroke only external silhouette edges.
-	 */
-	public static void drawCombinedFill(
-			LevelRenderer levelRenderer,
-			List<BlockPos> positions,
-			Function<BlockPos, Identifier> idAt,
-			Function<Identifier, Integer> fillColorFor,
-			Function<Identifier, Integer> strokeColorFor,
-			float strokeWidth
-	) {
-		if (positions.isEmpty()) {
-			return;
-		}
-
-		Map<Identifier, List<BlockPos>> byType = new HashMap<>();
-		for (BlockPos pos : positions) {
-			Identifier id = idAt.apply(pos);
-			if (id == null) {
-				continue;
-			}
-			byType.computeIfAbsent(id, k -> new ArrayList<>()).add(pos);
-		}
-
-		float width = Math.max(0.5F, strokeWidth);
-		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
-			for (Map.Entry<Identifier, List<BlockPos>> entry : byType.entrySet()) {
-				int fill = fillColorFor.apply(entry.getKey());
-				int stroke = ARGB.opaque(strokeColorFor.apply(entry.getKey()));
-				GizmoStyle fillStyle = GizmoStyle.fill(fill);
-
-				List<BlockPos> group = entry.getValue();
-				for (AABB box : mergeConnectedSolid(group)) {
-					Gizmos.cuboid(box, fillStyle).setAlwaysOnTop();
-				}
-				drawSilhouetteEdges(group, stroke, width);
-			}
-		}
-	}
-
-	private static void drawSilhouetteEdges(List<BlockPos> group, int strokeArgb, float strokeWidth) {
-		Set<Long> set = new HashSet<>(group.size() * 2);
-		for (BlockPos p : group) {
-			set.add(p.asLong());
-		}
-		for (BlockPos pos : group) {
-			for (Direction face : FACES) {
-				if (set.contains(pos.relative(face).asLong())) {
-					continue;
-				}
-				emitExposedFaceEdges(pos, face, set, strokeArgb, strokeWidth);
-			}
-		}
-	}
-
-	private static void emitExposedFaceEdges(
-			BlockPos pos,
-			Direction face,
-			Set<Long> set,
-			int strokeArgb,
-			float strokeWidth
-	) {
+	private static void collectExposedFaceEdges(BlockPos pos, Direction face, Set<Long> set, List<Edge> edges) {
 		int x = pos.getX();
 		int y = pos.getY();
 		int z = pos.getZ();
 		switch (face) {
 			case UP -> {
-				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x, y + 1, z, x + 1, y + 1, z);
-				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x, y + 1, z + 1, x + 1, y + 1, z + 1);
-				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y + 1, z, x, y + 1, z + 1);
-				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y + 1, z, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.NORTH, face, edges, x, y + 1, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, edges, x, y + 1, z + 1, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.WEST, face, edges, x, y + 1, z, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.EAST, face, edges, x + 1, y + 1, z, x + 1, y + 1, z + 1);
 			}
 			case DOWN -> {
-				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x, y, z, x + 1, y, z);
-				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x, y, z + 1, x + 1, y, z + 1);
-				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y, z, x, y, z + 1);
-				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.NORTH, face, edges, x, y, z, x + 1, y, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, edges, x, y, z + 1, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.WEST, face, edges, x, y, z, x, y, z + 1);
+				maybeEdge(set, pos, Direction.EAST, face, edges, x + 1, y, z, x + 1, y, z + 1);
 			}
 			case NORTH -> {
-				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x, y, z, x + 1, y, z);
-				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x, y + 1, z, x + 1, y + 1, z);
-				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y, z, x, y + 1, z);
-				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.DOWN, face, edges, x, y, z, x + 1, y, z);
+				maybeEdge(set, pos, Direction.UP, face, edges, x, y + 1, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.WEST, face, edges, x, y, z, x, y + 1, z);
+				maybeEdge(set, pos, Direction.EAST, face, edges, x + 1, y, z, x + 1, y + 1, z);
 			}
 			case SOUTH -> {
-				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x, y, z + 1, x + 1, y, z + 1);
-				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x, y + 1, z + 1, x + 1, y + 1, z + 1);
-				maybeEdge(set, pos, Direction.WEST, face, strokeArgb, strokeWidth, x, y, z + 1, x, y + 1, z + 1);
-				maybeEdge(set, pos, Direction.EAST, face, strokeArgb, strokeWidth, x + 1, y, z + 1, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.DOWN, face, edges, x, y, z + 1, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.UP, face, edges, x, y + 1, z + 1, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.WEST, face, edges, x, y, z + 1, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.EAST, face, edges, x + 1, y, z + 1, x + 1, y + 1, z + 1);
 			}
 			case WEST -> {
-				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x, y, z, x, y, z + 1);
-				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x, y + 1, z, x, y + 1, z + 1);
-				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x, y, z, x, y + 1, z);
-				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x, y, z + 1, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.DOWN, face, edges, x, y, z, x, y, z + 1);
+				maybeEdge(set, pos, Direction.UP, face, edges, x, y + 1, z, x, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.NORTH, face, edges, x, y, z, x, y + 1, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, edges, x, y, z + 1, x, y + 1, z + 1);
 			}
 			case EAST -> {
-				maybeEdge(set, pos, Direction.DOWN, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y, z + 1);
-				maybeEdge(set, pos, Direction.UP, face, strokeArgb, strokeWidth, x + 1, y + 1, z, x + 1, y + 1, z + 1);
-				maybeEdge(set, pos, Direction.NORTH, face, strokeArgb, strokeWidth, x + 1, y, z, x + 1, y + 1, z);
-				maybeEdge(set, pos, Direction.SOUTH, face, strokeArgb, strokeWidth, x + 1, y, z + 1, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.DOWN, face, edges, x + 1, y, z, x + 1, y, z + 1);
+				maybeEdge(set, pos, Direction.UP, face, edges, x + 1, y + 1, z, x + 1, y + 1, z + 1);
+				maybeEdge(set, pos, Direction.NORTH, face, edges, x + 1, y, z, x + 1, y + 1, z);
+				maybeEdge(set, pos, Direction.SOUTH, face, edges, x + 1, y, z + 1, x + 1, y + 1, z + 1);
 			}
 		}
 	}
@@ -257,8 +356,7 @@ public final class WorldBlockEspRenderer {
 			BlockPos pos,
 			Direction edgeDir,
 			Direction face,
-			int strokeArgb,
-			float strokeWidth,
+			List<Edge> edges,
 			double x0,
 			double y0,
 			double z0,
@@ -267,15 +365,17 @@ public final class WorldBlockEspRenderer {
 			double z1
 	) {
 		BlockPos neighbor = pos.relative(edgeDir);
+		// Shared boundary with neighbor that also exposes this face → one edge only (skip duplicate).
 		if (set.contains(neighbor.asLong()) && !set.contains(neighbor.relative(face).asLong())) {
 			return;
 		}
-		Gizmos.line(new Vec3(x0, y0, z0), new Vec3(x1, y1, z1), strokeArgb, strokeWidth).setAlwaysOnTop();
+		edges.add(new Edge((float) x0, (float) y0, (float) z0, (float) x1, (float) y1, (float) z1));
 	}
 
 	/**
-	 * Flood-fill connected components, then greedily expand each into the
-	 * largest solid AABB fully contained in the component.
+	 * Flood-fill connected components, then greedily pack solid AABBs.
+	 * Kept for tools that still want solid volumes; Finder fill no longer uses this
+	 * for translucent overlays (seams).
 	 */
 	public static List<AABB> mergeConnectedSolid(List<BlockPos> positions) {
 		if (positions.isEmpty()) {
@@ -396,7 +496,6 @@ public final class WorldBlockEspRenderer {
 		}
 	}
 
-	/** Fill color with explicit alpha 0–1. */
 	public static int fillWithAlpha(int rgb, float alpha) {
 		int a = Math.max(0, Math.min(255, Math.round(alpha * 255.0F)));
 		return ARGB.color(a, rgb);
