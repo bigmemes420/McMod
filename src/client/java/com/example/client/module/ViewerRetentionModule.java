@@ -24,9 +24,9 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Misc: place PNG/GIF viewers on the HUD from {@code <gameDir>/Media/}.
+ * Misc: place PNG/JPEG/GIF viewers on the HUD from {@code <gameDir>/Media/}.
  * GIFs animate with Graphic Control delays (same approach as Custom Crosshair).
- * MP4/WebM are not decoded (no video decoder on classpath) — only PNG/GIF are compatible.
+ * JPEG/PNG load as stills; MP4/WebM are not decoded (no video decoder on classpath).
  * Layout via HudEditScreen (Delete key): drag/resize; right-click deletes an instance.
  */
 public final class ViewerRetentionModule {
@@ -137,10 +137,18 @@ public final class ViewerRetentionModule {
 			return false;
 		}
 		String n = name.toLowerCase(Locale.ROOT);
-		return n.endsWith(".png") || n.endsWith(".gif");
+		return n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".gif");
 	}
 
-	/** Extension-only scan of Media/ for PNG + GIF. */
+	public static boolean isJpegFilename(String name) {
+		if (name == null) {
+			return false;
+		}
+		String n = name.toLowerCase(Locale.ROOT);
+		return n.endsWith(".jpg") || n.endsWith(".jpeg");
+	}
+
+	/** Extension-only scan of Media/ for PNG, JPEG, GIF. */
 	public static List<String> refreshMediaList() {
 		ensureMediaDir();
 		Path dir = mediaDir();
@@ -156,7 +164,7 @@ public final class ViewerRetentionModule {
 		}
 		cachedMediaList = Collections.unmodifiableList(found);
 		statusMessage = found.isEmpty()
-				? "No PNG/GIF in Media/"
+				? "No PNG/JPEG/GIF in Media/"
 				: found.size() + " file(s) in Media/";
 		if (menuSelectedFile.isBlank() && !found.isEmpty()) {
 			menuSelectedFile = found.getFirst();
@@ -179,7 +187,7 @@ public final class ViewerRetentionModule {
 		if (name == null || name.isBlank()) {
 			List<String> list = getMediaList();
 			if (list.isEmpty()) {
-				statusMessage = "No PNG/GIF in Media/ — drop files then Refresh";
+				statusMessage = "No PNG/JPEG/GIF in Media/ — drop files then Refresh";
 				return false;
 			}
 			name = list.getFirst();
@@ -189,7 +197,7 @@ public final class ViewerRetentionModule {
 
 	public static boolean addInstance(String filename) {
 		if (!isCompatibleFilename(filename)) {
-			statusMessage = "Not a PNG/GIF: " + filename;
+			statusMessage = "Not a PNG/JPEG/GIF: " + filename;
 			return false;
 		}
 		String name = Path.of(filename).getFileName().toString();
@@ -340,16 +348,28 @@ public final class ViewerRetentionModule {
 		if (name.endsWith(".gif")) {
 			return loadGif(inst, path);
 		}
-		return loadPng(inst, path);
+		return loadStill(inst, path);
 	}
 
-	private static boolean loadPng(Instance inst, Path path) {
+	/** PNG via NativeImage; JPEG (and PNG fallback) via ImageIO → ARGB NativeImage. */
+	private static boolean loadStill(Instance inst, Path path) {
 		Minecraft client = Minecraft.getInstance();
 		if (client == null) {
 			return false;
 		}
-		try (InputStream in = Files.newInputStream(path)) {
-			NativeImage image = NativeImage.read(in);
+		try {
+			NativeImage image;
+			String name = path.getFileName().toString();
+			if (isJpegFilename(name)) {
+				image = readStillViaImageIo(path);
+			} else {
+				try (InputStream in = Files.newInputStream(path)) {
+					image = NativeImage.read(in);
+				} catch (Exception pngFail) {
+					// Fallback if NativeImage rejects the file
+					image = readStillViaImageIo(path);
+				}
+			}
 			releaseInstance(inst);
 			inst.imagePixels = image;
 			inst.texW = image.getWidth();
@@ -360,10 +380,26 @@ public final class ViewerRetentionModule {
 			inst.gifAnimated = false;
 			return inst.ready;
 		} catch (Exception e) {
-			ExampleMod.LOGGER.warn("ViewerRetention PNG {}: {}", path, e.toString());
+			ExampleMod.LOGGER.warn("ViewerRetention still {}: {}", path, e.toString());
 			inst.ready = false;
 			return false;
 		}
+	}
+
+	private static NativeImage readStillViaImageIo(Path path) throws Exception {
+		java.awt.image.BufferedImage buf = javax.imageio.ImageIO.read(path.toFile());
+		if (buf == null) {
+			throw new IllegalStateException("ImageIO returned null for " + path);
+		}
+		int w = buf.getWidth();
+		int h = buf.getHeight();
+		NativeImage image = new NativeImage(w, h, true);
+		for (int y = 0; y < h; y++) {
+			for (int x = 0; x < w; x++) {
+				image.setPixel(x, y, buf.getRGB(x, y));
+			}
+		}
+		return image;
 	}
 
 	private static boolean loadGif(Instance inst, Path path) {

@@ -67,7 +67,7 @@
   "screen.modid.menu.misc.viewer_retention.disabled": "Viewer Retention disabled",
   "screen.modid.menu.misc.viewer_retention.add": "Add",
   "screen.modid.menu.misc.viewer_retention.refresh": "Refresh",
-  "screen.modid.menu.misc.viewer_retention.no_media": "(no PNG/GIF in Media/)",
+  "screen.modid.menu.misc.viewer_retention.no_media": "(no PNG/JPEG/GIF in Media/)",
   "screen.modid.menu.visuals.finder.mode.combined_fill": "Combined Fill",
   "screen.modid.menu.visuals.finder.thickness": "Outline Thickness",
   "screen.modid.menu.visuals.nametags.scale": "Scale",
