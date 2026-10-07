@@ -13,7 +13,8 @@
 		"MinecraftAccessor",
 		"KeyMappingAccessor",
 		"KeyboardInputMixin",
-		"LocalPlayerMixin"
+		"LocalPlayerMixin",
+		"HudCrosshairMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

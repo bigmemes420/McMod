@@ -6,6 +6,7 @@ import com.example.client.module.AutoClickerModule;
 import com.example.client.module.TriggerBotModule;
 import com.example.client.module.HitboxesModule;
 import com.example.client.module.CriticalsModule;
+import com.example.client.module.CustomCrosshairModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.AirPlaceModule;
 import com.example.client.module.AimAssistModule;
@@ -51,6 +52,7 @@ public class ExampleModClient implements ClientModInitializer {
 		ModConfig.loadAll();
 		NoFallModule.registerHooks();
 		RadarModule.registerHud();
+		CustomCrosshairModule.registerHud();
 
 		openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.modid.open_menu",

@@ -266,10 +266,14 @@ public final class RadarModule {
 			double rx = dx * cos - dz * sin;
 			double rz = dx * sin + dz * cos;
 			double scale = Math.min(1.0, dist / range);
-			int hx = cx + (int) Math.round((rx / Math.max(dist, 0.001)) * radius * scale) - HEAD_SIZE / 2;
-			int hy = cy + (int) Math.round((rz / Math.max(dist, 0.001)) * radius * scale) - HEAD_SIZE / 2;
-			hx = Mth.clamp(hx, left + 2, left + size - HEAD_SIZE - 2);
-			hy = Mth.clamp(hy, top + 10, top + size - HEAD_SIZE - 10);
+			int rawHx = cx + (int) Math.round((rx / Math.max(dist, 0.001)) * radius * scale) - HEAD_SIZE / 2;
+			int rawHy = cy + (int) Math.round((rz / Math.max(dist, 0.001)) * radius * scale) - HEAD_SIZE / 2;
+			int[] clamped = clampHeadInsideShape(left, top, size, rawHx, rawHy);
+			if (clamped == null) {
+				continue;
+			}
+			int hx = clamped[0];
+			int hy = clamped[1];
 
 			drawHead(graphics, client, entity, hx, hy, HEAD_SIZE);
 
@@ -281,20 +285,32 @@ public final class RadarModule {
 			int nameW = client.font.width(nameStr);
 			int nameX = hx + HEAD_SIZE / 2 - nameW / 2;
 			int nameY = hy - client.font.lineHeight - 1;
-			graphics.text(client.font, nameStr, nameX, nameY, NAME_COLOR, true);
+			if (containsInShape(left, top, size, nameX + nameW / 2, nameY + client.font.lineHeight / 2)) {
+				graphics.text(client.font, nameStr, nameX, nameY, NAME_COLOR, true);
+			}
 
 			if (showHeight) {
 				double dy = entity.getY() - selfY;
 				if (dy > 0.5) {
-					drawArrowUp(graphics, hx + HEAD_SIZE / 2, nameY - 5, ARROW_UP);
+					int ax = hx + HEAD_SIZE / 2;
+					int ay = nameY - 5;
+					if (containsInShape(left, top, size, ax, ay)) {
+						drawArrowUp(graphics, ax, ay, ARROW_UP);
+					}
 				} else if (dy < -0.5) {
-					drawArrowDown(graphics, hx + HEAD_SIZE / 2, hy + HEAD_SIZE + 2, ARROW_DOWN);
+					int ax = hx + HEAD_SIZE / 2;
+					int ay = hy + HEAD_SIZE + 2;
+					if (containsInShape(left, top, size, ax, ay)) {
+						drawArrowDown(graphics, ax, ay, ARROW_DOWN);
+					}
 				}
 			}
 			drawn++;
 		}
 
-		graphics.text(client.font, "Radar", left + 4, top + 2, 0xFFAAAAAA, false);
+		if (containsInShape(left, top, size, left + 8, top + 6)) {
+			graphics.text(client.font, "Radar", left + 4, top + 2, 0xFFAAAAAA, false);
+		}
 	}
 
 	/** Used by HudEditScreen to match the live panel silhouette. */
@@ -315,6 +331,90 @@ public final class RadarModule {
 			case CIRCLE, STAR -> half * 0.72F - HEAD_SIZE / 2.0F;
 			case TRIANGLE -> half * 0.55F - HEAD_SIZE / 2.0F;
 		};
+	}
+
+	/** True if pixel (px,py) lies inside the filled panel silhouette. */
+	static boolean containsInShape(int left, int top, int size, int px, int py) {
+		int cx = left + size / 2;
+		int cy = top + size / 2;
+		return switch (shape) {
+			case SQUARE -> px >= left && py >= top && px < left + size && py < top + size;
+			case CIRCLE -> {
+				int r = size / 2 - 1;
+				long dx = px - cx;
+				long dy = py - cy;
+				yield dx * dx + dy * dy <= (long) r * r;
+			}
+			case TRIANGLE -> pointInTriangle(
+					px, py,
+					left + size / 2, top + 2,
+					left + 2, top + size - 2,
+					left + size - 2, top + size - 2
+			);
+			case STAR -> {
+				int r = size / 2 - 2;
+				int u0x = cx;
+				int u0y = cy - r;
+				int u1x = cx - (int) Math.round(r * 0.866);
+				int u1y = cy + r / 2;
+				int u2x = cx + (int) Math.round(r * 0.866);
+				int u2y = cy + r / 2;
+				int d0x = cx;
+				int d0y = cy + r;
+				int d1x = cx - (int) Math.round(r * 0.866);
+				int d1y = cy - r / 2;
+				int d2x = cx + (int) Math.round(r * 0.866);
+				int d2y = cy - r / 2;
+				yield pointInTriangle(px, py, u0x, u0y, u1x, u1y, u2x, u2y)
+					|| pointInTriangle(px, py, d0x, d0y, d1x, d1y, d2x, d2y);
+			}
+		};
+	}
+
+	private static boolean headRectInside(int left, int top, int size, int hx, int hy) {
+		int x1 = hx;
+		int y1 = hy;
+		int x2 = hx + HEAD_SIZE - 1;
+		int y2 = hy + HEAD_SIZE - 1;
+		return containsInShape(left, top, size, x1, y1)
+				&& containsInShape(left, top, size, x2, y1)
+				&& containsInShape(left, top, size, x1, y2)
+				&& containsInShape(left, top, size, x2, y2);
+	}
+
+	/**
+	 * Project head top-left toward the panel center until the HEAD_SIZE square is
+	 * fully inside the shape. Returns null if even the center cannot fit.
+	 */
+	private static int[] clampHeadInsideShape(int left, int top, int size, int hx, int hy) {
+		if (headRectInside(left, top, size, hx, hy)) {
+			return new int[] { hx, hy };
+		}
+		int pcx = left + size / 2;
+		int pcy = top + size / 2;
+		double headCx = hx + HEAD_SIZE / 2.0;
+		double headCy = hy + HEAD_SIZE / 2.0;
+		// Ideal center at panel center (always try to keep blip on-ray from center).
+		double lo = 0.0;
+		double hi = 1.0;
+		int bestHx = pcx - HEAD_SIZE / 2;
+		int bestHy = pcy - HEAD_SIZE / 2;
+		if (!headRectInside(left, top, size, bestHx, bestHy)) {
+			return null;
+		}
+		for (int i = 0; i < 14; i++) {
+			double mid = (lo + hi) * 0.5;
+			int nx = (int) Math.round(pcx + (headCx - pcx) * mid - HEAD_SIZE / 2.0);
+			int ny = (int) Math.round(pcy + (headCy - pcy) * mid - HEAD_SIZE / 2.0);
+			if (headRectInside(left, top, size, nx, ny)) {
+				bestHx = nx;
+				bestHy = ny;
+				lo = mid;
+			} else {
+				hi = mid;
+			}
+		}
+		return new int[] { bestHx, bestHy };
 	}
 
 	private static void drawCrosshair(GuiGraphicsExtractor graphics, int left, int top, int size, int cx, int cy) {

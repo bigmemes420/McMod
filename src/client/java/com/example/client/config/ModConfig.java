@@ -25,6 +25,7 @@ import com.example.client.module.MobEspModule;
 import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
 import com.example.client.module.RadarModule;
+import com.example.client.module.CustomCrosshairModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.SneakModule;
@@ -121,6 +122,11 @@ public final class ModConfig {
 				intVal(props, "radarHudY", RadarModule.DEFAULT_HUD_Y),
 				intVal(props, "radarHudSize", RadarModule.DEFAULT_HUD_SIZE)
 		);
+		CustomCrosshairModule.loadEnabled(bool(props, "customCrosshair", false));
+		CustomCrosshairModule.loadPixelsBase64(props.getProperty("customCrosshairPixels", ""));
+		CustomCrosshairModule.loadColor(intVal(props, "customCrosshairColor", CustomCrosshairModule.DEFAULT_COLOR));
+		CustomCrosshairModule.loadRotate(bool(props, "customCrosshairRotate", false));
+		CustomCrosshairModule.loadSpinSpeed(floatVal(props, "customCrosshairSpinSpeed", CustomCrosshairModule.DEFAULT_SPIN_SPEED));
 		FinderModule.loadEnabled(bool(props, "finder", false));
 		FinderModule.loadMode(props.getProperty("finderMode", "OUTLINE"));
 		FinderModule.loadOpacity(floatVal(props, "finderOpacity", FinderModule.DEFAULT_OPACITY));
@@ -208,6 +214,11 @@ public final class ModConfig {
 			props.setProperty("radarHudX", Integer.toString(RadarModule.getHudX()));
 			props.setProperty("radarHudY", Integer.toString(RadarModule.getHudY()));
 			props.setProperty("radarHudSize", Integer.toString(RadarModule.getHudSize()));
+			props.setProperty("customCrosshair", String.valueOf(CustomCrosshairModule.isEnabled()));
+			props.setProperty("customCrosshairPixels", CustomCrosshairModule.pixelsToBase64());
+			props.setProperty("customCrosshairColor", Integer.toString(CustomCrosshairModule.getColor()));
+			props.setProperty("customCrosshairRotate", String.valueOf(CustomCrosshairModule.isRotate()));
+			props.setProperty("customCrosshairSpinSpeed", Float.toString(CustomCrosshairModule.getSpinSpeed()));
 			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
 			props.setProperty("finderMode", FinderModule.getMode().name());
 			props.setProperty("finderOpacity", Float.toString(FinderModule.getOpacity()));

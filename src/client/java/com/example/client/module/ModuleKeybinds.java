@@ -46,6 +46,7 @@ public final class ModuleKeybinds {
 		register("fullbright", Component.translatable("screen.modid.menu.visuals.fullbright"), FullbrightModule::isEnabled, FullbrightModule::setEnabled);
 		register("finder", Component.translatable("screen.modid.menu.visuals.finder"), FinderModule::isEnabled, FinderModule::setEnabled);
 		register("radar", Component.translatable("screen.modid.menu.visuals.radar"), RadarModule::isEnabled, RadarModule::setEnabled);
+		register("custom_crosshair", Component.translatable("screen.modid.menu.visuals.custom_crosshair"), CustomCrosshairModule::isEnabled, CustomCrosshairModule::setEnabled);
 		register("autoclicker", Component.translatable("screen.modid.menu.combat.autoclicker"), AutoClickerModule::isEnabled, AutoClickerModule::setEnabled);
 		register("velocity", Component.translatable("screen.modid.menu.combat.velocity"), VelocityModule::isEnabled, VelocityModule::setEnabled);
 		register("reach", Component.translatable("screen.modid.menu.combat.reach"), ReachModule::isEnabled, ReachModule::setEnabled);

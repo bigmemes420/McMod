@@ -23,6 +23,7 @@ import com.example.client.module.MobEspModule;
 import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
 import com.example.client.module.RadarModule;
+import com.example.client.module.CustomCrosshairModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.SneakModule;
@@ -662,6 +663,72 @@ public class ExampleMenuScreen extends Screen {
 					RadarModule::setRange
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		// Custom Crosshair: capsule + Edit + cog settings (color / rotate / spin)
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.custom_crosshair"),
+				CustomCrosshairModule.isEnabled(),
+				"custom_crosshair",
+				(button, enabled) -> CustomCrosshairModule.setEnabled(enabled)
+		));
+		int crossEditX = CONTENT_LEFT + CAPSULE_WIDTH + 6;
+		int crossCogX = crossEditX + EDIT_WIDTH + 6;
+		this.addRenderableWidget(new FlatMenuButton(
+				crossEditX,
+				y,
+				EDIT_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.visuals.custom_crosshair.edit"),
+				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new CrosshairEditorScreen(this));
+					}
+				}
+		));
+		this.addRenderableWidget(new CogButton(
+				crossCogX,
+				y,
+				COG_SIZE,
+				settingsOpen("custom_crosshair"),
+				button -> toggleSettings("custom_crosshair")
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("custom_crosshair")) {
+			addColorSettingRow(y, "Color", CustomCrosshairModule.getColor(), c -> {
+				CustomCrosshairModule.setColor(c);
+				rebuildMenu();
+			});
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			this.addRenderableWidget(new ToggleCapsuleButton(
+					CONTENT_LEFT,
+					y,
+					SETTINGS_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.visuals.custom_crosshair.rotate"),
+					CustomCrosshairModule.isRotate(),
+					(button, enabled) -> {
+						CustomCrosshairModule.setRotate(enabled);
+						rebuildMenu();
+					}
+			));
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			if (CustomCrosshairModule.isRotate()) {
+				addLabeledSlider(
+						CONTENT_LEFT, y, SETTINGS_WIDTH,
+						Component.translatable("screen.modid.menu.visuals.custom_crosshair.spin_speed"),
+						CustomCrosshairModule.getSpinSpeed(),
+						CustomCrosshairModule.MIN_SPIN_SPEED,
+						CustomCrosshairModule.MAX_SPIN_SPEED,
+						CustomCrosshairModule::setSpinSpeed
+				);
+				y += SLIDER_HEIGHT + SETTINGS_GAP;
+			}
+			y += CAPSULE_GAP;
 		}
 	}
 

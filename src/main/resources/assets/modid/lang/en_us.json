@@ -189,5 +189,16 @@
   "screen.modid.menu.visuals.radar.range": "Range",
   "key.modid.hud_edit": "HUD Edit Mode",
   "screen.modid.hud_edit.title": "HUD Edit",
-  "screen.modid.hud_edit.hint": "Drag Radar to move · corner to resize · Delete/Esc to exit"
+  "screen.modid.hud_edit.hint": "Drag Radar to move · corner to resize · Delete/Esc to exit",
+  "screen.modid.menu.visuals.custom_crosshair": "Custom Crosshair",
+  "screen.modid.menu.visuals.custom_crosshair.enabled": "Custom Crosshair enabled",
+  "screen.modid.menu.visuals.custom_crosshair.disabled": "Custom Crosshair disabled",
+  "screen.modid.menu.visuals.custom_crosshair.edit": "Edit",
+  "screen.modid.menu.visuals.custom_crosshair.rotate": "Rotate",
+  "screen.modid.menu.visuals.custom_crosshair.spin_speed": "Spin Speed",
+  "screen.modid.crosshair_editor.title": "Crosshair Editor",
+  "screen.modid.crosshair_editor.save": "Save",
+  "screen.modid.crosshair_editor.clear": "Clear",
+  "screen.modid.crosshair_editor.reset": "Reset",
+  "screen.modid.crosshair_editor.preview": "Preview"
 }
