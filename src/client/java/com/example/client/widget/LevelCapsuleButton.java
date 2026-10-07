@@ -6,13 +6,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 /**
  * Capsule with left-circle toggle (green when ON) and an in-bar level slider.
- * Clicking outside the circle adjusts the level and does not toggle.
+ * Clicking the numeric value opens an inline text field (Enter clamps to min/max).
  */
 public class LevelCapsuleButton extends AbstractWidget {
 	@FunctionalInterface
@@ -29,15 +31,19 @@ public class LevelCapsuleButton extends AbstractWidget {
 	private static final int TRACK_HEIGHT = 6;
 	private static final int THUMB_WIDTH = 3;
 	private static final int VALUE_GAP = 6;
+	private static final int VALUE_BOX_PAD = 2;
 	private static final int SLIDER_FILL = 0xFF3A6A9A;
 	private static final int TRACK_BG = 0xFF12121A;
 	private static final int THUMB_COLOR = 0xFFE8E8E8;
+	private static final int EDIT_FILL = 0xFF1A1A28;
+	private static final int EDIT_OUTLINE = 0xFF6A9AD0;
 
 	private final OnToggle onToggle;
 	private final OnLevelChange onLevelChange;
 	private final float minLevel;
 	private final float maxLevel;
 	private final String valueWidthSample;
+	private final InlineFloatEditor editor = new InlineFloatEditor();
 	private boolean enabled;
 	private float level;
 	private boolean draggingSlider;
@@ -64,7 +70,7 @@ public class LevelCapsuleButton extends AbstractWidget {
 		this.onToggle = onToggle;
 		this.onLevelChange = onLevelChange;
 		// Wide enough for values like "10.0" or "0.5"
-		this.valueWidthSample = String.format("%.1f", Math.max(Math.abs(minLevel), Math.abs(maxLevel)) >= 10.0F ? 10.0F : maxLevel);
+		this.valueWidthSample = String.format("%.1f", Math.max(Math.abs(minLevel), Math.abs(maxLevel)) >= 10.0F ? 999.9F : maxLevel);
 	}
 
 	public boolean isEnabled() {
@@ -96,8 +102,22 @@ public class LevelCapsuleButton extends AbstractWidget {
 		return dx * dx + dy * dy <= (double) (radius + 1) * (radius + 1);
 	}
 
-	private String levelText() {
-		return String.format("%.1f", this.level);
+	private int valueBoxWidth() {
+		var font = Minecraft.getInstance().font;
+		return Math.max(font.width(this.valueWidthSample), font.width("0.0")) + 8;
+	}
+
+	private int valueBoxLeft() {
+		return this.getX() + this.width - 8 - valueBoxWidth();
+	}
+
+	private int valueBoxRight() {
+		return this.getX() + this.width - 8;
+	}
+
+	private boolean hitValue(double mouseX, double mouseY) {
+		return mouseX >= valueBoxLeft() - 2 && mouseX < valueBoxRight() + 2
+				&& mouseY >= this.getY() && mouseY < this.getY() + this.height;
 	}
 
 	/** Slider track starts after the left circle + label. */
@@ -110,9 +130,16 @@ public class LevelCapsuleButton extends AbstractWidget {
 
 	/** Track ends before the numeric level value. */
 	private int trackRight() {
-		var font = Minecraft.getInstance().font;
-		int valueWidth = font.width(this.valueWidthSample);
-		return this.getX() + this.width - 8 - valueWidth - VALUE_GAP;
+		return valueBoxLeft() - VALUE_GAP;
+	}
+
+	private void applyLevel(float value) {
+		this.level = Mth.clamp(value, this.minLevel, this.maxLevel);
+		this.onLevelChange.onLevel(this.level);
+	}
+
+	private void commitEditor() {
+		this.editor.commit(this.minLevel, this.maxLevel, this::applyLevel);
 	}
 
 	private void updateLevelFromMouse(double mouseX) {
@@ -120,12 +147,7 @@ public class LevelCapsuleButton extends AbstractWidget {
 		int right = trackRight();
 		float t = (float) ((mouseX - left) / (double) Math.max(1, right - left));
 		t = Mth.clamp(t, 0.0F, 1.0F);
-		this.level = Mth.clamp(
-				Math.round((this.minLevel + t * (this.maxLevel - this.minLevel)) * 10.0F) / 10.0F,
-				this.minLevel,
-				this.maxLevel
-		);
-		this.onLevelChange.onLevel(this.level);
+		applyLevel(Math.round((this.minLevel + t * (this.maxLevel - this.minLevel)) * 10.0F) / 10.0F);
 	}
 
 	@Override
@@ -184,14 +206,37 @@ public class LevelCapsuleButton extends AbstractWidget {
 			graphics.fill(thumbX, trackY - 1, thumbX + THUMB_WIDTH, trackBottom + 1, THUMB_COLOR);
 		}
 
-		String value = levelText();
-		int valueWidth = font.width(value);
-		int valueX = this.getX() + this.width - 8 - valueWidth;
-		graphics.text(font, value, valueX, textY, textColor, false);
+		int boxL = valueBoxLeft();
+		int boxR = valueBoxRight();
+		int boxT = this.getY() + VALUE_BOX_PAD;
+		int boxB = this.getY() + this.height - VALUE_BOX_PAD;
+		this.editor.tickCursor();
+		if (this.editor.isActive()) {
+			this.editor.draw(graphics, font, boxL, boxT, boxR, boxB, textColor, EDIT_FILL, EDIT_OUTLINE);
+		} else {
+			if (hitValue(mouseX, mouseY)) {
+				MenuShapes.drawFlatRect(graphics, boxL, boxT, boxR - boxL, boxB - boxT, EDIT_FILL, theme.capsuleHoverOutline);
+			}
+			String value = InlineFloatEditor.format(this.level);
+			int valueWidth = font.width(value);
+			graphics.text(font, value, boxR - valueWidth - 2, textY, textColor, false);
+		}
 	}
 
 	@Override
 	public void onClick(MouseButtonEvent event, boolean doubleClick) {
+		if (hitValue(event.x(), event.y())) {
+			this.pressedCircle = false;
+			this.draggingSlider = false;
+			if (!this.editor.isActive()) {
+				this.editor.begin(this.level);
+				this.setFocused(true);
+			}
+			return;
+		}
+		if (this.editor.isActive()) {
+			commitEditor();
+		}
 		if (isInLeftCircle(event.x(), event.y())) {
 			this.pressedCircle = true;
 			this.draggingSlider = false;
@@ -206,7 +251,7 @@ public class LevelCapsuleButton extends AbstractWidget {
 
 	@Override
 	protected void onDrag(MouseButtonEvent event, double dragX, double dragY) {
-		if (this.draggingSlider) {
+		if (this.draggingSlider && !this.editor.isActive()) {
 			updateLevelFromMouse(event.x());
 		}
 	}
@@ -215,6 +260,30 @@ public class LevelCapsuleButton extends AbstractWidget {
 	public void onRelease(MouseButtonEvent event) {
 		this.pressedCircle = false;
 		this.draggingSlider = false;
+	}
+
+	@Override
+	public void setFocused(boolean focused) {
+		super.setFocused(focused);
+		if (!focused && this.editor.isActive()) {
+			commitEditor();
+		}
+	}
+
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (this.editor.keyPressed(event, this.minLevel, this.maxLevel, this::applyLevel)) {
+			return true;
+		}
+		return super.keyPressed(event);
+	}
+
+	@Override
+	public boolean charTyped(CharacterEvent event) {
+		if (this.editor.charTyped(event)) {
+			return true;
+		}
+		return super.charTyped(event);
 	}
 
 	@Override

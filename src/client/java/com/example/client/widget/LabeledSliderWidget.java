@@ -6,12 +6,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 /**
- * Settings-panel slider: left label, track, numeric value. No toggle circle.
+ * Settings-panel slider: left label, track, and a clickable numeric value that
+ * opens an inline text field (Enter commits + clamps to min/max).
  */
 public class LabeledSliderWidget extends AbstractWidget {
 	@FunctionalInterface
@@ -23,10 +26,13 @@ public class LabeledSliderWidget extends AbstractWidget {
 	private static final int THUMB_WIDTH = 3;
 	private static final int LABEL_GAP = 8;
 	private static final int VALUE_GAP = 6;
+	private static final int VALUE_BOX_PAD = 2;
 	private static final int SLIDER_FILL = 0xFF3A6A9A;
 	private static final int TRACK_BG = 0xFF12121A;
 	private static final int THUMB_COLOR = 0xFFE8E8E8;
 	private static final int PANEL_PAD_X = 8;
+	private static final int EDIT_FILL = 0xFF1A1A28;
+	private static final int EDIT_OUTLINE = 0xFF6A9AD0;
 
 	private final OnLevelChange onLevelChange;
 	private final Runnable onRelease;
@@ -34,6 +40,7 @@ public class LabeledSliderWidget extends AbstractWidget {
 	private final float maxLevel;
 	private final String valueWidthSample;
 	private final int labelWidth;
+	private final InlineFloatEditor editor = new InlineFloatEditor();
 	private float level;
 	private boolean dragging;
 
@@ -71,7 +78,7 @@ public class LabeledSliderWidget extends AbstractWidget {
 		this.onRelease = onRelease;
 		this.valueWidthSample = String.format(
 				"%.1f",
-				Math.max(Math.abs(minLevel), Math.abs(maxLevel)) >= 10.0F ? 99.9F : maxLevel
+				Math.max(Math.abs(minLevel), Math.abs(maxLevel)) >= 10.0F ? 999.9F : maxLevel
 		);
 		this.labelWidth = Minecraft.getInstance().font.width(label);
 	}
@@ -84,14 +91,46 @@ public class LabeledSliderWidget extends AbstractWidget {
 		this.level = Mth.clamp(level, this.minLevel, this.maxLevel);
 	}
 
+	private int valueBoxWidth() {
+		var font = Minecraft.getInstance().font;
+		return Math.max(font.width(this.valueWidthSample), font.width("0.0")) + 8;
+	}
+
+	private int valueBoxLeft() {
+		return this.getX() + this.width - PANEL_PAD_X - valueBoxWidth();
+	}
+
+	private int valueBoxRight() {
+		return this.getX() + this.width - PANEL_PAD_X;
+	}
+
+	private boolean hitValue(double mouseX, double mouseY) {
+		int left = valueBoxLeft() - 2;
+		int right = valueBoxRight() + 2;
+		return mouseX >= left && mouseX < right
+				&& mouseY >= this.getY() && mouseY < this.getY() + this.height;
+	}
+
 	private int trackLeft() {
 		return this.getX() + PANEL_PAD_X + this.labelWidth + LABEL_GAP;
 	}
 
 	private int trackRight() {
-		var font = Minecraft.getInstance().font;
-		int valueWidth = font.width(this.valueWidthSample);
-		return this.getX() + this.width - PANEL_PAD_X - valueWidth - VALUE_GAP;
+		return valueBoxLeft() - VALUE_GAP;
+	}
+
+	private void applyLevel(float value) {
+		this.level = Mth.clamp(value, this.minLevel, this.maxLevel);
+		this.onLevelChange.onLevel(this.level);
+	}
+
+	private void commitEditor() {
+		this.editor.commit(this.minLevel, this.maxLevel, v -> {
+			applyLevel(v);
+			if (this.onRelease != null) {
+				this.onRelease.run();
+			}
+		});
 	}
 
 	private void updateLevelFromMouse(double mouseX) {
@@ -99,18 +138,14 @@ public class LabeledSliderWidget extends AbstractWidget {
 		int right = trackRight();
 		float t = (float) ((mouseX - left) / (double) Math.max(1, right - left));
 		t = Mth.clamp(t, 0.0F, 1.0F);
-		this.level = Mth.clamp(
-				Math.round((this.minLevel + t * (this.maxLevel - this.minLevel)) * 10.0F) / 10.0F,
-				this.minLevel,
-				this.maxLevel
-		);
-		this.onLevelChange.onLevel(this.level);
+		applyLevel(Math.round((this.minLevel + t * (this.maxLevel - this.minLevel)) * 10.0F) / 10.0F);
 	}
 
 	@Override
 	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		this.editor.tickCursor();
 		MenuTheme theme = MenuTheme.get();
-		boolean hovered = this.isHoveredOrFocused() || this.dragging;
+		boolean hovered = this.isHoveredOrFocused() || this.dragging || this.editor.isActive();
 		int fill = hovered ? theme.capsuleHoverFill : theme.capsuleFill;
 		int outline = hovered ? theme.capsuleHoverOutline : theme.capsuleOutline;
 		int textColor = theme.capsuleText;
@@ -138,21 +173,45 @@ public class LabeledSliderWidget extends AbstractWidget {
 			graphics.fill(thumbX, trackY - 1, thumbX + THUMB_WIDTH, trackBottom + 1, THUMB_COLOR);
 		}
 
-		String value = String.format("%.1f", this.level);
-		int valueWidth = font.width(value);
-		int valueX = this.getX() + this.width - PANEL_PAD_X - valueWidth;
-		graphics.text(font, value, valueX, textY, textColor, false);
+		int boxL = valueBoxLeft();
+		int boxR = valueBoxRight();
+		int boxT = this.getY() + VALUE_BOX_PAD;
+		int boxB = this.getY() + this.height - VALUE_BOX_PAD;
+		if (this.editor.isActive()) {
+			this.editor.draw(graphics, font, boxL, boxT, boxR, boxB, textColor, EDIT_FILL, EDIT_OUTLINE);
+		} else {
+			boolean valueHover = hitValue(mouseX, mouseY);
+			if (valueHover) {
+				MenuShapes.drawFlatRect(graphics, boxL, boxT, boxR - boxL, boxB - boxT, EDIT_FILL, theme.capsuleHoverOutline);
+			}
+			String value = InlineFloatEditor.format(this.level);
+			int valueWidth = font.width(value);
+			int valueX = boxR - valueWidth - 2;
+			graphics.text(font, value, valueX, textY, textColor, false);
+		}
 	}
 
 	@Override
 	public void onClick(MouseButtonEvent event, boolean doubleClick) {
+		if (hitValue(event.x(), event.y())) {
+			this.dragging = false;
+			if (this.editor.isActive()) {
+				return;
+			}
+			this.editor.begin(this.level);
+			this.setFocused(true);
+			return;
+		}
+		if (this.editor.isActive()) {
+			commitEditor();
+		}
 		this.dragging = true;
 		updateLevelFromMouse(event.x());
 	}
 
 	@Override
 	protected void onDrag(MouseButtonEvent event, double dragX, double dragY) {
-		if (this.dragging) {
+		if (this.dragging && !this.editor.isActive()) {
 			updateLevelFromMouse(event.x());
 		}
 	}
@@ -161,9 +220,38 @@ public class LabeledSliderWidget extends AbstractWidget {
 	public void onRelease(MouseButtonEvent event) {
 		boolean wasDragging = this.dragging;
 		this.dragging = false;
-		if (wasDragging && this.onRelease != null) {
+		if (wasDragging && this.onRelease != null && !this.editor.isActive()) {
 			this.onRelease.run();
 		}
+	}
+
+	@Override
+	public void setFocused(boolean focused) {
+		super.setFocused(focused);
+		if (!focused && this.editor.isActive()) {
+			commitEditor();
+		}
+	}
+
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (this.editor.keyPressed(event, this.minLevel, this.maxLevel, v -> {
+			applyLevel(v);
+			if (this.onRelease != null) {
+				this.onRelease.run();
+			}
+		})) {
+			return true;
+		}
+		return super.keyPressed(event);
+	}
+
+	@Override
+	public boolean charTyped(CharacterEvent event) {
+		if (this.editor.charTyped(event)) {
+			return true;
+		}
+		return super.charTyped(event);
 	}
 
 	@Override
