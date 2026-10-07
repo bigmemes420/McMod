@@ -26,8 +26,9 @@ import java.util.Locale;
 
 /**
  * Visuals: replaces the vanilla crosshair with either a 64×64 pixel pattern or a
- * PNG from {@code <gameDir>/crosshairs/} (full ARGB alpha). Color / rotate / spin
- * apply to both sources.
+ * PNG from {@code <gameDir>/crosshairs/} (full ARGB alpha). Both modes bake to a
+ * DynamicTexture and blit once per frame; spin uses pose translate→rotate→translate
+ * (no per-pixel fills). Color / rotate / spin apply to both sources.
  */
 public final class CustomCrosshairModule {
 	public enum Source {
@@ -43,7 +44,8 @@ public final class CustomCrosshairModule {
 	public static final int MAX_PNG_DRAW = 64;
 	public static final String CROSSHAIRS_FOLDER = "crosshairs";
 
-	private static final Identifier TEXTURE_ID = ExampleMod.id("dynamic/crosshair");
+	private static final Identifier PNG_TEXTURE_ID = ExampleMod.id("dynamic/crosshair_png");
+	private static final Identifier PIXELS_TEXTURE_ID = ExampleMod.id("dynamic/crosshair_pixels");
 
 	private static boolean enabled;
 	private static Source source = Source.PIXELS;
@@ -59,6 +61,10 @@ public final class CustomCrosshairModule {
 	private static int pngWidth;
 	private static int pngHeight;
 	private static boolean pngReady;
+
+	private static DynamicTexture pixelsTexture;
+	private static boolean pixelsTextureDirty = true;
+
 	private static String statusMessage = "";
 	private static List<String> cachedPngList = List.of();
 
@@ -200,6 +206,7 @@ public final class CustomCrosshairModule {
 		}
 		System.arraycopy(src, 0, pixels, 0, pixels.length);
 		source = Source.PIXELS;
+		markPixelsTextureDirty();
 		statusMessage = "Using pixel grid";
 		ModConfig.save();
 	}
@@ -240,6 +247,7 @@ public final class CustomCrosshairModule {
 			return;
 		}
 		color = argb;
+		markPixelsTextureDirty();
 		ModConfig.save();
 	}
 
@@ -337,6 +345,7 @@ public final class CustomCrosshairModule {
 
 	public static void loadColor(int argb) {
 		color = argb;
+		markPixelsTextureDirty();
 	}
 
 	public static void loadRotate(boolean value) {
@@ -366,12 +375,14 @@ public final class CustomCrosshairModule {
 	public static void loadPixelsBase64(String raw) {
 		if (raw == null || raw.isBlank()) {
 			applyDefaultPattern(pixels);
+			markPixelsTextureDirty();
 			return;
 		}
 		try {
 			byte[] bytes = Base64.getDecoder().decode(raw.trim());
 			if (bytes.length < (GRID * GRID + 7) / 8) {
 				applyDefaultPattern(pixels);
+				markPixelsTextureDirty();
 				return;
 			}
 			Arrays.fill(pixels, false);
@@ -379,8 +390,10 @@ public final class CustomCrosshairModule {
 				int b = bytes[i >>> 3] & 0xFF;
 				pixels[i] = ((b >> (i & 7)) & 1) != 0;
 			}
+			markPixelsTextureDirty();
 		} catch (IllegalArgumentException ex) {
 			applyDefaultPattern(pixels);
+			markPixelsTextureDirty();
 		}
 	}
 
@@ -428,8 +441,8 @@ public final class CustomCrosshairModule {
 			NativeImage image = NativeImage.read(in);
 			seedPixelsFromImage(image);
 			releasePngTexture();
-			pngTexture = new DynamicTexture(() -> "rooty_crosshair", image);
-			client.getTextureManager().register(TEXTURE_ID, pngTexture);
+			pngTexture = new DynamicTexture(() -> "rooty_crosshair_png", image);
+			client.getTextureManager().register(PNG_TEXTURE_ID, pngTexture);
 			pngWidth = image.getWidth();
 			pngHeight = image.getHeight();
 			pngReady = pngWidth > 0 && pngHeight > 0;
@@ -443,6 +456,7 @@ public final class CustomCrosshairModule {
 
 	private static void seedPixelsFromImage(NativeImage image) {
 		Arrays.fill(pixels, false);
+		markPixelsTextureDirty();
 		int w = image.getWidth();
 		int h = image.getHeight();
 		for (int y = 0; y < GRID; y++) {
@@ -463,7 +477,7 @@ public final class CustomCrosshairModule {
 		Minecraft client = Minecraft.getInstance();
 		if (client != null) {
 			try {
-				client.getTextureManager().release(TEXTURE_ID);
+				client.getTextureManager().release(PNG_TEXTURE_ID);
 			} catch (Exception ignored) {
 			}
 		}
@@ -475,6 +489,52 @@ public final class CustomCrosshairModule {
 			pngTexture = null;
 		}
 		pngReady = false;
+	}
+
+	private static void markPixelsTextureDirty() {
+		pixelsTextureDirty = true;
+	}
+
+	private static void releasePixelsTexture() {
+		Minecraft client = Minecraft.getInstance();
+		if (client != null) {
+			try {
+				client.getTextureManager().release(PIXELS_TEXTURE_ID);
+			} catch (Exception ignored) {
+			}
+		}
+		if (pixelsTexture != null) {
+			try {
+				pixelsTexture.close();
+			} catch (Exception ignored) {
+			}
+			pixelsTexture = null;
+		}
+		pixelsTextureDirty = true;
+	}
+
+	/** Bake boolean grid + ARGB color into a 64×64 texture (only when dirty). */
+	private static void ensurePixelsTexture() {
+		if (!pixelsTextureDirty && pixelsTexture != null) {
+			return;
+		}
+		Minecraft client = Minecraft.getInstance();
+		if (client == null) {
+			return;
+		}
+		releasePixelsTexture();
+		NativeImage image = new NativeImage(GRID, GRID, true);
+		image.fillRect(0, 0, GRID, GRID, 0x00000000);
+		for (int y = 0; y < GRID; y++) {
+			for (int x = 0; x < GRID; x++) {
+				if (pixels[y * GRID + x]) {
+					image.setPixel(x, y, color);
+				}
+			}
+		}
+		pixelsTexture = new DynamicTexture(() -> "rooty_crosshair_pixels", image);
+		client.getTextureManager().register(PIXELS_TEXTURE_ID, pixelsTexture);
+		pixelsTextureDirty = false;
 	}
 
 	public static void extractHud(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker delta) {
@@ -503,15 +563,17 @@ public final class CustomCrosshairModule {
 		}
 	}
 
-	private static void drawPng(GuiGraphicsExtractor graphics, float cx, float cy) {
-		int drawW = pngWidth;
-		int drawH = pngHeight;
-		int maxSide = Math.max(drawW, drawH);
-		if (maxSide > MAX_PNG_DRAW) {
-			float scale = MAX_PNG_DRAW / (float) maxSide;
-			drawW = Math.max(1, Math.round(drawW * scale));
-			drawH = Math.max(1, Math.round(drawH * scale));
-		}
+	private static void drawRotatedBlit(
+			GuiGraphicsExtractor graphics,
+			Identifier texture,
+			float cx,
+			float cy,
+			int drawW,
+			int drawH,
+			int texW,
+			int texH,
+			int tintArgb
+	) {
 		float angle = rotate ? angleDeg * Mth.DEG_TO_RAD : 0.0F;
 		var pose = graphics.pose();
 		pose.pushMatrix();
@@ -522,45 +584,44 @@ public final class CustomCrosshairModule {
 		pose.translate(-drawW / 2.0F, -drawH / 2.0F);
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
-				TEXTURE_ID,
+				texture,
 				0,
 				0,
 				0.0F,
 				0.0F,
 				drawW,
 				drawH,
-				pngWidth,
-				pngHeight,
-				pngWidth,
-				pngHeight,
-				color
+				texW,
+				texH,
+				texW,
+				texH,
+				tintArgb
 		);
 		pose.popMatrix();
 	}
 
+	private static void drawPng(GuiGraphicsExtractor graphics, float cx, float cy) {
+		int drawW = pngWidth;
+		int drawH = pngHeight;
+		int maxSide = Math.max(drawW, drawH);
+		if (maxSide > MAX_PNG_DRAW) {
+			float scale = MAX_PNG_DRAW / (float) maxSide;
+			drawW = Math.max(1, Math.round(drawW * scale));
+			drawH = Math.max(1, Math.round(drawH * scale));
+		}
+		drawRotatedBlit(graphics, PNG_TEXTURE_ID, cx, cy, drawW, drawH, pngWidth, pngHeight, color);
+	}
+
 	private static void drawPixels(GuiGraphicsExtractor graphics, float cx, float cy) {
-		float angle = rotate ? angleDeg * Mth.DEG_TO_RAD : 0.0F;
-		float cos = Mth.cos(angle);
-		float sin = Mth.sin(angle);
-		float mid = (GRID - 1) / 2.0F;
-		int argb = color;
-		if (ARGB.alpha(argb) == 0) {
+		if (ARGB.alpha(color) == 0) {
 			return;
 		}
-		for (int py = 0; py < GRID; py++) {
-			for (int px = 0; px < GRID; px++) {
-				if (!pixels[py * GRID + px]) {
-					continue;
-				}
-				float dx = px - mid;
-				float dy = py - mid;
-				float rx = dx * cos - dy * sin;
-				float ry = dx * sin + dy * cos;
-				int sx = Math.round(cx + rx);
-				int sy = Math.round(cy + ry);
-				graphics.fill(sx, sy, sx + 1, sy + 1, argb);
-			}
+		ensurePixelsTexture();
+		if (pixelsTexture == null) {
+			return;
 		}
+		// Color baked into texture; white tint preserves baked ARGB/alpha.
+		drawRotatedBlit(graphics, PIXELS_TEXTURE_ID, cx, cy, GRID, GRID, GRID, GRID, 0xFFFFFFFF);
 	}
 
 	public static void drawPngPreview(GuiGraphicsExtractor graphics, int x, int y, int maxSide) {
@@ -573,7 +634,7 @@ public final class CustomCrosshairModule {
 		int drawH = Math.max(1, Math.round(pngHeight * scale));
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
-				TEXTURE_ID,
+				PNG_TEXTURE_ID,
 				x,
 				y,
 				0.0F,
