@@ -21,6 +21,8 @@ import com.example.client.module.AutoToolModule;
 import com.example.client.module.AutoRespawnModule;
 import com.example.client.module.AutoReconnectModule;
 import com.example.client.module.AutoEatModule;
+import com.example.client.module.AutoMineModule;
+import com.example.client.module.AutoFishModule;
 import com.example.client.module.AutoArmorModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
@@ -129,6 +131,8 @@ public class ExampleModClient implements ClientModInitializer {
 			AutoEatModule.tick(client);
 			BreadcrumbsModule.tick(client);
 			AutoReconnectModule.tick(client);
+			AutoFishModule.tick(client);
+			AutoMineModule.tick(client);
 		});
 	}
 

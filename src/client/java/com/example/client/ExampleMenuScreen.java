@@ -8,6 +8,8 @@ import com.example.client.module.AimAssistModule;
 import com.example.client.module.AntiAFKModule;
 import com.example.client.module.AutoArmorModule;
 import com.example.client.module.AutoEatModule;
+import com.example.client.module.AutoMineModule;
+import com.example.client.module.AutoFishModule;
 import com.example.client.module.AutoReconnectModule;
 import com.example.client.module.AutoRespawnModule;
 import com.example.client.module.AutoToolModule;
@@ -75,13 +77,14 @@ public class ExampleMenuScreen extends Screen {
 		COMBAT,
 		WORLD,
 		MOVEMENT,
+		AUTOMATIONS,
 		MISC
 	}
 
 	/** Vertical space above the top bar for the scaled title. */
 	private static final int TITLE_BAND = 26;
 	private static final int TOP_BAR_HEIGHT = 28;
-	private static final int TAB_WIDTH = 64;
+	private static final int TAB_WIDTH = 78;
 	private static final int TAB_HEIGHT = 20;
 	private static final int CLOSE_WIDTH = 64;
 	private static final int MENU_WIDTH = 64;
@@ -157,6 +160,8 @@ public class ExampleMenuScreen extends Screen {
 		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.MOVEMENT, "screen.rootymenu.menu.tab.movement");
 		tabX += TAB_WIDTH + 6;
+		addTab(tabX, tabY, Tab.AUTOMATIONS, "screen.rootymenu.menu.tab.automations");
+		tabX += TAB_WIDTH + 6;
 		addTab(tabX, tabY, Tab.MISC, "screen.rootymenu.menu.tab.misc");
 
 		int closeX = this.width - CLOSE_WIDTH - 8;
@@ -220,6 +225,7 @@ public class ExampleMenuScreen extends Screen {
 			case VISUALS -> addVisualsContent();
 			case COMBAT -> addCombatContent();
 			case WORLD -> addWorldContent();
+			case AUTOMATIONS -> addAutomationsContent();
 			case MISC -> addMiscContent();
 			case PLAYER -> addPlayerContent();
 			case GENERAL -> addGeneralContent();
@@ -1095,14 +1101,6 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
-		y = addToggleModule(
-				y,
-				null,
-				"autoarmor",
-				Component.translatable("screen.rootymenu.menu.combat.autoarmor"),
-				AutoArmorModule.isEnabled(),
-				(button, enabled) -> AutoArmorModule.setEnabled(enabled)
-		);
 		addToggleModule(
 				y,
 				null,
@@ -1276,6 +1274,20 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 
+
+	}
+
+
+	private void addAutomationsContent() {
+		int y = CONTENT_TOP;
+		y = addToggleModule(
+				y,
+				null,
+				"autoarmor",
+				Component.translatable("screen.rootymenu.menu.combat.autoarmor"),
+				AutoArmorModule.isEnabled(),
+				(button, enabled) -> AutoArmorModule.setEnabled(enabled)
+		);
 		y = addToggleModule(
 				y,
 				null,
@@ -1330,7 +1342,50 @@ public class ExampleMenuScreen extends Screen {
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
-
+		y = addToggleModule(
+				y,
+				null,
+				"autowalk",
+				Component.translatable("screen.rootymenu.menu.movement.autowalk"),
+				AutoWalkModule.isEnabled(),
+				(button, enabled) -> AutoWalkModule.setEnabled(enabled)
+		);
+		y = addToggleModule(
+				y,
+				"autofish",
+				"autofish",
+				Component.translatable("screen.rootymenu.menu.automations.autofish"),
+				AutoFishModule.isEnabled(),
+				(button, enabled) -> AutoFishModule.setEnabled(enabled)
+		);
+		if (settingsOpen("autofish")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.automations.autofish.catch_delay"),
+					AutoFishModule.getCatchDelay(),
+					AutoFishModule.MIN_CATCH_DELAY,
+					AutoFishModule.MAX_CATCH_DELAY,
+					AutoFishModule::setCatchDelay
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP;
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.automations.autofish.recast_delay"),
+					AutoFishModule.getRecastDelay(),
+					AutoFishModule.MIN_RECAST_DELAY,
+					AutoFishModule.MAX_RECAST_DELAY,
+					AutoFishModule::setRecastDelay
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+		y = addToggleModule(
+				y,
+				null,
+				"automine",
+				Component.translatable("screen.rootymenu.menu.automations.automine"),
+				AutoMineModule.isEnabled(),
+				(button, enabled) -> AutoMineModule.setEnabled(enabled)
+		);
 	}
 
 	private void addMiscContent() {
@@ -1443,14 +1498,6 @@ public class ExampleMenuScreen extends Screen {
 	private void addMovementContent() {
 		int y = CONTENT_TOP;
 
-		y = addToggleModule(
-				y,
-				null,
-				"autowalk",
-				Component.translatable("screen.rootymenu.menu.movement.autowalk"),
-				AutoWalkModule.isEnabled(),
-				(button, enabled) -> AutoWalkModule.setEnabled(enabled)
-		);
 		y = addToggleModule(
 				y,
 				null,
@@ -1868,6 +1915,7 @@ public class ExampleMenuScreen extends Screen {
 				case COMBAT -> "screen.rootymenu.menu.tab.combat";
 				case WORLD -> "screen.rootymenu.menu.tab.world";
 				case MOVEMENT -> "screen.rootymenu.menu.tab.movement";
+				case AUTOMATIONS -> "screen.rootymenu.menu.tab.automations";
 				case MISC -> "screen.rootymenu.menu.tab.misc";
 			};
 			panel = Component.translatable("screen.rootymenu.menu.panel", Component.translatable(panelKey));

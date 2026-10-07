@@ -16,7 +16,8 @@
 		"LocalPlayerMixin",
 		"HudCrosshairMixin",
 		"GameRendererMixin",
-		"CameraMixin"
+		"CameraMixin",
+		"FishingHookAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

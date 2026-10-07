@@ -85,6 +85,8 @@ public final class ModuleKeybinds {
 		register("autowalk", Component.translatable("screen.rootymenu.menu.movement.autowalk"), AutoWalkModule::isEnabled, AutoWalkModule::setEnabled);
 		register("parkour", Component.translatable("screen.rootymenu.menu.movement.parkour"), ParkourModule::isEnabled, ParkourModule::setEnabled);
 		register("autoreconnect", Component.translatable("screen.rootymenu.menu.misc.autoreconnect"), AutoReconnectModule::isEnabled, AutoReconnectModule::setEnabled);
+		register("autofish", Component.translatable("screen.rootymenu.menu.automations.autofish"), AutoFishModule::isEnabled, AutoFishModule::setEnabled);
+		register("automine", Component.translatable("screen.rootymenu.menu.automations.automine"), AutoMineModule::isEnabled, AutoMineModule::setEnabled);
 	}
 
 	public static Map<String, ModuleEntry> modules() {

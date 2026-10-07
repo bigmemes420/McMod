@@ -264,5 +264,14 @@
   "screen.rootymenu.menu.misc.autoreconnect": "Auto Reconnect",
   "screen.rootymenu.menu.misc.autoreconnect.enabled": "Auto Reconnect enabled",
   "screen.rootymenu.menu.misc.autoreconnect.disabled": "Auto Reconnect disabled",
-  "screen.rootymenu.menu.misc.autoreconnect.delay": "Delay (seconds)"
+  "screen.rootymenu.menu.misc.autoreconnect.delay": "Delay (seconds)",
+  "screen.rootymenu.menu.tab.automations": "Automations",
+  "screen.rootymenu.menu.automations.autofish": "Auto Fish",
+  "screen.rootymenu.menu.automations.autofish.enabled": "Auto Fish enabled",
+  "screen.rootymenu.menu.automations.autofish.disabled": "Auto Fish disabled",
+  "screen.rootymenu.menu.automations.autofish.catch_delay": "Catch Delay (ticks)",
+  "screen.rootymenu.menu.automations.autofish.recast_delay": "Recast Delay (ticks)",
+  "screen.rootymenu.menu.automations.automine": "Auto Mine",
+  "screen.rootymenu.menu.automations.automine.enabled": "Auto Mine enabled",
+  "screen.rootymenu.menu.automations.automine.disabled": "Auto Mine disabled"
 }
