@@ -100,7 +100,7 @@ public final class AimAssistModule {
 
 		AABB box = player.getBoundingBox().inflate(range);
 		for (LivingEntity entity : client.level.getEntitiesOfClass(LivingEntity.class, box, e ->
-				e.isAlive() && e != player && !e.isInvisibleTo(player))) {
+				e.isAlive() && e != player && !e.isInvisibleTo(player) && CombatTargetingModule.matches(e))) {
 			double distSq = player.distanceToSqr(entity);
 			if (distSq > rangeSq) {
 				continue;

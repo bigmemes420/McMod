@@ -8,6 +8,7 @@ import com.example.client.module.AimAssistModule;
 import com.example.client.module.AutoClickerModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.AutoTotemModule;
+import com.example.client.module.CombatTargetingModule;
 import com.example.client.module.CriticalsModule;
 import com.example.client.module.ElytraControlModule;
 import com.example.client.module.FlightModule;
@@ -42,6 +43,7 @@ import com.example.client.widget.CogButton;
 import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.LabeledSliderWidget;
 import com.example.client.widget.ModeDropdownButton;
+import com.example.client.widget.MultiSelectDropdownButton;
 import com.example.client.widget.ColorSwatchButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
@@ -1010,6 +1012,25 @@ public class ExampleMenuScreen extends Screen {
 				AutoTotemModule.isEnabled(),
 				(button, enabled) -> AutoTotemModule.setEnabled(enabled)
 		);
+
+		// Right column: shared Targeting multi-select (Players / Hostile / Passive).
+		int targetingW = 200;
+		int targetingX = Math.max(CONTENT_LEFT + CAPSULE_WIDTH + 24, this.width - targetingW - 24);
+		boolean[] flags = CombatTargetingModule.getFlags();
+		this.addRenderableWidget(new MultiSelectDropdownButton(
+				targetingX,
+				CONTENT_TOP,
+				targetingW,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.rootymenu.menu.combat.targeting"),
+				new Component[] {
+						Component.translatable("screen.rootymenu.menu.combat.targeting.players"),
+						Component.translatable("screen.rootymenu.menu.combat.targeting.hostile"),
+						Component.translatable("screen.rootymenu.menu.combat.targeting.passive")
+				},
+				flags,
+				CombatTargetingModule::setFlag
+		));
 	}
 
 
@@ -1554,12 +1575,19 @@ public class ExampleMenuScreen extends Screen {
 	/** Open dropdown steals clicks (overlays later rows); outside click closes it. */
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		ModeDropdownButton open = ModeDropdownButton.getOpen();
-		if (open != null) {
-			if (open.isMouseOver(event.x(), event.y())) {
-				return open.mouseClicked(event, doubleClick);
+		ModeDropdownButton modeOpen = ModeDropdownButton.getOpen();
+		if (modeOpen != null) {
+			if (modeOpen.isMouseOver(event.x(), event.y())) {
+				return modeOpen.mouseClicked(event, doubleClick);
 			}
-			open.close();
+			modeOpen.close();
+		}
+		MultiSelectDropdownButton multiOpen = MultiSelectDropdownButton.getOpen();
+		if (multiOpen != null) {
+			if (multiOpen.isMouseOver(event.x(), event.y())) {
+				return multiOpen.mouseClicked(event, doubleClick);
+			}
+			multiOpen.close();
 		}
 		return super.mouseClicked(event, doubleClick);
 	}
@@ -1654,9 +1682,13 @@ public class ExampleMenuScreen extends Screen {
 		}
 		graphics.text(this.font, panel, CONTENT_LEFT, CONTENT_TOP - 14, theme.panelHint, false);
 
-		ModeDropdownButton open = ModeDropdownButton.getOpen();
-		if (open != null) {
-			open.extractOverlay(graphics, mouseX, mouseY);
+		ModeDropdownButton modeOpen = ModeDropdownButton.getOpen();
+		if (modeOpen != null) {
+			modeOpen.extractOverlay(graphics, mouseX, mouseY);
+		}
+		MultiSelectDropdownButton multiOpen = MultiSelectDropdownButton.getOpen();
+		if (multiOpen != null) {
+			multiOpen.extractOverlay(graphics, mouseX, mouseY);
 		}
 	}
 
@@ -1664,6 +1696,7 @@ public class ExampleMenuScreen extends Screen {
 	public void onClose() {
 		ModuleKeybinds.cancelListening();
 		ModeDropdownButton.closeOpen();
+		MultiSelectDropdownButton.closeOpen();
 		super.onClose();
 	}
 }

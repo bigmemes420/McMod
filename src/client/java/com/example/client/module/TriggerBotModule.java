@@ -75,6 +75,9 @@ public final class TriggerBotModule {
 		if (hit == null || hit.getType() != HitResult.Type.ENTITY || !(hit instanceof EntityHitResult entityHit)) {
 			return;
 		}
+		if (!CombatTargetingModule.matches(entityHit.getEntity())) {
+			return;
+		}
 		if (player.getAttackStrengthScale(0.5F) < 1.0F) {
 			return;
 		}

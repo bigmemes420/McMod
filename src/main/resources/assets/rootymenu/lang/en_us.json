@@ -214,5 +214,11 @@
   "screen.rootymenu.crosshair_editor.refresh": "Refresh",
   "screen.rootymenu.crosshair_editor.use_pixels": "Use Pixels",
   "screen.rootymenu.crosshair_editor.no_pngs": "(no PNGs in crosshairs/)",
-  "screen.rootymenu.crosshair_editor.preview": "Preview"
+  "screen.rootymenu.crosshair_editor.preview": "Preview",
+  "screen.rootymenu.menu.combat.targeting": "Targeting",
+  "screen.rootymenu.menu.combat.targeting.players": "Players",
+  "screen.rootymenu.menu.combat.targeting.hostile": "Hostile mobs",
+  "screen.rootymenu.menu.combat.targeting.passive": "Passive mobs",
+  "screen.rootymenu.menu.combat.targeting.none": "None",
+  "screen.rootymenu.menu.combat.targeting.all": "All"
 }

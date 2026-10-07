@@ -5,6 +5,7 @@ import com.example.client.ExampleMenuScreen;
 import com.example.client.module.AutoClickerModule;
 import com.example.client.module.TriggerBotModule;
 import com.example.client.module.HitboxesModule;
+import com.example.client.module.CombatTargetingModule;
 import com.example.client.module.CriticalsModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.AirPlaceModule;
@@ -154,6 +155,7 @@ public final class ModConfig {
 		AimAssistModule.loadEnabled(bool(props, "aimassist", false));
 		AimAssistModule.loadStrength(floatVal(props, "aimassistStrength", AimAssistModule.DEFAULT_STRENGTH));
 		AimAssistModule.loadRange(floatVal(props, "aimassistRange", AimAssistModule.DEFAULT_RANGE));
+		CombatTargetingModule.loadCsv(props.getProperty("combatTargeting", ""));
 		HitboxesModule.loadEnabled(bool(props, "hitboxes", false));
 		HitboxesModule.loadSize(floatVal(props, "hitboxesSize", HitboxesModule.DEFAULT_SIZE));
 		AutoTotemModule.loadEnabled(bool(props, "autototem", false));
@@ -252,6 +254,7 @@ public final class ModConfig {
 			props.setProperty("aimassist", String.valueOf(AimAssistModule.isEnabled()));
 			props.setProperty("aimassistStrength", Float.toString(AimAssistModule.getStrength()));
 			props.setProperty("aimassistRange", Float.toString(AimAssistModule.getRange()));
+			props.setProperty("combatTargeting", CombatTargetingModule.toCsv());
 			props.setProperty("hitboxes", String.valueOf(HitboxesModule.isEnabled()));
 			props.setProperty("hitboxesSize", Float.toString(HitboxesModule.getSize()));
 			props.setProperty("autototem", String.valueOf(AutoTotemModule.isEnabled()));

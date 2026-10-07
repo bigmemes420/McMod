@@ -74,6 +74,8 @@ public final class ViewerRetentionModule {
 	private static List<String> cachedMediaList = List.of();
 	private static String menuSelectedFile = "";
 	private static String statusMessage = "";
+	/** Set after a successful in-game media bootstrap (texture manager ready). */
+	private static boolean mediaBootstrapped;
 
 	private ViewerRetentionModule() {
 	}
@@ -295,6 +297,8 @@ public final class ViewerRetentionModule {
 		if (screen != null && !(screen instanceof com.example.client.HudEditScreen)) {
 			return;
 		}
+		// Config load runs before the texture manager is ready; reload Media on first HUD.
+		ensureMediaReady(client);
 		float dt = delta.getRealtimeDeltaTicks() / 20.0F;
 		for (Instance inst : instances) {
 			tickGif(inst, dt);
@@ -478,13 +482,39 @@ public final class ViewerRetentionModule {
 	private static void ensureAllLoaded() {
 		ensureMediaDir();
 		for (Instance inst : instances) {
-			if (inst.ready) {
+			if (inst.ready && inst.texture != null) {
 				continue;
 			}
 			Path path = mediaDir().resolve(inst.file).normalize();
 			if (Files.isRegularFile(path)) {
 				loadMedia(inst, path);
 			}
+		}
+	}
+
+	/**
+	 * Refresh the Media/ file list and decode any unloaded instance textures once
+	 * Minecraft (texture manager) is available — fixes blank viewers after relaunch.
+	 */
+	private static void ensureMediaReady(Minecraft client) {
+		if (client == null || client.getTextureManager() == null) {
+			return;
+		}
+		boolean anyUnloaded = false;
+		for (Instance inst : instances) {
+			if (!inst.ready || inst.texture == null) {
+				anyUnloaded = true;
+				break;
+			}
+		}
+		if (!mediaBootstrapped) {
+			refreshMediaList();
+			ensureAllLoaded();
+			mediaBootstrapped = true;
+			return;
+		}
+		if (anyUnloaded) {
+			ensureAllLoaded();
 		}
 	}
 
@@ -508,6 +538,7 @@ public final class ViewerRetentionModule {
 			releaseInstance(inst);
 		}
 		instances.clear();
+		mediaBootstrapped = false;
 		if (raw == null || raw.isBlank()) {
 			return;
 		}

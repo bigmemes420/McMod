@@ -7,12 +7,19 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Combat module: client-side entity interaction reach bonus (blocks).
+ * Bonus is withheld while the look-ray hits a living/player target that fails
+ * {@link CombatTargetingModule} (independent extended raycast — no hitResult flicker).
  * Best-effort — dedicated servers may still enforce vanilla reach.
  */
 public final class ReachModule {
@@ -21,6 +28,7 @@ public final class ReachModule {
 	public static final float DEFAULT_BONUS = 1.0F;
 
 	private static final Identifier REACH_ID = ExampleMod.id("rooty_reach");
+	private static final double VANILLA_ENTITY_REACH = 3.0D;
 
 	private static boolean enabled;
 	private static float bonus = DEFAULT_BONUS;
@@ -83,12 +91,37 @@ public final class ReachModule {
 		if (attr == null) {
 			return;
 		}
-		if (enabled && bonus > 0.0F) {
+		boolean allow = enabled && bonus > 0.0F;
+		if (allow && looksAtDisallowedTarget(player, VANILLA_ENTITY_REACH + bonus)) {
+			allow = false;
+		}
+		if (allow) {
 			attr.addOrUpdateTransientModifier(new AttributeModifier(
 					REACH_ID, bonus, AttributeModifier.Operation.ADD_VALUE
 			));
 		} else {
 			attr.removeModifier(REACH_ID);
 		}
+	}
+
+	/** True when an extended look-ray hits an entity that targeting rejects. */
+	private static boolean looksAtDisallowedTarget(LocalPlayer player, double range) {
+		Vec3 from = player.getEyePosition(1.0F);
+		Vec3 look = player.getViewVector(1.0F);
+		Vec3 to = from.add(look.scale(range));
+		AABB box = player.getBoundingBox().expandTowards(look.scale(range)).inflate(1.0D);
+		EntityHitResult hit = ProjectileUtil.getEntityHitResult(
+				player,
+				from,
+				to,
+				box,
+				entity -> entity != player && entity.isPickable() && entity.isAlive(),
+				range * range
+		);
+		if (hit == null) {
+			return false;
+		}
+		Entity entity = hit.getEntity();
+		return !CombatTargetingModule.matches(entity);
 	}
 }

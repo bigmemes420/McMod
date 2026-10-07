@@ -14,57 +14,57 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 /**
- * Mode control that opens a dropdown list of labeled options.
- * Closed header uses a flat fill + optional {@code dropdown_button} texture tint
- * (no left-circle capsule — that caused stray corner pixels outside the rect).
- * The open panel is drawn via {@link #extractOverlay} so it stacks above later rows.
+ * Reusable multi-select dropdown: header toggles the panel; clicking an option
+ * toggles that entry without closing. Draw the open panel via {@link #extractOverlay}.
  */
-public class ModeDropdownButton extends AbstractWidget {
+public class MultiSelectDropdownButton extends AbstractWidget {
 	@FunctionalInterface
-	public interface OnSelect {
-		void onSelect(int index);
+	public interface OnToggle {
+		void onToggle(int index, boolean selected);
 	}
 
 	private static final Identifier DROPDOWN_BUTTON_TEXTURE = ExampleMod.id("textures/gui/dropdown_button.png");
 	private static final int TEXTURE_WIDTH = 510;
 	private static final int TEXTURE_HEIGHT = 111;
 
-	private static ModeDropdownButton openInstance;
+	private static MultiSelectDropdownButton openInstance;
 
+	private final Component title;
 	private final Component[] labels;
-	private final OnSelect onSelect;
+	private final boolean[] selected;
+	private final OnToggle onToggle;
 	private final int closedHeight;
 	private final int optionHeight;
-	private int index;
 	private boolean open;
 	private boolean pressed;
 
-	public ModeDropdownButton(
+	public MultiSelectDropdownButton(
 			int x,
 			int y,
 			int width,
 			int height,
+			Component title,
 			Component[] labels,
-			int index,
-			OnSelect onSelect
+			boolean[] selected,
+			OnToggle onToggle
 	) {
-		super(x, y, width, height, labels[clampIndex(index, labels.length)]);
+		super(x, y, width, height, title);
+		if (labels == null || labels.length == 0) {
+			throw new IllegalArgumentException("labels required");
+		}
+		this.title = title;
 		this.labels = labels;
+		this.selected = new boolean[labels.length];
+		for (int i = 0; i < labels.length; i++) {
+			this.selected[i] = selected != null && i < selected.length && selected[i];
+		}
+		this.onToggle = onToggle;
 		this.closedHeight = height;
 		this.optionHeight = height;
-		this.index = clampIndex(index, labels.length);
-		this.onSelect = onSelect;
-		setMessage(this.labels[this.index]);
+		refreshHeaderMessage();
 	}
 
-	private static int clampIndex(int index, int length) {
-		if (length <= 0) {
-			return 0;
-		}
-		return Math.max(0, Math.min(index, length - 1));
-	}
-
-	public static ModeDropdownButton getOpen() {
+	public static MultiSelectDropdownButton getOpen() {
 		return openInstance;
 	}
 
@@ -72,10 +72,6 @@ public class ModeDropdownButton extends AbstractWidget {
 		if (openInstance != null) {
 			openInstance.setOpen(false);
 		}
-	}
-
-	public int getIndex() {
-		return this.index;
 	}
 
 	public boolean isOpen() {
@@ -88,7 +84,7 @@ public class ModeDropdownButton extends AbstractWidget {
 		}
 		this.open = open;
 		if (open) {
-			MultiSelectDropdownButton.closeOpen();
+			ModeDropdownButton.closeOpen();
 			if (openInstance != null && openInstance != this) {
 				openInstance.setOpen(false);
 			}
@@ -104,6 +100,32 @@ public class ModeDropdownButton extends AbstractWidget {
 
 	public void close() {
 		setOpen(false);
+	}
+
+	public boolean[] getSelected() {
+		return this.selected.clone();
+	}
+
+	private void refreshHeaderMessage() {
+		int count = 0;
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < this.labels.length; i++) {
+			if (!this.selected[i]) {
+				continue;
+			}
+			if (count > 0) {
+				sb.append(", ");
+			}
+			sb.append(this.labels[i].getString());
+			count++;
+		}
+		if (count == 0) {
+			setMessage(Component.translatable("screen.rootymenu.menu.combat.targeting.none"));
+		} else if (count == this.labels.length) {
+			setMessage(Component.translatable("screen.rootymenu.menu.combat.targeting.all"));
+		} else {
+			setMessage(Component.literal(sb.toString()));
+		}
 	}
 
 	private int expandedBottom() {
@@ -122,13 +144,11 @@ public class ModeDropdownButton extends AbstractWidget {
 				&& mouseY < bottom;
 	}
 
-	/** Header only — panel is drawn later via {@link #extractOverlay}. */
 	@Override
 	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 		drawHeader(graphics, mouseX, mouseY);
 	}
 
-	/** Draw the open option list above overlapping widgets (call after other UI). */
 	public void extractOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		if (!this.open) {
 			return;
@@ -145,16 +165,11 @@ public class ModeDropdownButton extends AbstractWidget {
 		int fill;
 		int textColor;
 		int tint;
-
 		if (!this.active) {
 			fill = theme.capsuleDisabledFill;
 			textColor = theme.capsuleDisabledText;
 			tint = theme.capsuleDisabledOutline;
-		} else if (this.pressed) {
-			fill = theme.dropdownHoverFill;
-			textColor = theme.dropdownText;
-			tint = theme.dropdownHoverOutline;
-		} else if (headerHovered || this.open) {
+		} else if (this.pressed || headerHovered || this.open) {
 			fill = theme.dropdownHoverFill;
 			textColor = theme.dropdownText;
 			tint = theme.dropdownHoverOutline;
@@ -164,9 +179,7 @@ public class ModeDropdownButton extends AbstractWidget {
 			tint = theme.dropdownOutline;
 		}
 
-		// Flat rect only — capsule left-circle overflow was the stray TL/BL pixels.
 		MenuShapes.drawFlatRect(graphics, this.getX(), this.getY(), this.width, this.closedHeight, fill, tint);
-		// Texture is an opaque white mask; tint with fill so it does not overwrite the outline.
 		graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
 				DROPDOWN_BUTTON_TEXTURE,
@@ -184,20 +197,27 @@ public class ModeDropdownButton extends AbstractWidget {
 		var font = Minecraft.getInstance().font;
 		int textX = this.getX() + 10;
 		int textY = this.getY() + (this.closedHeight - font.lineHeight) / 2;
-		// Leave room for padding + chevron so long filenames cannot spill out.
+		// Title on the left when space allows; value summary is the message.
+		String titleStr = this.title.getString();
+		int titleW = font.width(titleStr);
 		int maxLabelW = Math.max(8, this.width - 28);
-		Component clipped = TextClip.ellipsize(font, this.getMessage(), maxLabelW);
-		graphics.text(font, clipped, textX, textY, textColor, false);
-
+		if (titleW + 8 < maxLabelW / 2) {
+			graphics.text(font, this.title, textX, textY, textColor, false);
+			int valueX = textX + titleW + 6;
+			int valueMax = Math.max(8, this.width - 28 - titleW - 6);
+			Component clipped = TextClip.ellipsize(font, this.getMessage(), valueMax);
+			graphics.text(font, clipped, valueX, textY, textColor, false);
+		} else {
+			Component clipped = TextClip.ellipsize(font, this.getMessage(), maxLabelW);
+			graphics.text(font, clipped, textX, textY, textColor, false);
+		}
 		String chevron = this.open ? "▲" : "▼";
-		int chevronX = this.getX() + this.width - 14;
-		graphics.text(font, Component.literal(chevron), chevronX, textY, textColor, false);
+		graphics.text(font, Component.literal(chevron), this.getX() + this.width - 14, textY, textColor, false);
 	}
 
 	private void drawPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		MenuTheme theme = MenuTheme.get();
 		var font = Minecraft.getInstance().font;
-		int textX = this.getX() + 10;
 		int panelTop = this.getY() + this.closedHeight;
 		for (int i = 0; i < this.labels.length; i++) {
 			int oy = panelTop + i * this.optionHeight;
@@ -205,10 +225,10 @@ public class ModeDropdownButton extends AbstractWidget {
 					&& mouseY >= oy
 					&& mouseX < this.getX() + this.width
 					&& mouseY < oy + this.optionHeight;
-			boolean selected = i == this.index;
+			boolean on = this.selected[i];
 			int optFill;
 			int optOutline;
-			if (selected) {
+			if (on) {
 				optFill = theme.dropdownSelectedFill;
 				optOutline = theme.dropdownSelectedOutline;
 			} else if (optHovered) {
@@ -220,9 +240,10 @@ public class ModeDropdownButton extends AbstractWidget {
 			}
 			MenuShapes.drawFlatRect(graphics, this.getX(), oy, this.width, this.optionHeight, optFill, optOutline);
 			int optTextY = oy + (this.optionHeight - font.lineHeight) / 2;
-			int maxOptW = Math.max(8, this.width - 20);
-			Component clipped = TextClip.ellipsize(font, this.labels[i], maxOptW);
-			graphics.text(font, clipped, textX, optTextY, theme.dropdownText, false);
+			String mark = on ? "✓ " : "   ";
+			Component line = Component.literal(mark).append(this.labels[i]);
+			Component clipped = TextClip.ellipsize(font, line, Math.max(8, this.width - 20));
+			graphics.text(font, clipped, this.getX() + 10, optTextY, theme.dropdownText, false);
 		}
 	}
 
@@ -230,32 +251,28 @@ public class ModeDropdownButton extends AbstractWidget {
 	public void onClick(MouseButtonEvent event, boolean doubleClick) {
 		this.pressed = true;
 		double my = event.y();
-
 		if (my >= this.getY() && my < this.getY() + this.closedHeight) {
 			setOpen(!this.open);
 			return;
 		}
-
 		if (!this.open) {
 			return;
 		}
-
 		int panelTop = this.getY() + this.closedHeight;
 		if (my < panelTop || my >= expandedBottom()) {
 			setOpen(false);
 			return;
 		}
-
 		int i = (int) ((my - panelTop) / this.optionHeight);
 		if (i < 0 || i >= this.labels.length) {
-			setOpen(false);
 			return;
 		}
-
-		this.index = i;
-		setMessage(this.labels[this.index]);
-		setOpen(false);
-		this.onSelect.onSelect(this.index);
+		this.selected[i] = !this.selected[i];
+		refreshHeaderMessage();
+		if (this.onToggle != null) {
+			this.onToggle.onToggle(i, this.selected[i]);
+		}
+		// Stay open for further toggles.
 	}
 
 	@Override

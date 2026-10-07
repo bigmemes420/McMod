@@ -105,6 +105,9 @@ public final class AutoClickerModule {
 		if (!(hit instanceof EntityHitResult entityHit)) {
 			return;
 		}
+		if (!CombatTargetingModule.matches(entityHit.getEntity())) {
+			return;
+		}
 
 		long now = System.currentTimeMillis();
 		if (now - lastClickMs < nextIntervalMs) {
