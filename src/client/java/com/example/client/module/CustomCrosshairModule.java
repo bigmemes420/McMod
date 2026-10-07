@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Visuals: replaces the vanilla crosshair with either a 64×64 pixel pattern or a
+ * Visuals: replaces the vanilla crosshair with either a pixel pattern (16–512) or a
  * PNG from {@code <gameDir>/crosshairs/} (full ARGB alpha). Both modes bake to a
  * DynamicTexture and blit once per frame; spin uses pose translate→rotate→translate
  * (no per-pixel fills). Rotate / spin apply to both sources; PNG can use
@@ -45,20 +45,72 @@ public final class CustomCrosshairModule {
 		DIRECT
 	}
 
-	public static final int GRID = 64;
+	/** Default square resolution size (64×64). */
+	public static final int DEFAULT_GRID = 64;
 	public static final int DEFAULT_COLOR = 0xFFFFFFFF;
 	public static final float MIN_SPIN_SPEED = 15.0F;
 	public static final float MAX_SPIN_SPEED = 720.0F;
 	public static final float DEFAULT_SPIN_SPEED = 90.0F;
-	public static final int MAX_PNG_DRAW = 64;
 	public static final String CROSSHAIRS_FOLDER = "crosshairs";
+
+	/** Square pixel / HUD draw size. */
+	public enum Resolution {
+		X16(16),
+		X32(32),
+		X64(64),
+		X128(128),
+		X256(256),
+		X512(512);
+
+		private final int size;
+
+		Resolution(int size) {
+			this.size = size;
+		}
+
+		public int size() {
+			return size;
+		}
+
+		public String label() {
+			return size + "x" + size;
+		}
+
+		public static Resolution fromSize(int size) {
+			for (Resolution r : values()) {
+				if (r.size == size) {
+					return r;
+				}
+			}
+			return X64;
+		}
+
+		public static Resolution fromConfig(String raw) {
+			if (raw == null || raw.isBlank()) {
+				return X64;
+			}
+			String s = raw.trim();
+			try {
+				return valueOf(s);
+			} catch (IllegalArgumentException ignored) {
+			}
+			// Accept bare size "64" or "64x64"
+			String digits = s.toLowerCase(Locale.ROOT).replace("x", " ").trim().split("\s+")[0];
+			try {
+				return fromSize(Integer.parseInt(digits));
+			} catch (NumberFormatException ignored) {
+				return X64;
+			}
+		}
+	}
 
 	private static final Identifier PNG_TEXTURE_ID = ExampleMod.id("dynamic/crosshair_png");
 	private static final Identifier PIXELS_TEXTURE_ID = ExampleMod.id("dynamic/crosshair_pixels");
 
 	private static boolean enabled;
 	private static Source source = Source.PIXELS;
-	private static final boolean[] pixels = new boolean[GRID * GRID];
+	private static Resolution resolution = Resolution.X64;
+	private static boolean[] pixels = new boolean[DEFAULT_GRID * DEFAULT_GRID];
 	private static int color = DEFAULT_COLOR;
 	private static ColorMode colorMode = ColorMode.TINT;
 	private static boolean rotate;
@@ -91,6 +143,15 @@ public final class CustomCrosshairModule {
 
 	public static Source getSource() {
 		return source;
+	}
+
+	public static Resolution getResolution() {
+		return resolution;
+	}
+
+	/** Current square grid / HUD draw size (16–512). */
+	public static int getGrid() {
+		return resolution.size();
 	}
 
 	public static boolean isPngMode() {
@@ -209,10 +270,11 @@ public final class CustomCrosshairModule {
 	}
 
 	public static boolean getPixel(int x, int y) {
-		if (x < 0 || y < 0 || x >= GRID || y >= GRID) {
+		int g = getGrid();
+		if (x < 0 || y < 0 || x >= g || y >= g) {
 			return false;
 		}
-		return pixels[y * GRID + x];
+		return pixels[y * g + x];
 	}
 
 	/** Copy working buffer into module state, switch to pixel mode, persist. */
@@ -232,15 +294,21 @@ public final class CustomCrosshairModule {
 	}
 
 	public static void applyDefaultPattern(boolean[] dest) {
+		int g = (int) Math.round(Math.sqrt(dest.length));
+		if (g * g != dest.length) {
+			g = getGrid();
+		}
 		Arrays.fill(dest, false);
-		int c = GRID / 2;
-		for (int i = c - 12; i <= c + 11; i++) {
-			if (Math.abs(i - c) <= 1) {
+		int c = g / 2;
+		int arm = Math.max(2, g * 12 / 64);
+		int gap = Math.max(1, g / 32);
+		for (int i = c - arm; i <= c + arm - 1; i++) {
+			if (Math.abs(i - c) <= gap) {
 				continue;
 			}
-			if (i >= 0 && i < GRID) {
-				dest[c * GRID + i] = true;
-				dest[i * GRID + c] = true;
+			if (i >= 0 && i < g) {
+				dest[c * g + i] = true;
+				dest[i * g + c] = true;
 			}
 		}
 	}
@@ -272,6 +340,34 @@ public final class CustomCrosshairModule {
 			return;
 		}
 		colorMode = value;
+		ModConfig.save();
+	}
+
+	public static void setResolution(Resolution value) {
+		if (value == null || resolution == value) {
+			return;
+		}
+		int oldG = getGrid();
+		boolean[] old = pixels;
+		resolution = value;
+		int g = value.size();
+		boolean[] next = new boolean[g * g];
+		if (old != null && oldG > 0) {
+			for (int y = 0; y < g; y++) {
+				for (int x = 0; x < g; x++) {
+					int ox = x * oldG / g;
+					int oy = y * oldG / g;
+					ox = Mth.clamp(ox, 0, oldG - 1);
+					oy = Mth.clamp(oy, 0, oldG - 1);
+					next[y * g + x] = old[oy * oldG + ox];
+				}
+			}
+		} else {
+			applyDefaultPattern(next);
+		}
+		pixels = next;
+		releasePixelsTexture();
+		markPixelsTextureDirty();
 		ModConfig.save();
 	}
 
@@ -384,6 +480,20 @@ public final class CustomCrosshairModule {
 		}
 	}
 
+	public static void loadResolution(String raw) {
+		Resolution next = Resolution.fromConfig(raw);
+		if (resolution == next && pixels != null && pixels.length == next.size() * next.size()) {
+			return;
+		}
+		resolution = next;
+		int g = next.size();
+		if (pixels == null || pixels.length != g * g) {
+			pixels = new boolean[g * g];
+			applyDefaultPattern(pixels);
+			markPixelsTextureDirty();
+		}
+	}
+
 	public static void loadRotate(boolean value) {
 		rotate = value;
 	}
@@ -409,6 +519,10 @@ public final class CustomCrosshairModule {
 	}
 
 	public static void loadPixelsBase64(String raw) {
+		int g = getGrid();
+		if (pixels == null || pixels.length != g * g) {
+			pixels = new boolean[g * g];
+		}
 		if (raw == null || raw.isBlank()) {
 			applyDefaultPattern(pixels);
 			markPixelsTextureDirty();
@@ -416,13 +530,14 @@ public final class CustomCrosshairModule {
 		}
 		try {
 			byte[] bytes = Base64.getDecoder().decode(raw.trim());
-			if (bytes.length < (GRID * GRID + 7) / 8) {
+			int need = (g * g + 7) / 8;
+			if (bytes.length < need) {
 				applyDefaultPattern(pixels);
 				markPixelsTextureDirty();
 				return;
 			}
 			Arrays.fill(pixels, false);
-			for (int i = 0; i < GRID * GRID; i++) {
+			for (int i = 0; i < g * g; i++) {
 				int b = bytes[i >>> 3] & 0xFF;
 				pixels[i] = ((b >> (i & 7)) & 1) != 0;
 			}
@@ -434,8 +549,9 @@ public final class CustomCrosshairModule {
 	}
 
 	public static String pixelsToBase64() {
-		byte[] bytes = new byte[(GRID * GRID + 7) / 8];
-		for (int i = 0; i < GRID * GRID; i++) {
+		int g = getGrid();
+		byte[] bytes = new byte[(g * g + 7) / 8];
+		for (int i = 0; i < g * g; i++) {
 			if (pixels[i]) {
 				bytes[i >>> 3] |= (byte) (1 << (i & 7));
 			}
@@ -491,19 +607,23 @@ public final class CustomCrosshairModule {
 	}
 
 	private static void seedPixelsFromImage(NativeImage image) {
+		int g = getGrid();
+		if (pixels == null || pixels.length != g * g) {
+			pixels = new boolean[g * g];
+		}
 		Arrays.fill(pixels, false);
 		markPixelsTextureDirty();
 		int w = image.getWidth();
 		int h = image.getHeight();
-		for (int y = 0; y < GRID; y++) {
-			for (int x = 0; x < GRID; x++) {
-				int sx = x * w / GRID;
-				int sy = y * h / GRID;
+		for (int y = 0; y < g; y++) {
+			for (int x = 0; x < g; x++) {
+				int sx = x * w / g;
+				int sy = y * h / g;
 				sx = Mth.clamp(sx, 0, w - 1);
 				sy = Mth.clamp(sy, 0, h - 1);
 				int argb = image.getPixel(sx, sy);
 				if (ARGB.alpha(argb) > 32) {
-					pixels[y * GRID + x] = true;
+					pixels[y * g + x] = true;
 				}
 			}
 		}
@@ -549,7 +669,7 @@ public final class CustomCrosshairModule {
 		pixelsTextureDirty = true;
 	}
 
-	/** Bake boolean grid + ARGB color into a 64×64 texture (only when dirty). */
+	/** Bake boolean grid + ARGB color into a grid×grid texture (only when dirty). */
 	private static void ensurePixelsTexture() {
 		if (!pixelsTextureDirty && pixelsTexture != null) {
 			return;
@@ -558,12 +678,13 @@ public final class CustomCrosshairModule {
 		if (client == null) {
 			return;
 		}
+		int g = getGrid();
 		releasePixelsTexture();
-		NativeImage image = new NativeImage(GRID, GRID, true);
-		image.fillRect(0, 0, GRID, GRID, 0x00000000);
-		for (int y = 0; y < GRID; y++) {
-			for (int x = 0; x < GRID; x++) {
-				if (pixels[y * GRID + x]) {
+		NativeImage image = new NativeImage(g, g, true);
+		image.fillRect(0, 0, g, g, 0x00000000);
+		for (int y = 0; y < g; y++) {
+			for (int x = 0; x < g; x++) {
+				if (pixels[y * g + x]) {
 					image.setPixel(x, y, color);
 				}
 			}
@@ -640,8 +761,9 @@ public final class CustomCrosshairModule {
 		int drawW = pngWidth;
 		int drawH = pngHeight;
 		int maxSide = Math.max(drawW, drawH);
-		if (maxSide > MAX_PNG_DRAW) {
-			float scale = MAX_PNG_DRAW / (float) maxSide;
+		int target = getGrid();
+		if (maxSide > 0) {
+			float scale = target / (float) maxSide;
 			drawW = Math.max(1, Math.round(drawW * scale));
 			drawH = Math.max(1, Math.round(drawH * scale));
 		}
@@ -657,7 +779,8 @@ public final class CustomCrosshairModule {
 			return;
 		}
 		// Color baked into texture; white tint preserves baked ARGB/alpha.
-		drawRotatedBlit(graphics, PIXELS_TEXTURE_ID, cx, cy, GRID, GRID, GRID, GRID, 0xFFFFFFFF);
+		int g = getGrid();
+		drawRotatedBlit(graphics, PIXELS_TEXTURE_ID, cx, cy, g, g, g, g, 0xFFFFFFFF);
 	}
 
 	public static void drawPngPreview(GuiGraphicsExtractor graphics, int x, int y, int maxSide) {

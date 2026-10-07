@@ -718,6 +718,32 @@ public class ExampleMenuScreen extends Screen {
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 		if (settingsOpen("custom_crosshair")) {
+			CustomCrosshairModule.Resolution[] resAll = CustomCrosshairModule.Resolution.values();
+			Component[] resLabels = new Component[resAll.length];
+			int resIndex = 0;
+			CustomCrosshairModule.Resolution curRes = CustomCrosshairModule.getResolution();
+			for (int i = 0; i < resAll.length; i++) {
+				resLabels[i] = Component.literal(resAll[i].label());
+				if (resAll[i] == curRes) {
+					resIndex = i;
+				}
+			}
+			this.addRenderableWidget(new ModeDropdownButton(
+					CONTENT_LEFT,
+					y,
+					SETTINGS_WIDTH,
+					CAPSULE_HEIGHT,
+					resLabels,
+					resIndex,
+					index -> {
+						if (index < 0 || index >= resAll.length) {
+							return;
+						}
+						CustomCrosshairModule.setResolution(resAll[index]);
+						rebuildMenu();
+					}
+			));
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			if (CustomCrosshairModule.getSource() == CustomCrosshairModule.Source.PNG) {
 				java.util.List<String> pngNames = CustomCrosshairModule.getPngList();
 				Component[] pngLabels;

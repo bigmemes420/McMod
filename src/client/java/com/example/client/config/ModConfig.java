@@ -125,6 +125,7 @@ public final class ModConfig {
 		CustomCrosshairModule.loadEnabled(bool(props, "customCrosshair", false));
 		CustomCrosshairModule.loadSource(props.getProperty("customCrosshairSource", "PIXELS"));
 		CustomCrosshairModule.loadSelectedPng(props.getProperty("customCrosshairPng", ""));
+		CustomCrosshairModule.loadResolution(props.getProperty("customCrosshairResolution", "X64"));
 		CustomCrosshairModule.loadPixelsBase64(props.getProperty("customCrosshairPixels", ""));
 		CustomCrosshairModule.loadColor(intVal(props, "customCrosshairColor", CustomCrosshairModule.DEFAULT_COLOR));
 		CustomCrosshairModule.loadColorMode(props.getProperty("customCrosshairColorMode", "TINT"));
@@ -221,6 +222,7 @@ public final class ModConfig {
 			props.setProperty("customCrosshair", String.valueOf(CustomCrosshairModule.isEnabled()));
 			props.setProperty("customCrosshairSource", CustomCrosshairModule.getSource().name());
 			props.setProperty("customCrosshairPng", CustomCrosshairModule.getSelectedPng());
+			props.setProperty("customCrosshairResolution", CustomCrosshairModule.getResolution().name());
 			props.setProperty("customCrosshairPixels", CustomCrosshairModule.pixelsToBase64());
 			props.setProperty("customCrosshairColor", Integer.toString(CustomCrosshairModule.getColor()));
 			props.setProperty("customCrosshairColorMode", CustomCrosshairModule.getColorMode().name());
