@@ -18,6 +18,7 @@ import com.example.client.module.JesusModule;
 import com.example.client.module.NametagsModule;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.NotificationsModule;
+import com.example.client.module.ViewerRetentionModule;
 import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.MobEspModule;
 import com.example.client.module.NoSlowModule;
@@ -1156,14 +1157,91 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addMiscContent() {
-		addToggleModule(
-				CONTENT_TOP,
+		int y = CONTENT_TOP;
+		y = addToggleModule(
+				y,
 				null,
 				"notifications",
 				Component.translatable("screen.modid.menu.misc.notifications"),
 				NotificationsModule.isEnabled(),
 				(button, enabled) -> NotificationsModule.setEnabled(enabled)
 		);
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.modid.menu.misc.viewer_retention"),
+				ViewerRetentionModule.isEnabled(),
+				"viewer_retention",
+				(button, enabled) -> ViewerRetentionModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("viewer_retention"),
+				button -> toggleSettings("viewer_retention")
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("viewer_retention")) {
+			java.util.List<String> mediaNames = ViewerRetentionModule.getMediaList();
+			Component[] mediaLabels;
+			int mediaIndex = 0;
+			if (mediaNames.isEmpty()) {
+				mediaLabels = new Component[] {
+						Component.translatable("screen.modid.menu.misc.viewer_retention.no_media")
+				};
+			} else {
+				mediaLabels = new Component[mediaNames.size()];
+				String selected = ViewerRetentionModule.getMenuSelectedFile();
+				for (int i = 0; i < mediaNames.size(); i++) {
+					mediaLabels[i] = Component.literal(mediaNames.get(i));
+					if (mediaNames.get(i).equalsIgnoreCase(selected)) {
+						mediaIndex = i;
+					}
+				}
+			}
+			int dropW = SETTINGS_WIDTH - EDIT_WIDTH * 2 - 12;
+			this.addRenderableWidget(new ModeDropdownButton(
+					CONTENT_LEFT,
+					y,
+					dropW,
+					CAPSULE_HEIGHT,
+					mediaLabels,
+					mediaIndex,
+					index -> {
+						if (mediaNames.isEmpty() || index < 0 || index >= mediaNames.size()) {
+							return;
+						}
+						ViewerRetentionModule.setMenuSelectedFile(mediaNames.get(index));
+					}
+			));
+			this.addRenderableWidget(new FlatMenuButton(
+					CONTENT_LEFT + dropW + 6,
+					y,
+					EDIT_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.misc.viewer_retention.refresh"),
+					button -> {
+						ViewerRetentionModule.refreshMediaList();
+						rebuildMenu();
+					}
+			));
+			this.addRenderableWidget(new FlatMenuButton(
+					CONTENT_LEFT + dropW + 6 + EDIT_WIDTH + 6,
+					y,
+					EDIT_WIDTH,
+					CAPSULE_HEIGHT,
+					Component.translatable("screen.modid.menu.misc.viewer_retention.add"),
+					button -> {
+						ViewerRetentionModule.addSelectedInstance();
+						rebuildMenu();
+					}
+			));
+			y += CAPSULE_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 	}
 
 	private void addMovementContent() {

@@ -72,6 +72,7 @@ public final class ModuleKeybinds {
 		register("safewalk", Component.translatable("screen.modid.menu.movement.safewalk"), SafeWalkModule::isEnabled, SafeWalkModule::setEnabled);
 		register("jesus", Component.translatable("screen.modid.menu.movement.jesus"), JesusModule::isEnabled, JesusModule::setEnabled);
 		register("notifications", Component.translatable("screen.modid.menu.misc.notifications"), NotificationsModule::isEnabled, NotificationsModule::setEnabled);
+		register("viewer_retention", Component.translatable("screen.modid.menu.misc.viewer_retention"), ViewerRetentionModule::isEnabled, ViewerRetentionModule::setEnabled);
 	}
 
 	public static Map<String, ModuleEntry> modules() {

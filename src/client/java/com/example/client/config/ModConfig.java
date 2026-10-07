@@ -26,6 +26,7 @@ import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
 import com.example.client.module.RadarModule;
 import com.example.client.module.CustomCrosshairModule;
+import com.example.client.module.ViewerRetentionModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
 import com.example.client.module.SneakModule;
@@ -169,6 +170,9 @@ public final class ModConfig {
 		SneakModule.loadEnabled(bool(props, "sneak", false));
 		SneakModule.loadMode(props.getProperty("sneakMode", "LEGIT"));
 		NotificationsModule.loadEnabled(bool(props, "notifications", true));
+		ViewerRetentionModule.loadEnabled(bool(props, "viewerRetention", false));
+		ViewerRetentionModule.loadInstances(props.getProperty("viewerRetentionInstances", ""));
+		ViewerRetentionModule.afterConfigLoaded();
 		ModuleKeybinds.loadFrom(props);
 		ExampleMenuScreen.loadLastTab(props.getProperty("lastTab", "GENERAL"));
 	}
@@ -264,6 +268,8 @@ public final class ModConfig {
 			props.setProperty("sneak", String.valueOf(SneakModule.isEnabled()));
 			props.setProperty("sneakMode", SneakModule.getMode().name());
 			props.setProperty("notifications", String.valueOf(NotificationsModule.isEnabled()));
+			props.setProperty("viewerRetention", String.valueOf(ViewerRetentionModule.isEnabled()));
+			props.setProperty("viewerRetentionInstances", ViewerRetentionModule.instancesToConfig());
 			props.setProperty("lastTab", ExampleMenuScreen.getLastTabName());
 			ModuleKeybinds.writeTo(props);
 

@@ -30,6 +30,7 @@ import com.example.client.module.SpiderModule;
 import com.example.client.module.StepModule;
 import com.example.client.module.TowerModule;
 import com.example.client.module.VelocityModule;
+import com.example.client.module.ViewerRetentionModule;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -53,6 +54,7 @@ public class ExampleModClient implements ClientModInitializer {
 		NoFallModule.registerHooks();
 		RadarModule.registerHud();
 		CustomCrosshairModule.registerHud();
+		ViewerRetentionModule.registerHud();
 
 		openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.modid.open_menu",
