@@ -22,8 +22,9 @@ public abstract class CameraMixin {
 	@Shadow
 	protected abstract void setPosition(double x, double y, double z);
 
-	@Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
-	private void rooty$zoomFov(CallbackInfoReturnable<Float> cir) {
+	/** Projection uses calculateFov → fov field, not getFov(). */
+	@Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
+	private void rooty$zoomFov(float partialTicks, CallbackInfoReturnable<Float> cir) {
 		cir.setReturnValue(ZoomModule.modifyFov(cir.getReturnValue()));
 	}
 

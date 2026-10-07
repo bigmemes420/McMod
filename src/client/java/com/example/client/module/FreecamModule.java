@@ -12,21 +12,20 @@ import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
-import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
-import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Visuals (Meteor Freecam / LB FreeCam): detaches the camera for WASD fly.
- * Outgoing position/look and block/entity interact packets are cancelled while
- * enabled — the body stays put on the server.
+ * Visuals (Meteor Freecam / LB FreeCam): client-only camera detach + WASD fly.
+ * The real body keeps normal physics/velocity and still sends move packets.
+ * Mouse look is applied to the freecam only (body look unchanged). Block/entity
+ * interact from the freecam view is blocked.
  */
 public final class FreecamModule {
+
 	public static final float MIN_SPEED = 0.1F;
 	public static final float MAX_SPEED = 5.0F;
 	public static final float DEFAULT_SPEED = 1.0F;
@@ -231,7 +230,7 @@ public final class FreecamModule {
 		y += velY;
 		z += velZ;
 
-		// Keep movement keys from affecting the body
+		// WASD drives the camera only; body input is zeroed so it keeps falling/velocity without walking
 		unpressMovementKeys(options);
 	}
 
@@ -243,15 +242,14 @@ public final class FreecamModule {
 		return InputConstants.isKeyDown(key.getValue());
 	}
 
-	/** Cancel outgoing movement/look and interact-related packets. */
+	/** Cancel interact packets only — move/look for the body still go out. */
 	public static boolean shouldCancelPacket(Packet<?> packet) {
 		if (!enabled) {
 			return false;
 		}
-		return packet instanceof ServerboundMovePlayerPacket
-				|| packet instanceof ServerboundPlayerInputPacket
-				|| packet instanceof ServerboundMoveVehiclePacket
-				|| packet instanceof ServerboundInteractPacket
+		// Camera-driven look never rotates the body (Entity.turn redirect), so
+		// position/look move packets stay truthful for the real body.
+		return packet instanceof ServerboundInteractPacket
 				|| packet instanceof ServerboundUseItemPacket
 				|| packet instanceof ServerboundUseItemOnPacket
 				|| packet instanceof ServerboundPlayerActionPacket;

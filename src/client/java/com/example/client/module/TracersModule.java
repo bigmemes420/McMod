@@ -2,6 +2,7 @@ package com.example.client.module;
 
 import com.example.client.config.ModConfig;
 
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -13,8 +14,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Visuals (Meteor Tracers): always-on-top lines from the eye to nearby players
- * and/or hostile mobs.
+ * Visuals (Meteor Tracers): always-on-top lines from screen center (camera
+ * origin, ignoring view bobbing) to nearby players and/or hostile mobs.
  */
 public final class TracersModule {
 	public enum Mode {
@@ -83,7 +84,10 @@ public final class TracersModule {
 		if (self == null || client.level == null) {
 			return;
 		}
-		Vec3 from = self.getEyePosition(1.0F);
+		// Camera position is the view origin (screen center). bobView is pose-only,
+		// so this origin ignores view bobbing and stays locked to the crosshair ray.
+		Camera camera = client.gameRenderer.mainCamera();
+		Vec3 from = camera.position();
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
 			if (mode == Mode.PLAYERS || mode == Mode.BOTH) {
 				for (Player player : client.level.players()) {
