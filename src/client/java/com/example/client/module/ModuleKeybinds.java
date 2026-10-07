@@ -73,6 +73,18 @@ public final class ModuleKeybinds {
 		register("jesus", Component.translatable("screen.rootymenu.menu.movement.jesus"), JesusModule::isEnabled, JesusModule::setEnabled);
 		register("notifications", Component.translatable("screen.rootymenu.menu.misc.notifications"), NotificationsModule::isEnabled, NotificationsModule::setEnabled);
 		register("viewer_retention", Component.translatable("screen.rootymenu.menu.misc.viewer_retention"), ViewerRetentionModule::isEnabled, ViewerRetentionModule::setEnabled);
+		register("zoom", Component.translatable("screen.rootymenu.menu.visuals.zoom"), ZoomModule::isEnabled, ZoomModule::setEnabled);
+		register("nohurtcam", Component.translatable("screen.rootymenu.menu.visuals.nohurtcam"), NoHurtCamModule::isEnabled, NoHurtCamModule::setEnabled);
+		register("tracers", Component.translatable("screen.rootymenu.menu.visuals.tracers"), TracersModule::isEnabled, TracersModule::setEnabled);
+		register("breadcrumbs", Component.translatable("screen.rootymenu.menu.visuals.breadcrumbs"), BreadcrumbsModule::isEnabled, BreadcrumbsModule::setEnabled);
+		register("autoarmor", Component.translatable("screen.rootymenu.menu.combat.autoarmor"), AutoArmorModule::isEnabled, AutoArmorModule::setEnabled);
+		register("autorespawn", Component.translatable("screen.rootymenu.menu.player.autorespawn"), AutoRespawnModule::isEnabled, AutoRespawnModule::setEnabled);
+		register("antiafk", Component.translatable("screen.rootymenu.menu.player.antiafk"), AntiAFKModule::isEnabled, AntiAFKModule::setEnabled);
+		register("autotool", Component.translatable("screen.rootymenu.menu.player.autotool"), AutoToolModule::isEnabled, AutoToolModule::setEnabled);
+		register("autoeat", Component.translatable("screen.rootymenu.menu.player.autoeat"), AutoEatModule::isEnabled, AutoEatModule::setEnabled);
+		register("autowalk", Component.translatable("screen.rootymenu.menu.movement.autowalk"), AutoWalkModule::isEnabled, AutoWalkModule::setEnabled);
+		register("parkour", Component.translatable("screen.rootymenu.menu.movement.parkour"), ParkourModule::isEnabled, ParkourModule::setEnabled);
+		register("autoreconnect", Component.translatable("screen.rootymenu.menu.misc.autoreconnect"), AutoReconnectModule::isEnabled, AutoReconnectModule::setEnabled);
 	}
 
 	public static Map<String, ModuleEntry> modules() {

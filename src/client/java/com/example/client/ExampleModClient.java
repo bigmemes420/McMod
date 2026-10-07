@@ -10,6 +10,18 @@ import com.example.client.module.CustomCrosshairModule;
 import com.example.client.module.AutoTotemModule;
 import com.example.client.module.AirPlaceModule;
 import com.example.client.module.AimAssistModule;
+import com.example.client.module.ZoomModule;
+import com.example.client.module.TracersModule;
+import com.example.client.module.ParkourModule;
+import com.example.client.module.NoHurtCamModule;
+import com.example.client.module.BreadcrumbsModule;
+import com.example.client.module.AntiAFKModule;
+import com.example.client.module.AutoWalkModule;
+import com.example.client.module.AutoToolModule;
+import com.example.client.module.AutoRespawnModule;
+import com.example.client.module.AutoReconnectModule;
+import com.example.client.module.AutoEatModule;
+import com.example.client.module.AutoArmorModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
@@ -74,6 +86,8 @@ public class ExampleModClient implements ClientModInitializer {
 			FinderModule.renderOverlays(context.levelRenderer());
 			PlayerEspModule.render(context.levelRenderer());
 			MobEspModule.render(context.levelRenderer());
+			TracersModule.render(context.levelRenderer());
+			BreadcrumbsModule.render(context.levelRenderer());
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -106,6 +120,15 @@ public class ExampleModClient implements ClientModInitializer {
 			AirPlaceModule.tick(client);
 			InventoryMoveModule.tick(client);
 			FinderModule.tick(client);
+			AutoRespawnModule.tick(client);
+			AutoWalkModule.tick(client);
+			ParkourModule.tick(client);
+			AntiAFKModule.tick(client);
+			AutoToolModule.tick(client);
+			AutoArmorModule.tick(client);
+			AutoEatModule.tick(client);
+			BreadcrumbsModule.tick(client);
+			AutoReconnectModule.tick(client);
 		});
 	}
 

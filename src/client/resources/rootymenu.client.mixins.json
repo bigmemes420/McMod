@@ -14,7 +14,9 @@
 		"KeyMappingAccessor",
 		"KeyboardInputMixin",
 		"LocalPlayerMixin",
-		"HudCrosshairMixin"
+		"HudCrosshairMixin",
+		"GameRendererMixin",
+		"CameraMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

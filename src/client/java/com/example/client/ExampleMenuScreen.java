@@ -5,6 +5,18 @@ import com.example.client.config.MenuTheme;
 import com.example.client.config.ModConfig;
 import com.example.client.module.AirPlaceModule;
 import com.example.client.module.AimAssistModule;
+import com.example.client.module.AntiAFKModule;
+import com.example.client.module.AutoArmorModule;
+import com.example.client.module.AutoEatModule;
+import com.example.client.module.AutoReconnectModule;
+import com.example.client.module.AutoRespawnModule;
+import com.example.client.module.AutoToolModule;
+import com.example.client.module.AutoWalkModule;
+import com.example.client.module.BreadcrumbsModule;
+import com.example.client.module.NoHurtCamModule;
+import com.example.client.module.ParkourModule;
+import com.example.client.module.TracersModule;
+import com.example.client.module.ZoomModule;
 import com.example.client.module.AutoClickerModule;
 import com.example.client.module.AutoSprintModule;
 import com.example.client.module.AutoTotemModule;
@@ -479,6 +491,85 @@ public class ExampleMenuScreen extends Screen {
 				FullbrightModule.isEnabled(),
 				(button, enabled) -> FullbrightModule.setEnabled(enabled)
 		);
+
+		y = addToggleModule(
+				y,
+				"zoom",
+				"zoom",
+				Component.translatable("screen.rootymenu.menu.visuals.zoom"),
+				ZoomModule.isEnabled(),
+				(button, enabled) -> ZoomModule.setEnabled(enabled)
+		);
+		if (settingsOpen("zoom")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.visuals.zoom.amount"),
+					ZoomModule.getZoom(),
+					ZoomModule.MIN_ZOOM,
+					ZoomModule.MAX_ZOOM,
+					ZoomModule::setZoom
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+		y = addToggleModule(
+				y,
+				null,
+				"nohurtcam",
+				Component.translatable("screen.rootymenu.menu.visuals.nohurtcam"),
+				NoHurtCamModule.isEnabled(),
+				(button, enabled) -> NoHurtCamModule.setEnabled(enabled)
+		);
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.rootymenu.menu.visuals.tracers"),
+				TracersModule.isEnabled(),
+				"tracers",
+				(button, enabled) -> TracersModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.rootymenu.menu.visuals.tracers.mode.players"),
+					Component.translatable("screen.rootymenu.menu.visuals.tracers.mode.hostiles"),
+					Component.translatable("screen.rootymenu.menu.visuals.tracers.mode.both")
+				},
+				switch (TracersModule.getMode()) {
+					case PLAYERS -> 0;
+					case HOSTILES -> 1;
+					default -> 2;
+				},
+				index -> TracersModule.setMode(switch (index) {
+					case 0 -> TracersModule.Mode.PLAYERS;
+					case 1 -> TracersModule.Mode.HOSTILES;
+					default -> TracersModule.Mode.BOTH;
+				})
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		y = addToggleModule(
+				y,
+				"breadcrumbs",
+				"breadcrumbs",
+				Component.translatable("screen.rootymenu.menu.visuals.breadcrumbs"),
+				BreadcrumbsModule.isEnabled(),
+				(button, enabled) -> BreadcrumbsModule.setEnabled(enabled)
+		);
+		if (settingsOpen("breadcrumbs")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.visuals.breadcrumbs.max_points"),
+					BreadcrumbsModule.getMaxPoints(),
+					BreadcrumbsModule.MIN_MAX_POINTS,
+					BreadcrumbsModule.MAX_MAX_POINTS,
+					BreadcrumbsModule::setMaxPoints
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
 
 		// Finder: capsule + cog + Edit + mode dropdown (Edit next to cog; dropdown right of Edit)
@@ -1004,6 +1095,14 @@ public class ExampleMenuScreen extends Screen {
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
+		y = addToggleModule(
+				y,
+				null,
+				"autoarmor",
+				Component.translatable("screen.rootymenu.menu.combat.autoarmor"),
+				AutoArmorModule.isEnabled(),
+				(button, enabled) -> AutoArmorModule.setEnabled(enabled)
+		);
 		addToggleModule(
 				y,
 				null,
@@ -1175,6 +1274,63 @@ public class ExampleMenuScreen extends Screen {
 				SneakModule.getMode() == SneakModule.Mode.CHEAT ? 1 : 0,
 				index -> SneakModule.setMode(index == 1 ? SneakModule.Mode.CHEAT : SneakModule.Mode.LEGIT)
 		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+
+		y = addToggleModule(
+				y,
+				null,
+				"autorespawn",
+				Component.translatable("screen.rootymenu.menu.player.autorespawn"),
+				AutoRespawnModule.isEnabled(),
+				(button, enabled) -> AutoRespawnModule.setEnabled(enabled)
+		);
+		y = addToggleModule(
+				y,
+				"antiafk",
+				"antiafk",
+				Component.translatable("screen.rootymenu.menu.player.antiafk"),
+				AntiAFKModule.isEnabled(),
+				(button, enabled) -> AntiAFKModule.setEnabled(enabled)
+		);
+		if (settingsOpen("antiafk")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.player.antiafk.interval"),
+					AntiAFKModule.getInterval(),
+					AntiAFKModule.MIN_INTERVAL,
+					AntiAFKModule.MAX_INTERVAL,
+					AntiAFKModule::setInterval
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+		y = addToggleModule(
+				y,
+				null,
+				"autotool",
+				Component.translatable("screen.rootymenu.menu.player.autotool"),
+				AutoToolModule.isEnabled(),
+				(button, enabled) -> AutoToolModule.setEnabled(enabled)
+		);
+		y = addToggleModule(
+				y,
+				"autoeat",
+				"autoeat",
+				Component.translatable("screen.rootymenu.menu.player.autoeat"),
+				AutoEatModule.isEnabled(),
+				(button, enabled) -> AutoEatModule.setEnabled(enabled)
+		);
+		if (settingsOpen("autoeat")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.player.autoeat.hunger"),
+					AutoEatModule.getHungerThreshold(),
+					AutoEatModule.MIN_HUNGER,
+					AutoEatModule.MAX_HUNGER,
+					AutoEatModule::setHungerThreshold
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
 	}
 
 	private void addMiscContent() {
@@ -1187,6 +1343,25 @@ public class ExampleMenuScreen extends Screen {
 				NotificationsModule.isEnabled(),
 				(button, enabled) -> NotificationsModule.setEnabled(enabled)
 		);
+		y = addToggleModule(
+				y,
+				"autoreconnect",
+				"autoreconnect",
+				Component.translatable("screen.rootymenu.menu.misc.autoreconnect"),
+				AutoReconnectModule.isEnabled(),
+				(button, enabled) -> AutoReconnectModule.setEnabled(enabled)
+		);
+		if (settingsOpen("autoreconnect")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.misc.autoreconnect.delay"),
+					AutoReconnectModule.getDelaySeconds(),
+					AutoReconnectModule.MIN_DELAY,
+					AutoReconnectModule.MAX_DELAY,
+					AutoReconnectModule::setDelaySeconds
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
 
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
@@ -1267,6 +1442,23 @@ public class ExampleMenuScreen extends Screen {
 
 	private void addMovementContent() {
 		int y = CONTENT_TOP;
+
+		y = addToggleModule(
+				y,
+				null,
+				"autowalk",
+				Component.translatable("screen.rootymenu.menu.movement.autowalk"),
+				AutoWalkModule.isEnabled(),
+				(button, enabled) -> AutoWalkModule.setEnabled(enabled)
+		);
+		y = addToggleModule(
+				y,
+				null,
+				"parkour",
+				Component.translatable("screen.rootymenu.menu.movement.parkour"),
+				ParkourModule.isEnabled(),
+				(button, enabled) -> ParkourModule.setEnabled(enabled)
+		);
 
 		// Flight + mode dropdown + cog (speed)
 		this.addRenderableWidget(new ToggleCapsuleButton(
