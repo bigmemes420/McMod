@@ -2,6 +2,7 @@ package com.example.client.widget;
 
 import com.example.ExampleMod;
 import com.example.client.config.MenuTheme;
+import com.example.client.util.TextClip;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -182,7 +183,10 @@ public class ModeDropdownButton extends AbstractWidget {
 		var font = Minecraft.getInstance().font;
 		int textX = this.getX() + 10;
 		int textY = this.getY() + (this.closedHeight - font.lineHeight) / 2;
-		graphics.text(font, this.getMessage(), textX, textY, textColor, false);
+		// Leave room for padding + chevron so long filenames cannot spill out.
+		int maxLabelW = Math.max(8, this.width - 28);
+		Component clipped = TextClip.ellipsize(font, this.getMessage(), maxLabelW);
+		graphics.text(font, clipped, textX, textY, textColor, false);
 
 		String chevron = this.open ? "▲" : "▼";
 		int chevronX = this.getX() + this.width - 14;
@@ -215,7 +219,9 @@ public class ModeDropdownButton extends AbstractWidget {
 			}
 			MenuShapes.drawFlatRect(graphics, this.getX(), oy, this.width, this.optionHeight, optFill, optOutline);
 			int optTextY = oy + (this.optionHeight - font.lineHeight) / 2;
-			graphics.text(font, this.labels[i], textX, optTextY, theme.dropdownText, false);
+			int maxOptW = Math.max(8, this.width - 20);
+			Component clipped = TextClip.ellipsize(font, this.labels[i], maxOptW);
+			graphics.text(font, clipped, textX, optTextY, theme.dropdownText, false);
 		}
 	}
 

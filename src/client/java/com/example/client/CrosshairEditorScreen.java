@@ -3,6 +3,7 @@ package com.example.client;
 import com.example.ExampleMod;
 import com.example.client.config.MenuTheme;
 import com.example.client.module.CustomCrosshairModule;
+import com.example.client.util.TextClip;
 import com.example.client.widget.FlatMenuButton;
 import com.example.client.widget.ModeDropdownButton;
 
@@ -262,14 +263,17 @@ public class CrosshairEditorScreen extends Screen {
 		);
 		String path = CustomCrosshairModule.crosshairsDir().toString();
 		if (this.font != null) {
-			path = this.font.plainSubstrByWidth(path, Math.max(40, gridPx));
+			path = TextClip.ellipsize(this.font, path, Math.max(40, Math.min(gridPx, this.width - 24)));
 		}
 		pathLabel = Component.literal(path);
 		String status = !localStatus.isEmpty() ? localStatus : CustomCrosshairModule.getStatusMessage();
 		if (this.font != null && !status.isEmpty()) {
-			status = this.font.plainSubstrByWidth(status, Math.max(40, this.width - 24));
+			status = TextClip.ellipsize(this.font, status, Math.max(40, this.width - 24));
 		}
 		statusLabel = status.isEmpty() ? Component.empty() : Component.literal(status);
+		if (this.font != null) {
+			modeLabel = TextClip.ellipsize(this.font, modeLabel, Math.max(40, this.width - 24));
+		}
 	}
 
 	private void markWorkingDirty() {

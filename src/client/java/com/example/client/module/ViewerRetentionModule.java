@@ -3,6 +3,7 @@ package com.example.client.module;
 import com.example.ExampleMod;
 import com.example.client.config.ModConfig;
 import com.example.client.util.GifDecoder;
+import com.example.client.util.TextClip;
 
 import com.mojang.blaze3d.platform.NativeImage;
 
@@ -275,7 +276,7 @@ public final class ViewerRetentionModule {
 			if (client != null) {
 				String label = inst.file;
 				if (client.font != null) {
-					label = client.font.plainSubstrByWidth(label, Math.max(20, inst.size - 4));
+					label = TextClip.ellipsize(client.font, label, Math.max(20, inst.size - 4));
 				}
 				graphics.text(client.font, label, inst.x + 2, inst.y + 2, 0xFFE8E8E8, true);
 			}
