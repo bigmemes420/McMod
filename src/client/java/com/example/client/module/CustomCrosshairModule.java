@@ -28,12 +28,21 @@ import java.util.Locale;
  * Visuals: replaces the vanilla crosshair with either a 64×64 pixel pattern or a
  * PNG from {@code <gameDir>/crosshairs/} (full ARGB alpha). Both modes bake to a
  * DynamicTexture and blit once per frame; spin uses pose translate→rotate→translate
- * (no per-pixel fills). Color / rotate / spin apply to both sources.
+ * (no per-pixel fills). Rotate / spin apply to both sources; PNG can use
+ * custom tint or direct file colors ({@link ColorMode}).
  */
 public final class CustomCrosshairModule {
 	public enum Source {
 		PIXELS,
 		PNG
+	}
+
+	/** PNG blit: multiply by custom color, or keep file colors as-is. */
+	public enum ColorMode {
+		/** Multiply PNG by {@link #getColor()} (in-game tint). */
+		TINT,
+		/** Blit with white tint — original PNG ARGB. */
+		DIRECT
 	}
 
 	public static final int GRID = 64;
@@ -51,6 +60,7 @@ public final class CustomCrosshairModule {
 	private static Source source = Source.PIXELS;
 	private static final boolean[] pixels = new boolean[GRID * GRID];
 	private static int color = DEFAULT_COLOR;
+	private static ColorMode colorMode = ColorMode.TINT;
 	private static boolean rotate;
 	private static float spinSpeed = DEFAULT_SPIN_SPEED;
 	private static float angleDeg;
@@ -89,6 +99,15 @@ public final class CustomCrosshairModule {
 
 	public static int getColor() {
 		return color;
+	}
+
+	public static ColorMode getColorMode() {
+		return colorMode;
+	}
+
+	/** Tint used when blitting PNG (white when DIRECT). */
+	public static int pngBlitColor() {
+		return colorMode == ColorMode.DIRECT ? 0xFFFFFFFF : color;
 	}
 
 	public static boolean isRotate() {
@@ -248,6 +267,14 @@ public final class CustomCrosshairModule {
 		ModConfig.save();
 	}
 
+	public static void setColorMode(ColorMode value) {
+		if (value == null || colorMode == value) {
+			return;
+		}
+		colorMode = value;
+		ModConfig.save();
+	}
+
 	public static void setRotate(boolean value) {
 		if (rotate == value) {
 			return;
@@ -343,6 +370,18 @@ public final class CustomCrosshairModule {
 	public static void loadColor(int argb) {
 		color = argb;
 		markPixelsTextureDirty();
+	}
+
+	public static void loadColorMode(String raw) {
+		if (raw == null || raw.isBlank()) {
+			colorMode = ColorMode.TINT;
+			return;
+		}
+		try {
+			colorMode = ColorMode.valueOf(raw.trim());
+		} catch (IllegalArgumentException ignored) {
+			colorMode = ColorMode.TINT;
+		}
 	}
 
 	public static void loadRotate(boolean value) {
@@ -606,7 +645,7 @@ public final class CustomCrosshairModule {
 			drawW = Math.max(1, Math.round(drawW * scale));
 			drawH = Math.max(1, Math.round(drawH * scale));
 		}
-		drawRotatedBlit(graphics, PNG_TEXTURE_ID, cx, cy, drawW, drawH, pngWidth, pngHeight, color);
+		drawRotatedBlit(graphics, PNG_TEXTURE_ID, cx, cy, drawW, drawH, pngWidth, pngHeight, pngBlitColor());
 	}
 
 	private static void drawPixels(GuiGraphicsExtractor graphics, float cx, float cy) {
@@ -642,7 +681,7 @@ public final class CustomCrosshairModule {
 				pngHeight,
 				pngWidth,
 				pngHeight,
-				color
+				pngBlitColor()
 		);
 	}
 

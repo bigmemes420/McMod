@@ -198,6 +198,8 @@
   "screen.modid.menu.visuals.custom_crosshair.mode.png": "PNG",
   "screen.modid.menu.visuals.custom_crosshair.rotate": "Rotate",
   "screen.modid.menu.visuals.custom_crosshair.spin_speed": "Spin Speed",
+  "screen.modid.menu.visuals.custom_crosshair.color_mode.tint": "Tint Color",
+  "screen.modid.menu.visuals.custom_crosshair.color_mode.direct": "PNG Colors",
   "screen.modid.crosshair_editor.title": "Crosshair Editor",
   "screen.modid.crosshair_editor.save": "Save",
   "screen.modid.crosshair_editor.clear": "Clear",

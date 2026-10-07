@@ -764,12 +764,38 @@ public class ExampleMenuScreen extends Screen {
 						}
 				));
 				y += CAPSULE_HEIGHT + SETTINGS_GAP;
+				int colorModeIndex = CustomCrosshairModule.getColorMode()
+						== CustomCrosshairModule.ColorMode.DIRECT ? 1 : 0;
+				this.addRenderableWidget(new ModeDropdownButton(
+						CONTENT_LEFT,
+						y,
+						SETTINGS_WIDTH,
+						CAPSULE_HEIGHT,
+						new Component[] {
+								Component.translatable("screen.modid.menu.visuals.custom_crosshair.color_mode.tint"),
+								Component.translatable("screen.modid.menu.visuals.custom_crosshair.color_mode.direct")
+						},
+						colorModeIndex,
+						index -> {
+							CustomCrosshairModule.setColorMode(
+									index == 1
+											? CustomCrosshairModule.ColorMode.DIRECT
+											: CustomCrosshairModule.ColorMode.TINT
+							);
+							rebuildMenu();
+						}
+				));
+				y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			}
-			addColorSettingRow(y, "Color", CustomCrosshairModule.getColor(), c -> {
-				CustomCrosshairModule.setColor(c);
-				rebuildMenu();
-			});
-			y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			boolean showColor = CustomCrosshairModule.getSource() != CustomCrosshairModule.Source.PNG
+					|| CustomCrosshairModule.getColorMode() == CustomCrosshairModule.ColorMode.TINT;
+			if (showColor) {
+				addColorSettingRow(y, "Color", CustomCrosshairModule.getColor(), c -> {
+					CustomCrosshairModule.setColor(c);
+					rebuildMenu();
+				});
+				y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			}
 			this.addRenderableWidget(new ToggleCapsuleButton(
 					CONTENT_LEFT,
 					y,

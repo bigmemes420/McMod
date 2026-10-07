@@ -127,6 +127,7 @@ public final class ModConfig {
 		CustomCrosshairModule.loadSelectedPng(props.getProperty("customCrosshairPng", ""));
 		CustomCrosshairModule.loadPixelsBase64(props.getProperty("customCrosshairPixels", ""));
 		CustomCrosshairModule.loadColor(intVal(props, "customCrosshairColor", CustomCrosshairModule.DEFAULT_COLOR));
+		CustomCrosshairModule.loadColorMode(props.getProperty("customCrosshairColorMode", "TINT"));
 		CustomCrosshairModule.loadRotate(bool(props, "customCrosshairRotate", false));
 		CustomCrosshairModule.loadSpinSpeed(floatVal(props, "customCrosshairSpinSpeed", CustomCrosshairModule.DEFAULT_SPIN_SPEED));
 		CustomCrosshairModule.afterConfigLoaded();
@@ -222,6 +223,7 @@ public final class ModConfig {
 			props.setProperty("customCrosshairPng", CustomCrosshairModule.getSelectedPng());
 			props.setProperty("customCrosshairPixels", CustomCrosshairModule.pixelsToBase64());
 			props.setProperty("customCrosshairColor", Integer.toString(CustomCrosshairModule.getColor()));
+			props.setProperty("customCrosshairColorMode", CustomCrosshairModule.getColorMode().name());
 			props.setProperty("customCrosshairRotate", String.valueOf(CustomCrosshairModule.isRotate()));
 			props.setProperty("customCrosshairSpinSpeed", Float.toString(CustomCrosshairModule.getSpinSpeed()));
 			props.setProperty("finder", String.valueOf(FinderModule.isEnabled()));
