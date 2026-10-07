@@ -642,6 +642,34 @@ public class ExampleMenuScreen extends Screen {
 					ProjectileTrajectoryModule.isLandingCircle(),
 					(button, enabled) -> ProjectileTrajectoryModule.setLandingCircle(enabled)
 			);
+			y = addToggleModule(
+					y,
+					null,
+					"projectile_in_flight",
+					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.in_flight"),
+					ProjectileTrajectoryModule.isRenderInFlight(),
+					(button, enabled) -> ProjectileTrajectoryModule.setRenderInFlight(enabled)
+			);
+			addColorSettingRow(
+					y,
+					"Line",
+					ProjectileTrajectoryModule.getLineColor(),
+					c -> {
+						ProjectileTrajectoryModule.setLineColor(c);
+						rebuildMenu();
+					}
+			);
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
+			addColorSettingRow(
+					y,
+					"Gradient",
+					ProjectileTrajectoryModule.getGradientColor(),
+					c -> {
+						ProjectileTrajectoryModule.setGradientColor(c);
+						rebuildMenu();
+					}
+			);
+			y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
 					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.fill_opacity"),

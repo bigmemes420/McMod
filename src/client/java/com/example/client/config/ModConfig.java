@@ -135,7 +135,10 @@ public final class ModConfig {
 		ProjectileTrajectoryModule.loadEnabled(bool(props, "projectileTrajectory", false));
 		ProjectileTrajectoryModule.loadPathStyle(props.getProperty("projectileTrajectoryStyle", "SOLID"));
 		ProjectileTrajectoryModule.loadLandingCircle(bool(props, "projectileTrajectoryLanding", true));
+		ProjectileTrajectoryModule.loadRenderInFlight(bool(props, "projectileTrajectoryInFlight", true));
 		ProjectileTrajectoryModule.loadFillOpacity(floatVal(props, "projectileTrajectoryFillOpacity", ProjectileTrajectoryModule.DEFAULT_FILL_OPACITY));
+		ProjectileTrajectoryModule.loadLineColor(intVal(props, "projectileTrajectoryLineColor", ProjectileTrajectoryModule.DEFAULT_LINE_COLOR));
+		ProjectileTrajectoryModule.loadGradientColor(intVal(props, "projectileTrajectoryGradientColor", ProjectileTrajectoryModule.DEFAULT_GRADIENT_COLOR));
 		FreecamModule.loadSpeed(floatVal(props, "freecamSpeed", FreecamModule.DEFAULT_SPEED));
 		ZoomModule.loadZoom(floatVal(props, "zoomAmount", ZoomModule.DEFAULT_ZOOM));
 		NoHurtCamModule.loadEnabled(bool(props, "noHurtCam", false));
@@ -267,7 +270,10 @@ public final class ModConfig {
 			props.setProperty("projectileTrajectory", String.valueOf(ProjectileTrajectoryModule.isEnabled()));
 			props.setProperty("projectileTrajectoryStyle", ProjectileTrajectoryModule.getPathStyle().name());
 			props.setProperty("projectileTrajectoryLanding", String.valueOf(ProjectileTrajectoryModule.isLandingCircle()));
+			props.setProperty("projectileTrajectoryInFlight", String.valueOf(ProjectileTrajectoryModule.isRenderInFlight()));
 			props.setProperty("projectileTrajectoryFillOpacity", Float.toString(ProjectileTrajectoryModule.getFillOpacity()));
+			props.setProperty("projectileTrajectoryLineColor", Integer.toString(ProjectileTrajectoryModule.getLineColor()));
+			props.setProperty("projectileTrajectoryGradientColor", Integer.toString(ProjectileTrajectoryModule.getGradientColor()));
 			props.setProperty("freecamSpeed", Float.toString(FreecamModule.getSpeed()));
 			props.setProperty("zoomAmount", Float.toString(ZoomModule.getZoom()));
 			props.setProperty("noHurtCam", String.valueOf(NoHurtCamModule.isEnabled()));

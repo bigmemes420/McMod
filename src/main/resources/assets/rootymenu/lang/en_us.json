@@ -284,5 +284,8 @@
   "screen.rootymenu.menu.visuals.projectile_trajectory.style.solid": "Solid",
   "screen.rootymenu.menu.visuals.projectile_trajectory.style.dashed": "Dashed",
   "screen.rootymenu.menu.visuals.projectile_trajectory.landing_circle": "Landing Circle",
-  "screen.rootymenu.menu.visuals.projectile_trajectory.fill_opacity": "Fill Opacity %"
+  "screen.rootymenu.menu.visuals.projectile_trajectory.fill_opacity": "Fill Opacity %",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.line_color": "Line Color",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.gradient_color": "Gradient Color",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.in_flight": "In Flight"
 }

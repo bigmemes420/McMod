@@ -1,6 +1,7 @@
 package com.example.client.mixin;
 
 import com.example.client.module.NoHurtCamModule;
+import com.example.client.module.ProjectileTrajectoryModule;
 import com.example.client.module.TracersModule;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.GameRenderer;
@@ -19,10 +20,10 @@ public class GameRendererMixin {
 		}
 	}
 
-	/** Tracers need an unbobbed camera so screen-center origin stays fixed. */
+	/** Tracers / projectile trajectory need an unbobbed view. */
 	@Inject(method = "bobView", at = @At("HEAD"), cancellable = true)
-	private void rooty$tracersIgnoreBob(CameraRenderState state, PoseStack pose, CallbackInfo ci) {
-		if (TracersModule.shouldIgnoreViewBobbing()) {
+	private void rooty$ignoreBobForVisuals(CameraRenderState state, PoseStack pose, CallbackInfo ci) {
+		if (TracersModule.shouldIgnoreViewBobbing() || ProjectileTrajectoryModule.shouldIgnoreViewBobbing()) {
 			ci.cancel();
 		}
 	}
