@@ -144,6 +144,7 @@ public final class ModConfig {
 		NoHurtCamModule.loadEnabled(bool(props, "noHurtCam", false));
 		TracersModule.loadEnabled(bool(props, "tracers", false));
 		TracersModule.loadMode(props.getProperty("tracersMode", "BOTH"));
+		TracersModule.loadSelectedMobs(props.getProperty("tracersMobs", ""));
 		BreadcrumbsModule.loadEnabled(bool(props, "breadcrumbs", false));
 		BreadcrumbsModule.loadMaxPoints(floatVal(props, "breadcrumbsMaxPoints", BreadcrumbsModule.DEFAULT_MAX_POINTS));
 		AutoArmorModule.loadEnabled(bool(props, "autoArmor", false));
@@ -279,6 +280,7 @@ public final class ModConfig {
 			props.setProperty("noHurtCam", String.valueOf(NoHurtCamModule.isEnabled()));
 			props.setProperty("tracers", String.valueOf(TracersModule.isEnabled()));
 			props.setProperty("tracersMode", TracersModule.getMode().name());
+			props.setProperty("tracersMobs", TracersModule.selectedMobsCsv());
 			props.setProperty("breadcrumbs", String.valueOf(BreadcrumbsModule.isEnabled()));
 			props.setProperty("breadcrumbsMaxPoints", Float.toString(BreadcrumbsModule.getMaxPoints()));
 			props.setProperty("autoArmor", String.valueOf(AutoArmorModule.isEnabled()));

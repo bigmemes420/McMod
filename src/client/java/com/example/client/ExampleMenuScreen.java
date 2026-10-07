@@ -596,8 +596,21 @@ public class ExampleMenuScreen extends Screen {
 				"tracers",
 				(button, enabled) -> TracersModule.setEnabled(enabled)
 		));
+		int tracersAfterCapsule = CONTENT_LEFT + CAPSULE_WIDTH + 6;
+		this.addRenderableWidget(new FlatMenuButton(
+				tracersAfterCapsule,
+				y,
+				EDIT_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.rootymenu.menu.visuals.tracers.edit"),
+				button -> {
+					if (this.minecraft != null) {
+						this.minecraft.gui.setScreen(new TracersMobsScreen(this));
+					}
+				}
+		));
 		this.addRenderableWidget(new ModeDropdownButton(
-				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				tracersAfterCapsule + EDIT_WIDTH + 6,
 				y,
 				MODE_WIDTH,
 				CAPSULE_HEIGHT,
