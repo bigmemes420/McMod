@@ -54,7 +54,9 @@ Custom-drawn UI (no stock button textures): top tabs, capsule toggles (left circ
 - **Custom Crosshair** — replaces vanilla crosshair (see below)  
 
 ### Combat
-AutoClicker · Velocity · Reach · Criticals · TriggerBot · Aim Assist · Hitboxes · AutoTotem  
+AutoClicker · Velocity · Reach · Criticals · TriggerBot · Aim Assist · **Hitboxes** · AutoTotem  
+
+**Hitboxes:** inflates other living entities’ client hitboxes for easier targeting. **Never affects the local player** (own bounding box / movement stay vanilla).
 
 **Targeting** (Combat tab, right side): reusable multi-select — **Players** / **Hostile mobs** / **Passive mobs**. Persisted as `combatTargeting`. Filters **Aim Assist**, **TriggerBot**, **AutoClicker**, and **Reach** (extended reach withheld while looking at a disallowed target).
 
@@ -79,6 +81,8 @@ Inventory Move · No Slow · Sneak
 - **Color:** Tint Color (multiply by in-game ARGB) or **PNG Colors** (direct / no tint)  
 - **Rotate / spin** with adjustable speed  
 - Dropdown + Refresh; long names ellipsized  
+
+**Persistence (all settings save/load):** source (pixels vs PNG/GIF), selected filename, color mode, color (hex ARGB), rotate, spin speed, resolution, and pixel grid (base64). Config load order applies resolution before pixels; PNG/GIF textures **reload on first HUD** so relaunch restores image mode even when config ran before the texture manager was ready.
 
 Create the folder if missing; drop files into `crosshairs/`.
 
