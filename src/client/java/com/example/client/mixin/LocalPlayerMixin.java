@@ -1,5 +1,6 @@
 package com.example.client.mixin;
 
+import com.example.client.module.FreecamModule;
 import com.example.client.module.NoSlowModule;
 import com.example.client.module.SneakModule;
 import net.minecraft.client.player.ClientInput;
@@ -8,7 +9,9 @@ import net.minecraft.world.entity.player.Input;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * No Slow: skip the item-use speed multiplier inside {@code modifyInput}.
@@ -41,5 +44,12 @@ public class LocalPlayerMixin {
 	)
 	private Input rooty$packetSneak(ClientInput input) {
 		return SneakModule.maybePacketSneak(input.keyPresses);
+	}
+
+	@Inject(method = "sendPosition", at = @At("HEAD"), cancellable = true)
+	private void rooty$freecamNoPosition(CallbackInfo ci) {
+		if (FreecamModule.isEnabled()) {
+			ci.cancel();
+		}
 	}
 }

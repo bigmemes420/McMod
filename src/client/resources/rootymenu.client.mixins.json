@@ -17,7 +17,8 @@
 		"HudCrosshairMixin",
 		"GameRendererMixin",
 		"CameraMixin",
-		"FishingHookAccessor"
+		"FishingHookAccessor",
+		"ConnectionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

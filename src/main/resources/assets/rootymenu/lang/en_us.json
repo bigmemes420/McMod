@@ -273,5 +273,9 @@
   "screen.rootymenu.menu.automations.autofish.recast_delay": "Recast Delay (ticks)",
   "screen.rootymenu.menu.automations.automine": "Auto Mine",
   "screen.rootymenu.menu.automations.automine.enabled": "Auto Mine enabled",
-  "screen.rootymenu.menu.automations.automine.disabled": "Auto Mine disabled"
+  "screen.rootymenu.menu.automations.automine.disabled": "Auto Mine disabled",
+  "screen.rootymenu.menu.visuals.freecam": "Freecam",
+  "screen.rootymenu.menu.visuals.freecam.enabled": "Freecam enabled — body frozen, no move/look/interact packets",
+  "screen.rootymenu.menu.visuals.freecam.disabled": "Freecam disabled",
+  "screen.rootymenu.menu.visuals.freecam.speed": "Fly Speed"
 }

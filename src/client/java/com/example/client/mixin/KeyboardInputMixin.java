@@ -1,5 +1,6 @@
 package com.example.client.mixin;
 
+import com.example.client.module.FreecamModule;
 import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.SneakModule;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -29,6 +30,11 @@ public abstract class KeyboardInputMixin extends ClientInput {
 	@Inject(method = "tick", at = @At("TAIL"))
 	private void rooty$inventoryMoveAndSneak(CallbackInfo ci) {
 		Minecraft client = Minecraft.getInstance();
+		if (FreecamModule.shouldFreezeInput()) {
+			this.keyPresses = new Input(false, false, false, false, false, false, false);
+			this.moveVector = Vec2.ZERO;
+			return;
+		}
 		if (InventoryMoveModule.shouldPassMovement(client)) {
 			boolean forward = isPhysicallyDown(this.options.keyUp);
 			boolean backward = isPhysicallyDown(this.options.keyDown);

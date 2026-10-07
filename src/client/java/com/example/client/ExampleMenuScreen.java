@@ -27,6 +27,7 @@ import com.example.client.module.CriticalsModule;
 import com.example.client.module.ElytraControlModule;
 import com.example.client.module.FlightModule;
 import com.example.client.module.FinderModule;
+import com.example.client.module.FreecamModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.HitboxesModule;
 import com.example.client.module.JesusModule;
@@ -573,6 +574,26 @@ public class ExampleMenuScreen extends Screen {
 					BreadcrumbsModule.MIN_MAX_POINTS,
 					BreadcrumbsModule.MAX_MAX_POINTS,
 					BreadcrumbsModule::setMaxPoints
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		y = addToggleModule(
+				y,
+				"freecam",
+				"freecam",
+				Component.translatable("screen.rootymenu.menu.visuals.freecam"),
+				FreecamModule.isEnabled(),
+				(button, enabled) -> FreecamModule.setEnabled(enabled)
+		);
+		if (settingsOpen("freecam")) {
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.visuals.freecam.speed"),
+					FreecamModule.getSpeed(),
+					FreecamModule.MIN_SPEED,
+					FreecamModule.MAX_SPEED,
+					FreecamModule::setSpeed
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}

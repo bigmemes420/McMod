@@ -29,6 +29,7 @@ import com.example.client.module.FastPlaceModule;
 import com.example.client.module.FinderModule;
 import com.example.client.module.ElytraControlModule;
 import com.example.client.module.FlightModule;
+import com.example.client.module.FreecamModule;
 import com.example.client.module.FullbrightModule;
 import com.example.client.module.JesusModule;
 import com.example.client.module.ModuleKeybinds;
@@ -129,6 +130,8 @@ public final class ModConfig {
 		MobEspModule.loadMobColors(props.getProperty("mobEspColors", ""));
 		FullbrightModule.loadEnabled(bool(props, "fullbright", false));
 		ZoomModule.loadEnabled(bool(props, "zoom", false));
+		FreecamModule.loadEnabled(bool(props, "freecam", false));
+		FreecamModule.loadSpeed(floatVal(props, "freecamSpeed", FreecamModule.DEFAULT_SPEED));
 		ZoomModule.loadZoom(floatVal(props, "zoomAmount", ZoomModule.DEFAULT_ZOOM));
 		NoHurtCamModule.loadEnabled(bool(props, "noHurtCam", false));
 		TracersModule.loadEnabled(bool(props, "tracers", false));
@@ -255,6 +258,8 @@ public final class ModConfig {
 			props.setProperty("mobEspColors", MobEspModule.mobColorsCsv());
 			props.setProperty("fullbright", String.valueOf(FullbrightModule.isEnabled()));
 			props.setProperty("zoom", String.valueOf(ZoomModule.isEnabled()));
+			props.setProperty("freecam", String.valueOf(FreecamModule.isEnabled()));
+			props.setProperty("freecamSpeed", Float.toString(FreecamModule.getSpeed()));
 			props.setProperty("zoomAmount", Float.toString(ZoomModule.getZoom()));
 			props.setProperty("noHurtCam", String.valueOf(NoHurtCamModule.isEnabled()));
 			props.setProperty("tracers", String.valueOf(TracersModule.isEnabled()));
