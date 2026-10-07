@@ -115,6 +115,11 @@ public class ExampleMenuScreen extends Screen {
 	private static Tab lastSelectedTab = Tab.GENERAL;
 
 	private Tab selectedTab = lastSelectedTab;
+	/** Horizontal scroll (px) for the top tab strip when tabs overflow. */
+	private int tabScrollPx;
+	/** Vertical scroll (px) for the selected tab's options. */
+	private int contentScrollPx;
+	private int contentBottomPx;
 
 	/** Which module settings panel is open ({@code null} = none). */
 	private String openSettingsId;
@@ -134,6 +139,45 @@ public class ExampleMenuScreen extends Screen {
 		}
 	}
 
+
+	private int contentTop() {
+		return CONTENT_TOP - this.contentScrollPx;
+	}
+
+	private int tabStripLeft() {
+		return 8;
+	}
+
+	private int tabStripRight() {
+		int closeX = this.width - CLOSE_WIDTH - 8;
+		int menuX = closeX - MENU_WIDTH - 6;
+		return menuX - 8;
+	}
+
+	private int tabsTotalWidth() {
+		int n = Tab.values().length;
+		return n * TAB_WIDTH + Math.max(0, n - 1) * 6;
+	}
+
+	private void clampTabScroll() {
+		int visible = Math.max(0, tabStripRight() - tabStripLeft());
+		int max = Math.max(0, tabsTotalWidth() - visible);
+		this.tabScrollPx = Math.max(0, Math.min(max, this.tabScrollPx));
+	}
+
+	private void clampContentScroll() {
+		int viewBottom = this.height - 12;
+		int max = Math.max(0, this.contentBottomPx - viewBottom);
+		this.contentScrollPx = Math.max(0, Math.min(max, this.contentScrollPx));
+	}
+
+	private void noteContentY(int scrolledY) {
+		int absolute = scrolledY + this.contentScrollPx;
+		if (absolute > this.contentBottomPx) {
+			this.contentBottomPx = absolute;
+		}
+	}
+
 	private boolean colorMenuOpen;
 
 	public ExampleMenuScreen() {
@@ -149,22 +193,28 @@ public class ExampleMenuScreen extends Screen {
 		this.clearWidgets();
 
 		int tabY = TITLE_BAND + (TOP_BAR_HEIGHT - TAB_HEIGHT) / 2;
-		int tabX = 8;
-		addTab(tabX, tabY, Tab.GENERAL, "screen.rootymenu.menu.tab.general");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.PLAYER, "screen.rootymenu.menu.tab.player");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.VISUALS, "screen.rootymenu.menu.tab.visuals");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.COMBAT, "screen.rootymenu.menu.tab.combat");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.WORLD, "screen.rootymenu.menu.tab.world");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.MOVEMENT, "screen.rootymenu.menu.tab.movement");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.AUTOMATIONS, "screen.rootymenu.menu.tab.automations");
-		tabX += TAB_WIDTH + 6;
-		addTab(tabX, tabY, Tab.MISC, "screen.rootymenu.menu.tab.misc");
+		clampTabScroll();
+		int tabLeft = tabStripLeft();
+		int tabRight = tabStripRight();
+		int tabX = tabLeft - this.tabScrollPx;
+		Tab[] tabs = Tab.values();
+		String[] tabKeys = {
+				"screen.rootymenu.menu.tab.general",
+				"screen.rootymenu.menu.tab.player",
+				"screen.rootymenu.menu.tab.visuals",
+				"screen.rootymenu.menu.tab.combat",
+				"screen.rootymenu.menu.tab.world",
+				"screen.rootymenu.menu.tab.movement",
+				"screen.rootymenu.menu.tab.automations",
+				"screen.rootymenu.menu.tab.misc"
+		};
+		for (int i = 0; i < tabs.length; i++) {
+			if (tabX + TAB_WIDTH >= tabLeft && tabX <= tabRight) {
+				addTab(tabX, tabY, tabs[i], tabKeys[i]);
+			}
+			tabX += TAB_WIDTH + 6;
+		}
+		this.contentBottomPx = CONTENT_TOP;
 
 		int closeX = this.width - CLOSE_WIDTH - 8;
 		int menuX = closeX - MENU_WIDTH - 6;
@@ -196,6 +246,7 @@ public class ExampleMenuScreen extends Screen {
 			addColorMenuContent();
 		} else {
 			addContentButtons();
+			clampContentScroll();
 		}
 	}
 
@@ -214,6 +265,7 @@ public class ExampleMenuScreen extends Screen {
 					if (this.selectedTab != tab) {
 						this.selectedTab = tab;
 						lastSelectedTab = tab;
+						this.contentScrollPx = 0;
 						ModConfig.save();
 					}
 					rebuildMenu();
@@ -271,7 +323,9 @@ public class ExampleMenuScreen extends Screen {
 					button -> toggleSettings(settingsId)
 			));
 		}
-		return y + CAPSULE_HEIGHT + CAPSULE_GAP;
+		int next = y + CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(next);
+		return next;
 	}
 
 	private void addLabeledSlider(
@@ -301,6 +355,7 @@ public class ExampleMenuScreen extends Screen {
 		this.addRenderableWidget(new LabeledSliderWidget(
 				x, y, width, SLIDER_HEIGHT, label, value, min, max, onChange, onRelease
 		));
+		noteContentY(y + SLIDER_HEIGHT + SETTINGS_GAP);
 	}
 
 	private void addColorSettingRow(int y, String label, int color, java.util.function.Consumer<Integer> onApply) {
@@ -330,6 +385,8 @@ public class ExampleMenuScreen extends Screen {
 					}
 				}
 		));
+
+		noteContentY(y + CAPSULE_HEIGHT);
 	}
 
 	private void addGeneralContent() {
@@ -338,7 +395,7 @@ public class ExampleMenuScreen extends Screen {
 				"screen.rootymenu.menu.general.option2",
 				"screen.rootymenu.menu.general.option3"
 		};
-		int y = CONTENT_TOP;
+		int y = contentTop();
 		for (String key : keys) {
 			this.addRenderableWidget(new CapsuleButton(
 					CONTENT_LEFT,
@@ -354,7 +411,7 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addVisualsContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 
 		y = addToggleModule(
 				y,
@@ -421,6 +478,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("player_esp")) {
 			addColorSettingRow(y, "Color", PlayerEspModule.getColor(), c -> {
 				PlayerEspModule.setColor(c);
@@ -490,6 +548,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 
 		y = addToggleModule(
 				y,
@@ -559,6 +618,7 @@ public class ExampleMenuScreen extends Screen {
 				})
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		y = addToggleModule(
 				y,
 				"breadcrumbs",
@@ -633,6 +693,7 @@ public class ExampleMenuScreen extends Screen {
 				)
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("projectile_trajectory")) {
 			y = addToggleModule(
 					y,
@@ -742,6 +803,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("finder")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
@@ -817,6 +879,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("radar")) {
 			int radarShapeIndex = switch (RadarModule.getShape()) {
 				case CIRCLE -> 1;
@@ -921,6 +984,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("custom_crosshair")) {
 			CustomCrosshairModule.Resolution[] resAll = CustomCrosshairModule.Resolution.values();
 			Component[] resLabels = new Component[resAll.length];
@@ -1056,7 +1120,7 @@ public class ExampleMenuScreen extends Screen {
 
 
 	private void addCombatContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 
 		y = addToggleModule(
 				y,
@@ -1220,7 +1284,7 @@ public class ExampleMenuScreen extends Screen {
 		boolean[] flags = CombatTargetingModule.getFlags();
 		this.addRenderableWidget(new MultiSelectDropdownButton(
 				targetingX,
-				CONTENT_TOP,
+				contentTop(),
 				targetingW,
 				CAPSULE_HEIGHT,
 				Component.translatable("screen.rootymenu.menu.combat.targeting"),
@@ -1236,7 +1300,7 @@ public class ExampleMenuScreen extends Screen {
 
 
 	private void addWorldContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 		this.addRenderableWidget(new ToggleCapsuleButton(
 				CONTENT_LEFT,
 				y,
@@ -1274,6 +1338,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 
 		y = addToggleModule(
 				y,
@@ -1325,7 +1390,7 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addPlayerContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 		y = addToggleModule(
 				y,
 				"inventory_move",
@@ -1377,13 +1442,14 @@ public class ExampleMenuScreen extends Screen {
 				index -> SneakModule.setMode(index == 1 ? SneakModule.Mode.CHEAT : SneakModule.Mode.LEGIT)
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 
 
 	}
 
 
 	private void addAutomationsContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 		y = addToggleModule(
 				y,
 				null,
@@ -1493,7 +1559,7 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addMiscContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 		y = addToggleModule(
 				y,
 				null,
@@ -1540,6 +1606,7 @@ public class ExampleMenuScreen extends Screen {
 				button -> toggleSettings("viewer_retention")
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("viewer_retention")) {
 			java.util.List<String> mediaNames = ViewerRetentionModule.getMediaList();
 			Component[] mediaLabels;
@@ -1600,7 +1667,7 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	private void addMovementContent() {
-		int y = CONTENT_TOP;
+		int y = contentTop();
 
 		y = addToggleModule(
 				y,
@@ -1659,6 +1726,7 @@ public class ExampleMenuScreen extends Screen {
 				}
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("flight")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
@@ -1689,6 +1757,7 @@ public class ExampleMenuScreen extends Screen {
 				button -> toggleSettings("elytra_control")
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("elytra_control")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
@@ -1731,6 +1800,7 @@ public class ExampleMenuScreen extends Screen {
 				index -> SpeedModule.setMode(index == 1 ? SpeedModule.Mode.STRAFE : SpeedModule.Mode.NORMAL)
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 		if (settingsOpen("speed")) {
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
@@ -1775,6 +1845,7 @@ public class ExampleMenuScreen extends Screen {
 				index -> AutoSprintModule.setMode(index == 1 ? AutoSprintModule.Mode.RAGE : AutoSprintModule.Mode.LEGIT)
 		));
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		noteContentY(y);
 
 		y = addToggleModule(
 				y,
@@ -1865,7 +1936,7 @@ public class ExampleMenuScreen extends Screen {
 
 	private void addColorMenuContent() {
 		MenuTheme theme = MenuTheme.get();
-		int y = CONTENT_TOP;
+		int y = contentTop();
 		int col = 0;
 		int colWidth = CAPSULE_WIDTH + 16;
 		int maxCols = Math.max(1, (this.width - CONTENT_LEFT * 2) / colWidth);
@@ -1916,6 +1987,31 @@ public class ExampleMenuScreen extends Screen {
 	}
 
 	/** Open dropdown steals clicks (overlays later rows); outside click closes it. */
+
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		if (scrollY == 0.0) {
+			return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+		}
+		int tabY = TITLE_BAND + (TOP_BAR_HEIGHT - TAB_HEIGHT) / 2;
+		int tabBottom = tabY + TAB_HEIGHT;
+		boolean overTabs = mouseY >= tabY && mouseY <= tabBottom
+				&& mouseX >= tabStripLeft() && mouseX <= tabStripRight();
+		if (overTabs) {
+			this.tabScrollPx -= (int) Math.signum(scrollY) * 28;
+			clampTabScroll();
+			rebuildMenu();
+			return true;
+		}
+		if (!this.colorMenuOpen && mouseY >= CONTENT_TOP) {
+			this.contentScrollPx -= (int) Math.signum(scrollY) * 28;
+			clampContentScroll();
+			rebuildMenu();
+			return true;
+		}
+		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+	}
+
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		ModeDropdownButton modeOpen = ModeDropdownButton.getOpen();

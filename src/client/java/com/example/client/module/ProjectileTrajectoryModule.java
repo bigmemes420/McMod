@@ -3,6 +3,7 @@ package com.example.client.module;
 import com.example.client.config.ModConfig;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Direction;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -36,14 +37,19 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Visuals (Meteor Trajectories): predicts projectile path from the held
  * shooter's muzzle (not camera/screen center). Ignores view bobbing. Supports
- * solid/dashed lines, line + gradient colors, landing circle, and optional
- * in-flight prediction for already-thrown projectiles.
+ * solid/dashed lines, line + gradient colors, face-aligned landing region, and optional in-flight trails that decay
+ * after landing or 5 seconds.
  */
 public final class ProjectileTrajectoryModule {
 	public enum PathStyle {
@@ -61,6 +67,8 @@ public final class ProjectileTrajectoryModule {
 	private static final int MAX_STEPS = 300;
 	private static final double DASH_LEN = 0.35D;
 	private static final double GAP_LEN = 0.25D;
+	private static final long TRAIL_MAX_AGE_MS = 5000L;
+	private static final long TRAIL_DECAY_MS = 1000L;
 
 	private static boolean enabled;
 	private static PathStyle pathStyle = PathStyle.SOLID;
@@ -69,6 +77,7 @@ public final class ProjectileTrajectoryModule {
 	private static float fillOpacity = DEFAULT_FILL_OPACITY;
 	private static int lineColor = DEFAULT_LINE_COLOR;
 	private static int gradientColor = DEFAULT_GRADIENT_COLOR;
+	private static final Map<Integer, FlightTrail> flightTrails = new HashMap<>();
 
 	private ProjectileTrajectoryModule() {
 	}
@@ -204,6 +213,7 @@ public final class ProjectileTrajectoryModule {
 		enabled = value;
 	}
 
+
 	public static void render(LevelRenderer levelRenderer) {
 		if (!enabled) {
 			return;
@@ -216,52 +226,138 @@ public final class ProjectileTrajectoryModule {
 		}
 		float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 		int fillA = Mth.clamp(Math.round(fillOpacity / 100.0F * 255.0F), 0, 255);
+		long now = System.currentTimeMillis();
 
 		try (var ignored = levelRenderer.collectPerFrameRenderThreadGizmos()) {
 			HeldAim held = heldAim(player);
 			if (held != null) {
 				SimResult sim = simulateFromMuzzle(player, level, held.motion(), held.mainHand(), partialTick);
-				drawSim(sim, fillA);
+				drawSim(sim, fillA, 1.0F);
 			}
 			if (renderInFlight) {
-				for (Entity entity : level.entitiesForRendering()) {
-					if (!(entity instanceof Projectile projectile) || projectile.isRemoved()) {
-						continue;
-					}
-					if (projectile.getOwner() != player) {
-						continue;
-					}
-					Motion motion = motionForEntity(projectile);
-					if (motion == null) {
-						continue;
-					}
-					SimResult sim = simulateFromProjectile(level, projectile, motion, partialTick, player);
-					drawSim(sim, fillA);
-				}
+				updateAndDrawFlightTrails(level, player, partialTick, fillA, now);
+			} else {
+				flightTrails.clear();
 			}
 		}
 	}
 
-	private static void drawSim(SimResult sim, int fillA) {
-		if (sim.points.size() < 2) {
-			return;
+	private static void updateAndDrawFlightTrails(
+			ClientLevel level,
+			LocalPlayer player,
+			float partialTick,
+			int fillA,
+			long now
+	) {
+		Set<Integer> seen = new HashSet<>();
+		for (Entity entity : level.entitiesForRendering()) {
+			if (!(entity instanceof Projectile projectile) || projectile.isRemoved()) {
+				continue;
+			}
+			if (projectile.getOwner() != player) {
+				continue;
+			}
+			Motion motion = motionForEntity(projectile);
+			if (motion == null) {
+				continue;
+			}
+			int id = projectile.getId();
+			seen.add(id);
+			FlightTrail trail = flightTrails.get(id);
+			if (trail == null) {
+				trail = new FlightTrail(id, now);
+				flightTrails.put(id, trail);
+			}
+			// Freeze path once decay has started (land or 5s age).
+			if (trail.decayStartMs != 0L) {
+				continue;
+			}
+			SimResult sim = simulateFromProjectile(level, projectile, motion, partialTick, player);
+			trail.points = new ArrayList<>(sim.points());
+			trail.landing = sim.landing();
+			trail.landingFace = sim.landingFace();
+			if (now - trail.startMs >= TRAIL_MAX_AGE_MS) {
+				trail.beginDecay(now);
+			}
 		}
-		drawPath(sim.points);
-		if (landingCircle && sim.landing != null) {
-			int fillArgb = ARGB.color(fillA, lineColor);
-			GizmoStyle style = fillA > 0
-					? GizmoStyle.strokeAndFill(ARGB.opaque(lineColor), 2.0F, fillArgb)
-					: GizmoStyle.stroke(ARGB.opaque(lineColor), 2.0F);
-			Gizmos.circle(sim.landing, LANDING_RADIUS, style).setAlwaysOnTop();
+
+		Iterator<Map.Entry<Integer, FlightTrail>> it = flightTrails.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry<Integer, FlightTrail> entry = it.next();
+			FlightTrail trail = entry.getValue();
+			if (!seen.contains(trail.entityId)) {
+				trail.beginDecay(now);
+			}
+			if (trail.decayStartMs != 0L) {
+				long elapsed = now - trail.decayStartMs;
+				if (elapsed >= TRAIL_DECAY_MS) {
+					// Keep entry until the projectile is gone so we do not respawn the trail.
+					if (!seen.contains(trail.entityId)) {
+						it.remove();
+					}
+					continue;
+				}
+				float alpha = 1.0F - (elapsed / (float) TRAIL_DECAY_MS);
+				drawSim(new SimResult(trail.points, trail.landing, trail.landingFace), fillA, alpha);
+			} else {
+				drawSim(new SimResult(trail.points, trail.landing, trail.landingFace), fillA, 1.0F);
+			}
 		}
 	}
 
-	private static void drawPath(List<Vec3> points) {
+	private static void drawSim(SimResult sim, int fillA, float alphaMul) {
+		if (sim.points == null || sim.points.size() < 2) {
+			return;
+		}
+		float a = Mth.clamp(alphaMul, 0.0F, 1.0F);
+		drawPath(sim.points, a);
+		if (landingCircle && sim.landing != null && sim.landingFace != null) {
+			int strokeA = Math.round(255 * a);
+			int fillCompA = Math.round(fillA * a);
+			int stroke = ARGB.color(strokeA, ARGB.red(lineColor), ARGB.green(lineColor), ARGB.blue(lineColor));
+			int fill = ARGB.color(fillCompA, ARGB.red(lineColor), ARGB.green(lineColor), ARGB.blue(lineColor));
+			GizmoStyle style = fillCompA > 0
+					? GizmoStyle.strokeAndFill(stroke, 2.0F, fill)
+					: GizmoStyle.stroke(stroke, 2.0F);
+			drawLandingFace(sim.landing, sim.landingFace, style);
+		}
+	}
+
+	/** Square region on the hit face (UP/DOWN/sides), not a world-flat circle. */
+	private static void drawLandingFace(Vec3 center, Direction face, GizmoStyle style) {
+		double e = LANDING_RADIUS;
+		Vec3 normal = Vec3.atLowerCornerOf(face.getUnitVec3i());
+		Vec3 c = center.add(normal.scale(0.01D));
+		Vec3 u;
+		Vec3 v;
+		switch (face) {
+			case UP, DOWN -> {
+				u = new Vec3(e, 0.0D, 0.0D);
+				v = new Vec3(0.0D, 0.0D, e);
+			}
+			case NORTH, SOUTH -> {
+				u = new Vec3(e, 0.0D, 0.0D);
+				v = new Vec3(0.0D, e, 0.0D);
+			}
+			default -> {
+				u = new Vec3(0.0D, 0.0D, e);
+				v = new Vec3(0.0D, e, 0.0D);
+			}
+		}
+		Vec3 p0 = c.add(u.scale(-1.0D)).add(v.scale(-1.0D));
+		Vec3 p1 = c.add(u).add(v.scale(-1.0D));
+		Vec3 p2 = c.add(u).add(v);
+		Vec3 p3 = c.add(u.scale(-1.0D)).add(v);
+		Gizmos.rect(p0, p1, p2, p3, style).setAlwaysOnTop();
+	}
+
+	private static void drawPath(List<Vec3> points, float alphaMul) {
 		int n = points.size() - 1;
 		if (pathStyle == PathStyle.SOLID) {
 			for (int i = 1; i < points.size(); i++) {
 				float t = n <= 1 ? 0.0F : (i - 1) / (float) n;
-				Gizmos.line(points.get(i - 1), points.get(i), lerpColor(t), 2.0F).setAlwaysOnTop();
+				Gizmos.line(points.get(i - 1), points.get(i), withAlpha(lerpColor(t), alphaMul), 2.0F)
+						.setAlwaysOnTop();
 			}
 			return;
 		}
@@ -285,7 +381,7 @@ public final class ProjectileTrajectoryModule {
 				Vec3 end = cursor.add(dir.scale(step));
 				if (drawing) {
 					float t = total <= 1.0E-6 ? 0.0F : (float) (traveled / total);
-					Gizmos.line(cursor, end, lerpColor(t), 2.0F).setAlwaysOnTop();
+					Gizmos.line(cursor, end, withAlpha(lerpColor(t), alphaMul), 2.0F).setAlwaysOnTop();
 				}
 				traveled += step;
 				cursor = end;
@@ -297,6 +393,11 @@ public final class ProjectileTrajectoryModule {
 				}
 			}
 		}
+	}
+
+	private static int withAlpha(int argb, float mul) {
+		int a = Math.round(ARGB.alpha(argb) * Mth.clamp(mul, 0.0F, 1.0F));
+		return ARGB.color(a, ARGB.red(argb), ARGB.green(argb), ARGB.blue(argb));
 	}
 
 	private static double pathLength(List<Vec3> points) {
@@ -331,7 +432,27 @@ public final class ProjectileTrajectoryModule {
 	private record HeldAim(Motion motion, boolean mainHand) {
 	}
 
-	private record SimResult(List<Vec3> points, Vec3 landing) {
+	private record SimResult(List<Vec3> points, Vec3 landing, Direction landingFace) {
+	}
+
+	private static final class FlightTrail {
+		final int entityId;
+		final long startMs;
+		long decayStartMs;
+		List<Vec3> points = List.of();
+		Vec3 landing;
+		Direction landingFace;
+
+		FlightTrail(int entityId, long startMs) {
+			this.entityId = entityId;
+			this.startMs = startMs;
+		}
+
+		void beginDecay(long now) {
+			if (this.decayStartMs == 0L) {
+				this.decayStartMs = now;
+			}
+		}
 	}
 
 	private static HeldAim heldAim(LocalPlayer player) {
@@ -396,10 +517,6 @@ public final class ProjectileTrajectoryModule {
 		return null;
 	}
 
-	/**
-	 * Muzzle: eye + hand side offset + slight forward — the held throw origin,
-	 * not the camera / screen center.
-	 */
 	private static Vec3 muzzleOrigin(LocalPlayer player, boolean mainHand, float partialTick, float pitch, float yaw) {
 		Vec3 eye = player.getEyePosition(partialTick);
 		Vec3 look = Vec3.directionFromRotation(pitch, yaw);
@@ -455,6 +572,7 @@ public final class ProjectileTrajectoryModule {
 		List<Vec3> points = new ArrayList<>();
 		points.add(start);
 		Vec3 landing = null;
+		Direction landingFace = null;
 		Vec3 prev = start;
 		Vec3 vel = startVel;
 
@@ -470,6 +588,7 @@ public final class ProjectileTrajectoryModule {
 			if (hit.getType() != HitResult.Type.MISS) {
 				points.add(hit.getLocation());
 				landing = hit.getLocation();
+				landingFace = hit.getDirection();
 				break;
 			}
 			points.add(next);
@@ -479,6 +598,6 @@ public final class ProjectileTrajectoryModule {
 				break;
 			}
 		}
-		return new SimResult(points, landing);
+		return new SimResult(points, landing, landingFace);
 	}
 }
