@@ -36,6 +36,7 @@ import com.example.client.module.MobEspModule;
 import com.example.client.module.ModuleKeybinds;
 import com.example.client.module.NoFallModule;
 import com.example.client.module.PlayerEspModule;
+import com.example.client.module.ProjectileTrajectoryModule;
 import com.example.client.module.RadarModule;
 import com.example.client.module.ReachModule;
 import com.example.client.module.SafeWalkModule;
@@ -90,6 +91,7 @@ public class ExampleModClient implements ClientModInitializer {
 			PlayerEspModule.render(context.levelRenderer());
 			MobEspModule.render(context.levelRenderer());
 			TracersModule.render(context.levelRenderer());
+			ProjectileTrajectoryModule.render(context.levelRenderer());
 			BreadcrumbsModule.render(context.levelRenderer());
 		});
 

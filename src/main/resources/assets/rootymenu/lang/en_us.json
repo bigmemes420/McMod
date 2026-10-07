@@ -277,5 +277,12 @@
   "screen.rootymenu.menu.visuals.freecam": "Freecam",
   "screen.rootymenu.menu.visuals.freecam.enabled": "Freecam enabled — client camera only; body keeps physics",
   "screen.rootymenu.menu.visuals.freecam.disabled": "Freecam disabled",
-  "screen.rootymenu.menu.visuals.freecam.speed": "Fly Speed"
+  "screen.rootymenu.menu.visuals.freecam.speed": "Fly Speed",
+  "screen.rootymenu.menu.visuals.projectile_trajectory": "Projectile Trajectory",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.enabled": "Projectile Trajectory enabled",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.disabled": "Projectile Trajectory disabled",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.style.solid": "Solid",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.style.dashed": "Dashed",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.landing_circle": "Landing Circle",
+  "screen.rootymenu.menu.visuals.projectile_trajectory.fill_opacity": "Fill Opacity %"
 }

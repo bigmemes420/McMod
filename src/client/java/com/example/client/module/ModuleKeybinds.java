@@ -78,6 +78,7 @@ public final class ModuleKeybinds {
 		register("tracers", Component.translatable("screen.rootymenu.menu.visuals.tracers"), TracersModule::isEnabled, TracersModule::setEnabled);
 		register("breadcrumbs", Component.translatable("screen.rootymenu.menu.visuals.breadcrumbs"), BreadcrumbsModule::isEnabled, BreadcrumbsModule::setEnabled);
 		register("freecam", Component.translatable("screen.rootymenu.menu.visuals.freecam"), FreecamModule::isEnabled, FreecamModule::setEnabled);
+		register("projectile_trajectory", Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory"), ProjectileTrajectoryModule::isEnabled, ProjectileTrajectoryModule::setEnabled);
 		register("autoarmor", Component.translatable("screen.rootymenu.menu.combat.autoarmor"), AutoArmorModule::isEnabled, AutoArmorModule::setEnabled);
 		register("autorespawn", Component.translatable("screen.rootymenu.menu.player.autorespawn"), AutoRespawnModule::isEnabled, AutoRespawnModule::setEnabled);
 		register("antiafk", Component.translatable("screen.rootymenu.menu.player.antiafk"), AntiAFKModule::isEnabled, AntiAFKModule::setEnabled);

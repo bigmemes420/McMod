@@ -6,7 +6,9 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gizmos.Gizmos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -17,7 +19,7 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Visuals (Meteor Tracers): always-on-top lines from unbobbed screen center
- * to nearby players and/or hostile mobs. Rebuilt every frame so they stay
+ * to nearby players and/or hostile mobs, colored from Player/Mob ESP. Rebuilt every frame so they stay
  * visible while standing still.
  */
 public final class TracersModule {
@@ -32,9 +34,6 @@ public final class TracersModule {
 
 	private static boolean enabled;
 	private static Mode mode = Mode.BOTH;
-	private static final int PLAYER_COLOR = 0xFF55E5FF;
-	private static final int MOB_COLOR = 0xFFFF5555;
-
 	private TracersModule() {
 	}
 
@@ -119,8 +118,12 @@ public final class TracersModule {
 					if (player == self || player.isRemoved()) {
 						continue;
 					}
-					Gizmos.line(from, interpolatedCenter(player, partialTick), ARGB.opaque(PLAYER_COLOR), 1.5F)
-							.setAlwaysOnTop();
+					Gizmos.line(
+							from,
+							interpolatedCenter(player, partialTick),
+							ARGB.opaque(PlayerEspModule.getColor()),
+							1.5F
+					).setAlwaysOnTop();
 				}
 			}
 			if (mode == Mode.HOSTILES || mode == Mode.BOTH) {
@@ -128,8 +131,13 @@ public final class TracersModule {
 					if (mob.isRemoved() || mob.getType().getCategory() != MobCategory.MONSTER) {
 						continue;
 					}
-					Gizmos.line(from, interpolatedCenter(mob, partialTick), ARGB.opaque(MOB_COLOR), 1.5F)
-							.setAlwaysOnTop();
+					Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
+					Gizmos.line(
+							from,
+							interpolatedCenter(mob, partialTick),
+							ARGB.opaque(MobEspModule.getMobColor(id)),
+							1.5F
+					).setAlwaysOnTop();
 				}
 			}
 		}

@@ -39,6 +39,7 @@ import com.example.client.module.InventoryMoveModule;
 import com.example.client.module.MobEspModule;
 import com.example.client.module.NoSlowModule;
 import com.example.client.module.PlayerEspModule;
+import com.example.client.module.ProjectileTrajectoryModule;
 import com.example.client.module.RadarModule;
 import com.example.client.module.CustomCrosshairModule;
 import com.example.client.module.ReachModule;
@@ -594,6 +595,60 @@ public class ExampleMenuScreen extends Screen {
 					FreecamModule.MIN_SPEED,
 					FreecamModule.MAX_SPEED,
 					FreecamModule::setSpeed
+			);
+			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+		}
+
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				y,
+				CAPSULE_WIDTH,
+				CAPSULE_HEIGHT,
+				Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory"),
+				ProjectileTrajectoryModule.isEnabled(),
+				"projectile_trajectory",
+				(button, enabled) -> ProjectileTrajectoryModule.setEnabled(enabled)
+		));
+		this.addRenderableWidget(new CogButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6,
+				y,
+				COG_SIZE,
+				settingsOpen("projectile_trajectory"),
+				button -> toggleSettings("projectile_trajectory")
+		));
+		this.addRenderableWidget(new ModeDropdownButton(
+				CONTENT_LEFT + CAPSULE_WIDTH + 6 + COG_SIZE + 6,
+				y,
+				MODE_WIDTH,
+				CAPSULE_HEIGHT,
+				new Component[] {
+					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.style.solid"),
+					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.style.dashed")
+				},
+				ProjectileTrajectoryModule.getPathStyle() == ProjectileTrajectoryModule.PathStyle.DASHED ? 1 : 0,
+				index -> ProjectileTrajectoryModule.setPathStyle(
+						index == 1
+								? ProjectileTrajectoryModule.PathStyle.DASHED
+								: ProjectileTrajectoryModule.PathStyle.SOLID
+				)
+		));
+		y += CAPSULE_HEIGHT + CAPSULE_GAP;
+		if (settingsOpen("projectile_trajectory")) {
+			y = addToggleModule(
+					y,
+					null,
+					"projectile_landing",
+					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.landing_circle"),
+					ProjectileTrajectoryModule.isLandingCircle(),
+					(button, enabled) -> ProjectileTrajectoryModule.setLandingCircle(enabled)
+			);
+			addLabeledSlider(
+					CONTENT_LEFT, y, SETTINGS_WIDTH,
+					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.fill_opacity"),
+					ProjectileTrajectoryModule.getFillOpacity(),
+					ProjectileTrajectoryModule.MIN_FILL_OPACITY,
+					ProjectileTrajectoryModule.MAX_FILL_OPACITY,
+					ProjectileTrajectoryModule::setFillOpacity
 			);
 			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
