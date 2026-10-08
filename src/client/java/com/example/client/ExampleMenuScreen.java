@@ -1885,7 +1885,16 @@ public class ExampleMenuScreen extends Screen {
 					ElytraControlModule.MAX_SPEED,
 					ElytraControlModule::setSpeed
 			);
-			y += SLIDER_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
+			y += SLIDER_HEIGHT + SETTINGS_GAP;
+			addSubToggle(
+					y,
+					CAPSULE_WIDTH,
+					Component.translatable("screen.rootymenu.menu.movement.elytra_control.movement_cancel"),
+					ElytraControlModule.isMovementCancel(),
+					null,
+					(button, enabled) -> ElytraControlModule.setMovementCancel(enabled)
+			);
+			y += CAPSULE_HEIGHT + CAPSULE_GAP;
 		}
 
 		this.addRenderableWidget(new ToggleCapsuleButton(

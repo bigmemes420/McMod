@@ -22,6 +22,11 @@ public final class ElytraControlModule {
 
 	private static boolean enabled;
 	private static float speed = DEFAULT_SPEED;
+	/**
+	 * Movement Cancel: with no movement input, stop instead of cruising along the look
+	 * direction (the module's own no-input cruise is what caused the endless forward drift).
+	 */
+	private static boolean movementCancel = true;
 
 	private ElytraControlModule() {
 	}
@@ -45,6 +50,22 @@ public final class ElytraControlModule {
 
 	public static void loadSpeed(float value) {
 		speed = Mth.clamp(value, MIN_SPEED, MAX_SPEED);
+	}
+
+	public static boolean isMovementCancel() {
+		return movementCancel;
+	}
+
+	public static void setMovementCancel(boolean value) {
+		if (movementCancel == value) {
+			return;
+		}
+		movementCancel = value;
+		ModConfig.save();
+	}
+
+	public static void loadMovementCancel(boolean value) {
+		movementCancel = value;
 	}
 
 	public static void setEnabled(boolean value) {
@@ -111,8 +132,14 @@ public final class ElytraControlModule {
 			my -= fly;
 		}
 
-		// If no input, gently keep look-direction cruise so gliding does not stall.
+		// No input: Movement Cancel stops in place (zero velocity, so vanilla glide momentum
+		// is discarded too); otherwise keep a gentle look-direction cruise so gliding does not stall.
 		if (Math.abs(mx) + Math.abs(my) + Math.abs(mz) < 1.0E-8D) {
+			if (movementCancel) {
+				player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+				player.resetFallDistance();
+				return;
+			}
 			mx = fx * fly * 0.35D;
 			my = fy * fly * 0.35D;
 			mz = fz * fly * 0.35D;

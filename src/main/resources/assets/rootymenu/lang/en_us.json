@@ -106,6 +106,7 @@
   "screen.rootymenu.menu.movement.elytra_control.enabled": "Elytra Control enabled — speed while gliding",
   "screen.rootymenu.menu.movement.elytra_control.disabled": "Elytra Control disabled",
   "screen.rootymenu.menu.movement.elytra_control.speed": "Speed",
+  "screen.rootymenu.menu.movement.elytra_control.movement_cancel": "Movement Cancel",
   "screen.rootymenu.menu.movement.autosprint": "AutoSprint",
   "screen.rootymenu.menu.movement.autosprint.enabled": "AutoSprint enabled",
   "screen.rootymenu.menu.movement.autosprint.disabled": "AutoSprint disabled",

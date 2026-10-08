@@ -105,6 +105,7 @@ public final class ModConfig {
 		FlightModule.loadSpeed(floatVal(props, "flightSpeed", FlightModule.DEFAULT_SPEED));
 		ElytraControlModule.loadEnabled(bool(props, "elytraControl", false));
 		ElytraControlModule.loadSpeed(floatVal(props, "elytraControlSpeed", ElytraControlModule.DEFAULT_SPEED));
+		ElytraControlModule.loadMovementCancel(bool(props, "elytraControlMovementCancel", true));
 		SpeedModule.loadEnabled(bool(props, "speed", false));
 		SpeedModule.loadSpeedLevel(floatVal(props, "speedLevel", SpeedModule.DEFAULT_LEVEL));
 		SpeedModule.loadMode(props.getProperty("speedMode", "NORMAL"));
@@ -241,6 +242,7 @@ public final class ModConfig {
 			props.setProperty("flightSpeed", Float.toString(FlightModule.getSpeed()));
 			props.setProperty("elytraControl", String.valueOf(ElytraControlModule.isEnabled()));
 			props.setProperty("elytraControlSpeed", Float.toString(ElytraControlModule.getSpeed()));
+			props.setProperty("elytraControlMovementCancel", String.valueOf(ElytraControlModule.isMovementCancel()));
 			props.setProperty("speed", String.valueOf(SpeedModule.isEnabled()));
 			props.setProperty("speedLevel", Float.toString(SpeedModule.getSpeedLevel()));
 			props.setProperty("speedMode", SpeedModule.getMode().name());
