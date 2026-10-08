@@ -161,6 +161,13 @@ public class ToggleCapsuleButton extends AbstractWidget {
 						.append(Component.literal("]"));
 			}
 		}
+		// Keep the label inside the capsule (sub-option toggles are narrower).
+		int maxTextWidth = this.getX() + this.width - radius / 2 - 4 - contentX;
+		if (maxTextWidth > 0 && font.width(label) > maxTextWidth) {
+			String ellipsis = "...";
+			String cut = font.plainSubstrByWidth(label.getString(), Math.max(0, maxTextWidth - font.width(ellipsis)));
+			label = Component.literal(cut + ellipsis);
+		}
 		graphics.text(font, label, contentX, textY, textColor, false);
 	}
 

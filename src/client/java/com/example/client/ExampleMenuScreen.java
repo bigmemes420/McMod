@@ -64,12 +64,22 @@ import com.example.client.widget.ColorSwatchButton;
 import com.example.client.widget.ToggleCapsuleButton;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 public class ExampleMenuScreen extends Screen {
 	private enum Tab {
@@ -99,6 +109,9 @@ public class ExampleMenuScreen extends Screen {
 	private static final int MODE_WIDTH = 120;
 	private static final int SETTINGS_WIDTH = 300;
 	private static final int SLIDER_HEIGHT = 22;
+	/** Sub-option (child) toggles are drawn 30% smaller than module toggles. */
+	private static final float SUB_TOGGLE_SCALE = 0.7F;
+	private static final int SUB_TOGGLE_HEIGHT = Math.round(CAPSULE_HEIGHT * SUB_TOGGLE_SCALE);
 	private static final int CONTENT_TOP = TITLE_BAND + TOP_BAR_HEIGHT + 28;
 	private static final int CONTENT_LEFT = 24;
 	private static final int CAPSULE_GAP = 8;
@@ -121,6 +134,15 @@ public class ExampleMenuScreen extends Screen {
 	private int contentScrollPx;
 	private int contentBottomPx;
 
+	/**
+	 * Widgets added while true belong to the fixed top bar (tabs / Colors / Close) and
+	 * render normally. Everything else is scrollable content: it is registered for input
+	 * via {@link #addWidget} but rendered by us inside a scissor below the top bar.
+	 */
+	private boolean addingHeaderWidgets;
+	private final List<Renderable> contentRenderables = new ArrayList<>();
+	private final Set<GuiEventListener> headerListeners = Collections.newSetFromMap(new IdentityHashMap<>());
+
 	/** Which module settings panel is open ({@code null} = none). */
 	private String openSettingsId;
 
@@ -142,6 +164,58 @@ public class ExampleMenuScreen extends Screen {
 
 	private int contentTop() {
 		return CONTENT_TOP - this.contentScrollPx;
+	}
+
+	/** First screen row of the scrollable content viewport (just below the top bar line). */
+	private static int contentViewTop() {
+		return TITLE_BAND + TOP_BAR_HEIGHT + 1;
+	}
+
+	private boolean inContentView(double mouseY) {
+		return mouseY >= contentViewTop() && mouseY < this.height;
+	}
+
+	@Override
+	protected <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T widget) {
+		if (this.addingHeaderWidgets) {
+			this.headerListeners.add(widget);
+			return super.addRenderableWidget(widget);
+		}
+		this.contentRenderables.add(widget);
+		return super.addWidget(widget);
+	}
+
+	@Override
+	protected void removeWidget(GuiEventListener widget) {
+		super.removeWidget(widget);
+		this.headerListeners.remove(widget);
+		if (widget instanceof Renderable renderable) {
+			this.contentRenderables.remove(renderable);
+		}
+	}
+
+	@Override
+	protected void clearWidgets() {
+		super.clearWidgets();
+		this.contentRenderables.clear();
+		this.headerListeners.clear();
+	}
+
+	/**
+	 * Hit-test: content scrolled up under the title band / top bar is hidden, so only
+	 * top-bar widgets may receive clicks there.
+	 */
+	@Override
+	public Optional<GuiEventListener> getChildAt(double mouseX, double mouseY) {
+		if (inContentView(mouseY)) {
+			return super.getChildAt(mouseX, mouseY);
+		}
+		for (GuiEventListener child : this.children()) {
+			if (this.headerListeners.contains(child) && child.isMouseOver(mouseX, mouseY)) {
+				return Optional.of(child);
+			}
+		}
+		return Optional.empty();
 	}
 
 	private int tabStripLeft() {
@@ -191,6 +265,7 @@ public class ExampleMenuScreen extends Screen {
 
 	private void rebuildMenu() {
 		this.clearWidgets();
+		this.addingHeaderWidgets = true;
 
 		int tabY = TITLE_BAND + (TOP_BAR_HEIGHT - TAB_HEIGHT) / 2;
 		clampTabScroll();
@@ -241,6 +316,7 @@ public class ExampleMenuScreen extends Screen {
 				Component.translatable("screen.rootymenu.menu.close"),
 				button -> this.onClose()
 		));
+		this.addingHeaderWidgets = false;
 
 		if (this.colorMenuOpen) {
 			addColorMenuContent();
@@ -326,6 +402,36 @@ public class ExampleMenuScreen extends Screen {
 		int next = y + CAPSULE_HEIGHT + CAPSULE_GAP;
 		noteContentY(next);
 		return next;
+	}
+
+	/**
+	 * Child-option toggle (lives inside a module's settings): 70% of the width/height of a
+	 * normal row toggle, left-aligned and vertically centered in the usual row slot.
+	 * The widget bounds (hitbox) match the drawn capsule. Callers advance {@code y} as for a
+	 * full-size row of {@code CAPSULE_HEIGHT}.
+	 */
+	private void addSubToggle(
+			int y,
+			int fullWidth,
+			Component label,
+			boolean enabled,
+			String moduleId,
+			ToggleCapsuleButton.OnToggle onToggle
+	) {
+		int w = Math.round(fullWidth * SUB_TOGGLE_SCALE);
+		int h = SUB_TOGGLE_HEIGHT;
+		int subY = y + (CAPSULE_HEIGHT - h) / 2;
+		this.addRenderableWidget(new ToggleCapsuleButton(
+				CONTENT_LEFT,
+				subY,
+				w,
+				h,
+				label,
+				enabled,
+				moduleId,
+				onToggle
+		));
+		noteContentY(y + CAPSULE_HEIGHT);
 	}
 
 	private void addLabeledSlider(
@@ -485,15 +591,14 @@ public class ExampleMenuScreen extends Screen {
 				rebuildMenu();
 			});
 			y += CAPSULE_HEIGHT + SETTINGS_GAP;
-			this.addRenderableWidget(new ToggleCapsuleButton(
-					CONTENT_LEFT,
+			addSubToggle(
 					y,
 					SETTINGS_WIDTH,
-					CAPSULE_HEIGHT,
 					Component.translatable("screen.rootymenu.menu.visuals.player_esp.outline_boxes"),
 					PlayerEspModule.isOutlineBoxes(),
+					null,
 					(button, enabled) -> PlayerEspModule.setOutlineBoxes(enabled)
-			));
+			);
 			y += CAPSULE_HEIGHT + SETTINGS_GAP + CAPSULE_GAP;
 		}
 
@@ -708,22 +813,24 @@ public class ExampleMenuScreen extends Screen {
 		y += CAPSULE_HEIGHT + CAPSULE_GAP;
 		noteContentY(y);
 		if (settingsOpen("projectile_trajectory")) {
-			y = addToggleModule(
+			addSubToggle(
 					y,
-					null,
-					"projectile_landing",
+					CAPSULE_WIDTH,
 					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.landing_circle"),
 					ProjectileTrajectoryModule.isLandingCircle(),
+					"projectile_landing",
 					(button, enabled) -> ProjectileTrajectoryModule.setLandingCircle(enabled)
 			);
-			y = addToggleModule(
+			y += CAPSULE_HEIGHT + CAPSULE_GAP;
+			addSubToggle(
 					y,
-					null,
-					"projectile_in_flight",
+					CAPSULE_WIDTH,
 					Component.translatable("screen.rootymenu.menu.visuals.projectile_trajectory.in_flight"),
 					ProjectileTrajectoryModule.isRenderInFlight(),
+					"projectile_in_flight",
 					(button, enabled) -> ProjectileTrajectoryModule.setRenderInFlight(enabled)
 			);
+			y += CAPSULE_HEIGHT + CAPSULE_GAP;
 			addColorSettingRow(
 					y,
 					"Line",
@@ -924,15 +1031,14 @@ public class ExampleMenuScreen extends Screen {
 					}
 			));
 			y += CAPSULE_HEIGHT + SETTINGS_GAP;
-			this.addRenderableWidget(new ToggleCapsuleButton(
-					CONTENT_LEFT,
+			addSubToggle(
 					y,
 					SETTINGS_WIDTH,
-					CAPSULE_HEIGHT,
 					Component.translatable("screen.rootymenu.menu.visuals.radar.show_height"),
 					RadarModule.isShowHeight(),
+					null,
 					(button, enabled) -> RadarModule.setShowHeight(enabled)
-			));
+			);
 			y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			addLabeledSlider(
 					CONTENT_LEFT, y, SETTINGS_WIDTH,
@@ -1103,18 +1209,17 @@ public class ExampleMenuScreen extends Screen {
 				});
 				y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			}
-			this.addRenderableWidget(new ToggleCapsuleButton(
-					CONTENT_LEFT,
+			addSubToggle(
 					y,
 					SETTINGS_WIDTH,
-					CAPSULE_HEIGHT,
 					Component.translatable("screen.rootymenu.menu.visuals.custom_crosshair.rotate"),
 					CustomCrosshairModule.isRotate(),
+					null,
 					(button, enabled) -> {
 						CustomCrosshairModule.setRotate(enabled);
 						rebuildMenu();
 					}
-			));
+			);
 			y += CAPSULE_HEIGHT + SETTINGS_GAP;
 			if (CustomCrosshairModule.isRotate()) {
 				addLabeledSlider(
@@ -2016,7 +2121,10 @@ public class ExampleMenuScreen extends Screen {
 			rebuildMenu();
 			return true;
 		}
-		if (!this.colorMenuOpen && mouseY >= CONTENT_TOP) {
+		if (!this.colorMenuOpen && inContentView(mouseY)) {
+			// Dropdown overlays belong to widgets that are about to be rebuilt at new positions.
+			ModeDropdownButton.closeOpen();
+			MultiSelectDropdownButton.closeOpen();
 			this.contentScrollPx -= (int) Math.signum(scrollY) * 28;
 			clampContentScroll();
 			rebuildMenu();
@@ -2027,16 +2135,17 @@ public class ExampleMenuScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		boolean inView = inContentView(event.y());
 		ModeDropdownButton modeOpen = ModeDropdownButton.getOpen();
 		if (modeOpen != null) {
-			if (modeOpen.isMouseOver(event.x(), event.y())) {
+			if (inView && modeOpen.isMouseOver(event.x(), event.y())) {
 				return modeOpen.mouseClicked(event, doubleClick);
 			}
 			modeOpen.close();
 		}
 		MultiSelectDropdownButton multiOpen = MultiSelectDropdownButton.getOpen();
 		if (multiOpen != null) {
-			if (multiOpen.isMouseOver(event.x(), event.y())) {
+			if (inView && multiOpen.isMouseOver(event.x(), event.y())) {
 				return multiOpen.mouseClicked(event, doubleClick);
 			}
 			multiOpen.close();
@@ -2105,8 +2214,18 @@ public class ExampleMenuScreen extends Screen {
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		// Top-bar widgets (tabs / Colors / Close) are the only regular renderables.
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
 		MenuTheme theme = MenuTheme.get();
+
+		// Scrollable content is clipped to the viewport below the top bar, so it can never
+		// draw over the bar/title. Hidden parts get no hover (mouse outside the viewport).
+		boolean mouseInView = inContentView(mouseY);
+		int contentMouseX = mouseInView ? mouseX : -10000;
+		int contentMouseY = mouseInView ? mouseY : -10000;
+		graphics.enableScissor(0, contentViewTop(), this.width, this.height);
+		extractContentRenderState(graphics, contentMouseX, contentMouseY, delta);
+		graphics.disableScissor();
 
 		// Title shifted right of the logo (logo drawn in extractBackground)
 		var pose = graphics.pose();
@@ -2116,7 +2235,11 @@ public class ExampleMenuScreen extends Screen {
 		pose.scale(TITLE_SCALE);
 		graphics.text(this.font, this.title, 0, 0, theme.title, true);
 		pose.popMatrix();
+	}
 
+	/** Panel hint, content widgets and open dropdown overlays (called inside the content scissor). */
+	private void extractContentRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		MenuTheme theme = MenuTheme.get();
 		Component panel;
 		if (this.colorMenuOpen) {
 			panel = Component.translatable("screen.rootymenu.menu.colors.panel");
@@ -2133,7 +2256,12 @@ public class ExampleMenuScreen extends Screen {
 			};
 			panel = Component.translatable("screen.rootymenu.menu.panel", Component.translatable(panelKey));
 		}
-		graphics.text(this.font, panel, CONTENT_LEFT, CONTENT_TOP - 14, theme.panelHint, false);
+		int panelY = (this.colorMenuOpen ? CONTENT_TOP : contentTop()) - 14;
+		graphics.text(this.font, panel, CONTENT_LEFT, panelY, theme.panelHint, false);
+
+		for (Renderable renderable : this.contentRenderables) {
+			renderable.extractRenderState(graphics, mouseX, mouseY, delta);
+		}
 
 		ModeDropdownButton modeOpen = ModeDropdownButton.getOpen();
 		if (modeOpen != null) {
